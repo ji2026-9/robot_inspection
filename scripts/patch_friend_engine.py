@@ -118,6 +118,163 @@ def patch_app_icon(engine: Path) -> str:
     return "已加入应用图标（原文件备份为 main.py.bak）"
 
 
+def patch_dark_mode(engine: Path) -> str:
+    """Fix white-on-white text.
+
+    Windows is in DARK mode here, so the system text colour is white. The app sets
+    white table backgrounds but never sets the text colour, so every data row renders
+    white-on-white (table headers have their own colour, which is why only the data
+    looked "empty"). Same for the combo box popup and the progress bar text.
+    """
+    edits = [
+        (engine / "inspection_gui" / "gui.py", [
+            ("QMainWindow, QDialog { background: #f1f5f9; color: #172b4d; }",
+             "QMainWindow, QDialog { background: #f1f5f9; color: #172b4d; }\n"
+             "QLabel { color: #172b4d; }"),
+            ("QTableWidget { background: white; alternate-background-color: #f1f6fc; gridline-color: #b7c7d9; }",
+             "QTableWidget { background: white; color: #172b4d; alternate-background-color: #f1f6fc; "
+             "gridline-color: #b7c7d9; }\n"
+             "QTableWidget::item { color: #172b4d; }"),
+            ("QHeaderView::section { background: #e8eff8; padding: 6px; border: 1px solid #b7c7d9; font-weight: 600; }",
+             "QHeaderView::section { background: #e8eff8; color: #24466e; padding: 6px; "
+             "border: 1px solid #b7c7d9; font-weight: 600; }"),
+            ("QComboBox { padding: 5px; background: white; border: 1px solid #bdccde; border-radius: 4px; }",
+             "QComboBox { padding: 5px; background: white; color: #17365c; "
+             "border: 1px solid #bdccde; border-radius: 4px; }\n"
+             "QComboBox QAbstractItemView { background: white; color: #17365c; "
+             "selection-background-color: #dbeafe; }"),
+            ("QProgressBar { border: 1px solid #cbd5e1; border-radius: 5px; text-align: center; min-height: 17px; }",
+             "QProgressBar { border: 1px solid #cbd5e1; border-radius: 5px; text-align: center; "
+             "min-height: 17px; color: #172b4d; }"),
+        ]),
+        (engine / "inspection_gui" / "records_view.py", [
+            ("QTableWidget { gridline-color: #b8c2cf; alternate-background-color: #f3f6fa; }",
+             "QTableWidget { background: white; color: #172b4d; gridline-color: #b8c2cf; "
+             "alternate-background-color: #f3f6fa; }"),
+        ]),
+        (engine / "inspection_gui" / "devices_view.py", [
+            ("background: white; gridline-color: #d5deea; border: 1px solid #d5deea;",
+             "background: white; color: #234369; gridline-color: #d5deea; border: 1px solid #d5deea;"),
+        ]),
+    ]
+    applied, skipped, missing = [], [], []
+    for path, pairs in edits:
+        if not path.is_file():
+            missing.append(path.name)
+            continue
+        text = path.read_text(encoding="utf-8")
+        original = text
+        for old, new in pairs:
+            if new in text:
+                skipped.append(path.name)
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+            else:
+                missing.append("{}:{}".format(path.name, old[:28]))
+        if text != original:
+            shutil.copy2(path, path.with_suffix(".py.bak"))
+            path.write_text(text, encoding="utf-8")
+            applied.append(path.name)
+    out = []
+    if applied:
+        out.append("已修复: " + ", ".join(sorted(set(applied))))
+    if skipped:
+        out.append("已是最新: " + ", ".join(sorted(set(skipped))))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out) or "无需修改"
+
+
+def patch_photo_dir(engine: Path) -> str:
+    """The photo picker opened the PROGRAM folder because a hard-coded path from the
+    author's machine does not exist. Remember the last used folder instead."""
+    f = engine / "app.py"
+    if not f.is_file():
+        return "找不到 app.py"
+    text = f.read_text(encoding="utf-8")
+    if "last_photo_dir.txt" in text:
+        return "已打过补丁（跳过）"
+    old_dir = "initialdir=r'C:\\训练照片（箱体）'"
+    new_dir = "initialdir=str(_default_photo_dir())"
+    if old_dir not in text:
+        return "没找到写死的 initialdir"
+
+    helper = (
+        "def _default_photo_dir():\n"
+        "    # [local patch] remember the last folder instead of a path from another PC\n"
+        "    marker = BASE / 'last_photo_dir.txt'\n"
+        "    try:\n"
+        "        if marker.is_file():\n"
+        "            chosen = Path(marker.read_text(encoding='utf-8').strip())\n"
+        "            if chosen.is_dir():\n"
+        "                return chosen\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "    pictures = Path.home() / 'Pictures'\n"
+        "    return pictures if pictures.is_dir() else BASE\n"
+        "\n"
+        "\n"
+    )
+    if "def _default_photo_dir()" not in text:
+        if "def choose():" not in text:
+            return "没找到 choose() 函数"
+        text = text.replace("    def choose():", helper + "    def choose():", 1)
+    text = text.replace(old_dir, new_dir, 1)
+    remember = (
+        "        if not paths: return\n"
+        "        try:  # [local patch] remember this folder for next time\n"
+        "            (BASE / 'last_photo_dir.txt').write_text(str(Path(paths[0]).parent), encoding='utf-8')\n"
+        "        except Exception:\n"
+        "            pass\n"
+    )
+    if "remember this folder for next time" not in text:
+        text = text.replace("        if not paths: return\n", remember, 1)
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "已改为记住上次文件夹（原文件备份为 app.py.bak）"
+
+
+def patch_tk_dark_mode(engine: Path) -> str:
+    """The management windows are Tkinter and use ttk defaults, so in Windows dark
+    mode their labels draw white text on the app's light background (invisible).
+    Set explicit ttk colours once, right after each Tk root is created."""
+    f = engine / "app.py"
+    if not f.is_file():
+        return "找不到 app.py"
+    text = f.read_text(encoding="utf-8")
+    if "dark-mode fix" in text:
+        return "已打过补丁（跳过）"
+    anchor = "    root = tk.Tk()\n"
+    if anchor not in text:
+        return "找不到 root = tk.Tk()"
+    block = anchor + (
+        "    # [local patch] dark-mode fix: ttk defaults to the system text colour\n"
+        "    # (white in Windows dark mode) on our light background -> invisible labels\n"
+        "    try:\n"
+        "        _style = ttk.Style(root)\n"
+        "        for _name, _opts in (\n"
+        "            ('TLabel', {'foreground': '#172b4d', 'background': '#f1f5f9'}),\n"
+        "            ('TButton', {'foreground': '#17365c'}),\n"
+        "            ('TCheckbutton', {'foreground': '#172b4d', 'background': '#f1f5f9'}),\n"
+        "            ('TRadiobutton', {'foreground': '#172b4d', 'background': '#f1f5f9'}),\n"
+        "            ('TCombobox', {'foreground': '#17365c'}),\n"
+        "            ('TLabelframe', {'background': '#f1f5f9'}),\n"
+        "            ('TLabelframe.Label', {'foreground': '#24466e', 'background': '#f1f5f9'}),\n"
+        "            ('TNotebook.Tab', {'foreground': '#17365c'}),\n"
+        "            ('Treeview', {'background': 'white', 'fieldbackground': 'white', 'foreground': '#172b4d'}),\n"
+        "            ('Treeview.Heading', {'foreground': '#24466e'}),\n"
+        "        ):\n"
+        "            _style.configure(_name, **_opts)\n"
+        "        root.configure(bg='#f1f5f9')\n"
+        "    except Exception:\n"
+        "        pass\n")
+    text = text.replace(anchor, block)
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "已加入 ttk 深色模式配色（原文件备份为 app.py.bak）"
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -163,10 +320,13 @@ def main() -> int:
     print("1) 拟合策略 :", patch_detect_core(engine))
     print("2) 部署模型 :", deploy_model(engine))
     print("3) 应用图标 :", patch_app_icon(engine))
+    print("4) 深色模式 :", patch_dark_mode(engine))
+    print("5) 照片目录 :", patch_photo_dir(engine))
+    print("6) Tk 配色  :", patch_tk_dark_mode(engine))
     if args.swap_model:
-        print("4) 模型注册 :", point_registry(engine))
+        print("7) 模型注册 :", point_registry(engine))
     else:
-        print("4) 模型注册 :", restore_registry(engine))
+        print("7) 模型注册 :", restore_registry(engine))
 
     reg = engine / "active_models.json"
     if reg.is_file():
