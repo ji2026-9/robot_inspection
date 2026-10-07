@@ -1,0 +1,29 @@
+DATASET_INFO — 交付包数据集统计（dataset/box_yolo）
+================================================================
+生成时间: 2026-10-06 19:56:57
+
+【来源】E:\robot_inspection\dataset\box_yolo\ （原样复制，未做任何修改）
+【data.yaml 原文】
+path: .
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: cylinder_bore
+
+split       images    labels          状态
+train           20        20          OK
+val              2         2          OK
+test             3         3          OK
+
+【label 格式】YOLO-Seg 多边形：每行 `class_id x1 y1 x2 y2 ...`（归一化坐标）
+【类别】1 个：cylinder_bore
+
+【标注对象说明】
+  · 原始数据中的目标是**四个大型孔**（大型工业箱体顶部的 4 个结构孔）；
+  · 小安装孔、螺纹孔、周围护栏孔等**不是**当前训练目标，未标注；
+  · 每个目标孔以实例分割多边形（mask）标注，类别统一为 cylinder_bore。
+
+【重要】本数据集为「单类别 + 四孔实例分割」；若与其他数据集融合，
+必须先核对类别名称、class id、标注格式与标注对象（见 FUSION_PLAN.md）。

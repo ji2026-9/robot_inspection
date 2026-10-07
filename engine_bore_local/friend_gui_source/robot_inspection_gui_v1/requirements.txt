@@ -1,0 +1,14 @@
+# Robot Vision Inspection GUI - dependencies
+# These are the exact versions validated on the development machine.
+#
+# NOTE: PyTorch is installed by setup_env.bat (CUDA build if an NVIDIA GPU is
+#       present, otherwise the CPU build). Do not add torch here.
+
+ultralytics==8.4.173
+opencv-python==5.0.0.93
+numpy==2.4.6
+PySide6-Essentials==6.11.2
+matplotlib==3.11.2
+pandas==3.0.6
+pyyaml==6.0.3
+scipy==1.17.1

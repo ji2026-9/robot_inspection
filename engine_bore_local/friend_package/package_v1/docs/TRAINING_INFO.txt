@@ -1,0 +1,46 @@
+TRAINING_INFO — 本交付模型（weights/best.pt）的真实训练记录
+================================================================
+生成时间: 2026-10-06 19:56:57
+
+【记录来源】
+  运行目录 : E:\robot_inspection\runs\box_yolo_yolo11n_seg\
+  配置依据 : runs\box_yolo_yolo11n_seg\args.yaml（Ultralytics 自动写出，非人工填写）
+  指标依据 : runs\box_yolo_yolo11n_seg\results.csv
+  权重来源 : weights\best_source.txt 记录该 run 的 weights\best.pt
+
+【运行环境（本机实测）】
+  Python                : 3.11.14
+  PyTorch               : 2.5.1+cu121
+  CUDA (torch build)    : 12.1
+  CUDA available        : True
+  GPU                   : NVIDIA GeForce RTX 3050 Ti Laptop GPU
+  Ultralytics           : 8.4.173
+  OpenCV                : 5.0.0
+  OS                    : Windows-10-10.0.22631-SP0
+
+【模型与训练超参数（来自 args.yaml）】
+  模型架构 (model)      : yolo11n-seg.pt
+  任务类型 (task)       : segment
+  输入尺寸 (imgsz)      : 640
+  batch                 : 2
+  epochs                : 100
+  patience              : 20
+  device                : 0
+  workers               : 2
+  optimizer             : auto
+  seed                  : 0
+  pretrained            : True
+  实际训练轮数          : 95
+  最佳轮次 (best epoch) : 75
+
+【数据集数量（交付包内 dataset/box_yolo 实测）】
+  训练集 train          : 20 张
+  验证集 val            : 2 张
+  测试集 test           : 3 张
+  类别数量              : 1
+  类别名称              : cylinder_bore
+
+【重要说明】
+  1) 本 best.pt 是「原始 baseline」训练产物：batch=2、patience=20；项目内后续另有 batch=8、patience=0 的正式对照实验，二者不是同一批。
+  2) 项目内存在 5 个随机种子的正式对照实验（experiments\formal_seed*），其权重**未包含**在本交付包中（交付包只含 baseline best.pt）。
+  3) 未确认项一律写 UNKNOWN / NOT RECORDED，未做任何推测。
