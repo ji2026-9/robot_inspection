@@ -11,7 +11,7 @@
 | 类别 | 放哪儿 | 内容 | 体积 |
 | --- | --- | --- | --- |
 | **A 类** | **Git 仓库**（已上传） | 代码、脚本、配置、文档、轻量实验记录 | 0.26 MB |
-| **B 类** | **GitHub Release 附件**（11 个文件，待上传） | 模型、数据集、图片、训练输出、外部数据集 | 4,257 MB |
+| **B 类** | **GitHub Release 附件**（8 个文件，待上传） | 模型、数据集、图片、训练输出 | 1,227 MB |
 | **C 类** | **不上传** | `.venv`、`__pycache__`、`_installers` | 5,465 MB |
 
 为什么这么分：
@@ -44,11 +44,11 @@ weights\      只有 best_source.txt 和两个置信度 json（**不含 .pt**）
 
 ---
 
-## 三、B 类：Release 附件（11 个，共 4,257 MB）
+## 三、B 类：Release 附件（8 个，共 1,227 MB）
 
 全部已生成在：**`E:\robot_inspection\release_assets\`**
 
-### 3.1 核心附件（01–08，共 1,227 MB）—— 建议全部上传
+### 3.1 全部附件（01–08，共 1,227 MB）—— 建议全部上传
 
 | # | 文件名 | 大小 | 里面是什么 | 谁需要 |
 | --- | --- | --- | --- | --- |
@@ -61,16 +61,17 @@ weights\      只有 best_source.txt 和两个置信度 json（**不含 .pt**）
 | 07 | `07_results_and_runs.zip` | 347.9 MB | 检测可视化结果 + YOLO 训练输出 | 看训练曲线/混淆矩阵 |
 | 08 | `08_logs_and_audit.zip` | 3.5 MB | 训练/安装日志 + 审计原图 | 查历史 |
 
-### 3.2 外部数据集（09–11，共 3,030 MB）—— 可选
+### 3.2 外部数据集（T-LESS / Workpieces）—— **暂不打包、不上传**
 
-| # | 文件名 | 大小 | 里面是什么 |
-| --- | --- | --- | --- |
-| 09 | `09_external_data_1_original_zips.zip` | 1,495.3 MB | T-LESS 三个场景 + Workpieces 的**原始下载 zip** |
-| 10 | `10_external_data_2_extracted.zip` | 1,514.8 MB | 上面这些**解压后的图像**（3,627 个文件） |
-| 11 | `11_external_data_3_reports.zip` | 20.4 MB | 外部数据集审计报告 / 元数据 / 样本 / 结论 md |
+`external_datasets\`（3,055 MB，3,843 个文件）是 Phase 2–4 的外部数据集探索，
+**和主线「4 个大孔检测」无关**，而且随时能重新下载，因此**本轮不生成、不上传**。
 
-> 这三个是 Phase 2–4 的外部数据集探索（T-LESS / Workpieces），**和主线「4 个大孔检测」无关**，
-> 而且能重新下载。**只有朋友要做数据融合实验时才需要传，否则可以跳过**，省 3 GB 上传时间。
+原始数据仍然完整保留在本机 `E:\robot_inspection\external_datasets\`。
+将来确实要做数据融合实验时，一条命令就能补生成（会拆成 3 个 <2 GB 的附件）：
+
+```bat
+E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py --with-external
+```
 
 ### 3.3 每个附件的 SHA256
 
@@ -85,7 +86,7 @@ weights\      只有 best_source.txt 和两个置信度 json（**不含 .pt**）
 | `.venv\`（34,165 个文件） | 5,347.8 MB | 含 14 个超过 100 MB 的 CUDA 库；路径写死，换电脑无效；各人自己 `setup_env.bat` 重建 |
 | `_installers\` | 117.2 MB | Miniconda / Python 安装包，官网随时能下 |
 | `__pycache__\`、`*.pyc` | — | Python 缓存，自动生成 |
-| `release_assets\` 本身 | 4,257 MB | 就是上面 B 类的来源目录，已加入 `.gitignore` |
+| `release_assets\` 本身 | 1,227 MB | 就是上面 B 类的来源目录，已加入 `.gitignore` |
 
 ---
 
@@ -98,9 +99,8 @@ weights\      只有 best_source.txt 和两个置信度 json（**不含 .pt**）
    - **Release title**：`数据与模型 v1.0（数据集 / 模型 / 实验结果）`
 3. 打开文件夹 **`E:\robot_inspection\release_assets\`**，把里面的文件**拖进页面下方的
    "Attach binaries by dropping them here"** 方框。
-   - 建议先传 `01` ~ `08`（1.2 GB），传完点 **Publish release**；
-   - `09` ~ `11` 以后想做数据融合实验时再补传（可以再建一个 release）。
-   - 也可以按住 Ctrl 多选后一起拖。
+   - 一共 8 个文件（1.2 GB），可以按住 Ctrl 多选后一起拖。
+   - 不要拖 `MANIFEST_文件清单.txt` / `SHA256_校验.txt` / `说明_项目文件分类.md`（留着自用即可）。
 4. 点 **Publish release**。传完后网页上每个附件都有下载链接和大小。
 
 > 上传走的是本机代理，1.2 GB 大概需要几分钟到几十分钟，中途断了页面会提示，重试即可（已上传的不用重传）。
@@ -128,7 +128,7 @@ git checkout -b feature/fusion
 | 只想跑起来看效果 | `01_gui_app_full_package.zip` | 任意目录，双击里面的 `setup_env.bat` |
 | 要训练 / 复现实验 | `03` + `05` + `04` | 项目根目录（还原出 `dataset\`、`test_images\`、`weights\`） |
 | 要做模型比较 | `06` + `07` | 项目根目录（还原出 `experiments\`、`results\`、`runs\`） |
-| 要做数据融合 | `09` + `10` + `11` | 项目根目录（还原出 `external_datasets\`） |
+| 要做数据融合 | 先按第 3.2 节补生成 09–11 并上传 | 项目根目录（还原出 `external_datasets\`） |
 
 解压完成后检查一下：
 
@@ -151,7 +151,7 @@ python scripts\check_dataset.py
 | `experiments\`（模型与图片） | **B 类 06** | Release 附件 |
 | `results\` `runs\` | **B 类 07** | Release 附件 |
 | `logs\` `_audit\` | **B 类 08** | Release 附件 |
-| `external_datasets\` | **B 类 09–11**（可选） | Release 附件 |
+| `external_datasets\` | **暂不上传**（本轮排除，可重新下载） | 需要时用 `--with-external` 补生成 |
 | `friend_transfer\` | **B 类 01 / 02** | Release 附件（内容相同） |
 | `.venv\` `_installers\` | **C 类** | 各自安装，不上传 |
 
@@ -162,11 +162,11 @@ python scripts\check_dataset.py
 附件的生成脚本已经进 Git，随时可以重跑：
 
 ```bat
-:: 全部 11 个（含 3 GB 外部数据集，约 1 分钟）
+:: 默认：核心 8 个附件
 E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py
 
-:: 只生成核心 01~08
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py --core-only
+:: 需要外部数据集时（额外生成 09~11，约 3 GB，1 分钟）
+E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py --with-external
 ```
 
 脚本**只读取**项目文件，不会修改、移动或删除任何原始内容；

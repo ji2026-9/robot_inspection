@@ -9,8 +9,9 @@ Build the GitHub Release assets for the robot_inspection project.
 
 用法：
     E:\\robot_inspection\\.venv\\Scripts\\python.exe E:\\robot_inspection\\scripts\\make_release_assets.py
-    # 只生成前 8 个核心附件（跳过 3 GB 的外部数据集，省时间）：
-    ... make_release_assets.py --core-only
+    # 默认只生成 8 个核心附件（不含 3 GB 的外部数据集）
+    # 确实需要外部数据集时再加 --with-external（会生成 09~11）：
+    ... make_release_assets.py --with-external
 
 输出目录：E:\\robot_inspection\\release_assets\\
 本脚本**只读取**项目文件，从不修改、不移动、不删除任何原始内容。
@@ -154,12 +155,12 @@ EXTRA = [
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--core-only", action="store_true",
-                    help="只生成 01~08（跳过约 3 GB 的外部数据集）")
+    ap.add_argument("--with-external", action="store_true",
+                    help="额外生成 09~11（约 3 GB 的外部数据集；默认不生成）")
     args = ap.parse_args()
 
     OUT.mkdir(parents=True, exist_ok=True)
-    todo = CORE if args.core_only else CORE + EXTRA
+    todo = CORE + EXTRA if args.with_external else CORE
 
     print("output:", OUT)
     print("assets :", len(todo))
