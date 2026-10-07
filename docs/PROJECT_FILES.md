@@ -48,6 +48,15 @@ weights\      只有 best_source.txt 和两个置信度 json（**不含 .pt**）
 
 全部已生成在：**`E:\robot_inspection\release_assets\`**
 
+**已经上传完成（2026-10-07）：**
+
+```
+https://github.com/ji2026-9/robot_inspection/releases/tag/v1.0-data
+```
+
+标签 `v1.0-data`，8 个附件全部上传成功并逐个校验过（大小与 SHA256 一致）。
+仓库为**私有（Private）**，只有你和被邀请的协作者能下载。
+
 ### 3.1 全部附件（01–08，共 1,227 MB）—— 建议全部上传
 
 | # | 文件名 | 大小 | 里面是什么 | 谁需要 |
