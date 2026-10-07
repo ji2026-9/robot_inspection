@@ -24,6 +24,7 @@
 | 关键库 | torch 2.5.1+cu121、ultralytics 8.4.173、opencv 5.0.0、numpy 2.4.6、PySide6 6.11.2 |
 | 启动软件 | 双击桌面「机械臂智能视觉检测系统」（= `.venv\Scripts\pythonw.exe app\main.py`） |
 | 排查用 | 双击桌面「机械臂智能视觉检测系统(调试)」（带控制台，报错看得见） |
+| 另一套软件 | 朋友的「双机械臂孔检测系统」→ 桌面「双机械臂孔检测系统（朋友版）」，装在 `E:\friend_engine_local` |
 
 ---
 
@@ -183,7 +184,34 @@ copy /Y E:\robot_inspection\weights\best_backup_20261007_before_fusion.pt E:\rob
 
 ---
 
-## 十一、诚实边界（避免误用）
+## 十一、现在电脑上有两套软件（并行保留）
+
+| | 我方「机械臂智能视觉检测系统」 | 朋友的「双机械臂孔检测系统」 |
+| --- | --- | --- |
+| 桌面快捷方式 | 机械臂智能视觉检测系统 | **双机械臂孔检测系统（朋友版）** |
+| 代码位置 | `E:\robot_inspection\app\` | `E:\friend_engine_local\` |
+| 入口 | `app\main.py` | `app.py` |
+| 用哪个模型 | `weights\best.pt`（fusion_v1，4 张图 16/16） | `models\bore_best.pt` + `models\part_best.pt`（他的 28 张训练） |
+| 界面特点 | 简单的检测→任务→模拟执行流程，带 73 项自测 | 设备连接窗口、3D 模拟、实验记录、**模型与数据管理**（标注 + 增量训练） |
+| 运行环境 | `E:\robot_inspection\.venv` | 同一个环境（用目录链接 `.venv` 复用，不额外占空间） |
+| 已知缺口 | — | 「标注(Labelme)」按钮需要额外的 `.labelme_env` 环境，**目前未安装**（点了会提示"未安装完成"，不会崩） |
+
+> 两套软件**不互相影响**：各自读自己的模型、各写自己的结果目录。
+> 想比较两套的结果，用同一批照片分别跑一遍即可。
+
+**以后更新他的软件**（他在 `feature/fusion` 分支上改了代码之后）：
+
+```bat
+cd /d E:\robot_inspection
+git fetch origin
+git archive origin/feature/fusion engine_bore_local | tar -x -C E:\friend_engine_local --strip-components=1
+```
+
+> 这条命令只更新代码；`models\`、`data\`、`results\` 不在 Git 里，不会被覆盖。
+
+---
+
+## 十二、诚实边界（避免误用）
 
 1. **H01~H04 是"当前图像内的编号"**，不是永久物理孔号（旋转 180° 会对调）。
 2. **机器人状态永远显示"未连接"**；界面里的"模拟执行"是软件动画，不动真机。
