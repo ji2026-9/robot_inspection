@@ -27,7 +27,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(r"E:\robot_inspection\external_datasets")
+ROOT = Path(r"E:\robot_project\robot_inspection\external_datasets")
 RAW = ROOT / "metadata" / "raw"
 UA = {"User-Agent": "Mozilla/5.0 (research dataset audit)"}
 

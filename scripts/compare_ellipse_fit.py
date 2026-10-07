@@ -16,7 +16,7 @@ READ ONLY: never trains, never writes into the original dataset / images / weigh
 Outputs go to results/ellipse_fit_comparison/ .
 
 Usage:
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\compare_ellipse_fit.py
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\compare_ellipse_fit.py
     ... --conf 0.15 --imgsz 640
 """
 

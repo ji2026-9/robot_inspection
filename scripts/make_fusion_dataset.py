@@ -8,7 +8,7 @@ held-out test images, and the only visible difference is training-data size
 (20 vs 28). This script reproduces the "more data" arm of that comparison.
 
 Output (OUTSIDE the git repo on purpose - data must not enter Git):
-    E:/fusion_train/dataset_v28/
+    E:/robot_project/fusion_train/dataset_v28/
         images/train, images/val
         labels/train, labels/val
         data.yaml
@@ -17,7 +17,7 @@ Output (OUTSIDE the git repo on purpose - data must not enter Git):
 READ ONLY with respect to every input. Never touches best.pt / the datasets.
 
 Usage:
-    E:/robot_inspection/.venv/Scripts/python.exe E:/robot_inspection/scripts/make_fusion_dataset.py
+    E:/robot_project/robot_inspection/.venv/Scripts/python.exe E:/robot_project/robot_inspection/scripts/make_fusion_dataset.py
     ... --val-count 3 --seed 42
 """
 
@@ -36,10 +36,10 @@ try:
 except Exception:
     pass
 
-PROJ = Path("E:/robot_inspection")
+PROJ = Path("E:/robot_project/robot_inspection")
 OUR_DATASET = PROJ / "dataset" / "box_yolo"
-HIS_SEED = Path("E:/friend_engine_test/engine_bore_local/data/database_seed")
-OUT = Path("E:/fusion_train/dataset_v28")
+HIS_SEED = Path("E:/robot_project/_reference/friend_engine_audit/engine_bore_local/data/database_seed")
+OUT = Path("E:/robot_project/fusion_train/dataset_v28")
 CLASS_NAME = "cylinder_bore"
 CLASS_ID = 0
 BORE_LABELS = {"bore", "cylinder_bore"}

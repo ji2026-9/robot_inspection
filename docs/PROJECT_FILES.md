@@ -18,7 +18,7 @@
 
 1. GitHub 对**单个文件有 100 MB 硬上限**（超过直接拒绝整个 push），所以模型/数据集不能进 Git。
 2. Git 会**永久保留历史**，大文件一旦提交就删不掉、仓库会一直很重。
-3. `.venv` 里有写死的绝对路径（`E:\robot_inspection\.venv\...`），拷到别人电脑上**跑不起来**，
+3. `.venv` 里有写死的绝对路径（`E:\robot_project\robot_inspection\.venv\...`），拷到别人电脑上**跑不起来**，
    必须各人自己装；`_installers` 里的安装包官网随时能下。
 4. GitHub Release 附件**单个上限 2 GB、数量不限**，正好用来放大文件。
 
@@ -46,7 +46,7 @@ weights\      只有 best_source.txt 和两个置信度 json（**不含 .pt**）
 
 ## 三、B 类：Release 附件（8 个，共 1,227 MB）
 
-全部已生成在：**`E:\robot_inspection\release_assets\`**
+全部已生成在：**`E:\robot_project\robot_inspection\release_assets\`**
 
 **已经上传完成（2026-10-07）：**
 
@@ -87,11 +87,11 @@ https://github.com/ji2026-9/robot_inspection/releases/tag/v1.0-data
 `external_datasets\`（3,055 MB，3,843 个文件）是 Phase 2–4 的外部数据集探索，
 **和主线「4 个大孔检测」无关**，而且随时能重新下载，因此**本轮不生成、不上传**。
 
-原始数据仍然完整保留在本机 `E:\robot_inspection\external_datasets\`。
+原始数据仍然完整保留在本机 `E:\robot_project\robot_inspection\external_datasets\`。
 将来确实要做数据融合实验时，一条命令就能补生成（会拆成 3 个 <2 GB 的附件）：
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py --with-external
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\make_release_assets.py --with-external
 ```
 
 ### 3.3 每个附件的 SHA256
@@ -118,7 +118,7 @@ E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_re
    - **Choose a tag**：输入 `v1.0-data` → 点 **Create new tag**
    - **Target**：`main`
    - **Release title**：`数据与模型 v1.0（数据集 / 模型 / 实验结果）`
-3. 打开文件夹 **`E:\robot_inspection\release_assets\`**，把里面的文件**拖进页面下方的
+3. 打开文件夹 **`E:\robot_project\robot_inspection\release_assets\`**，把里面的文件**拖进页面下方的
    "Attach binaries by dropping them here"** 方框。
    - 一共 8 个文件（1.2 GB），可以按住 Ctrl 多选后一起拖。
    - 不要拖 `MANIFEST_文件清单.txt` / `SHA256_校验.txt` / `说明_项目文件分类.md`（留着自用即可）。
@@ -184,14 +184,14 @@ python scripts\check_dataset.py
 
 ```bat
 :: 默认：核心 8 个附件
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\make_release_assets.py
 
 :: 需要外部数据集时（额外生成 09~11，约 3 GB，1 分钟）
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py --with-external
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\make_release_assets.py --with-external
 ```
 
 脚本**只读取**项目文件，不会修改、移动或删除任何原始内容；
-输出固定到 `E:\robot_inspection\release_assets\`（该目录已被 `.gitignore` 忽略）。
+输出固定到 `E:\robot_project\robot_inspection\release_assets\`（该目录已被 `.gitignore` 忽略）。
 
 > 注意：GitHub Release 单个附件上限 **2 GiB**，所以外部数据集被拆成 09/10/11 三份，
 > 不要试图把 `external_datasets\` 整包压成一个文件。

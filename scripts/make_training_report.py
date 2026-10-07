@@ -8,8 +8,8 @@
 
 用法：
     python scripts\\make_training_report.py
-    python scripts\\make_training_report.py --run E:\\robot_inspection\\runs\\box_yolo_yolo11n_seg
-    python scripts\\make_training_report.py --out E:\\robot_inspection\\results\\training_report.html
+    python scripts\\make_training_report.py --run E:\\robot_project\\robot_inspection\\runs\\box_yolo_yolo11n_seg
+    python scripts\\make_training_report.py --out E:\\robot_project\\robot_inspection\\results\\training_report.html
 """
 
 import argparse
@@ -21,7 +21,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 RUNS_DIR = PROJ / "runs"
 RESULTS_DIR = PROJ / "results"
 DATASET_DIR = PROJ / "dataset" / "box_yolo"

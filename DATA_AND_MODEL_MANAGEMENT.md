@@ -55,7 +55,7 @@
 
 共享方式（按方便程度任选）：
 
-1. 模型交付包：`E:\robot_inspection\friend_transfer\robot_inspection_gui_v1.zip`
+1. 模型交付包：`E:\robot_project\robot_inspection\friend_transfer\robot_inspection_gui_v1.zip`
 2. 云盘（阿里云盘 / 百度网盘 / OneDrive / Google Drive）
 3. 移动硬盘 / U 盘
 
@@ -103,7 +103,7 @@ SHA256 `D2BCCBAA70642F7337221FEDEA276F858E6BBCD817C8E327959E44CCDBDE0F0A`）。
 ## 六、每次提交前的自检
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\check_git_safety.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_git_safety.py
 ```
 
 期望输出：

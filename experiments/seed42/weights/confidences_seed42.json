@@ -1,6 +1,6 @@
 {
   "tag": "seed42",
-  "weights": "E:\\robot_inspection\\experiments\\seed42\\weights\\best.pt",
+  "weights": "E:\\robot_project\\robot_inspection\\experiments\\seed42\\weights\\best.pt",
   "conf_floor": 0.05,
   "images": [
     {

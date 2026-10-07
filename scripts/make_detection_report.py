@@ -2,13 +2,13 @@
 """
 检测结果总览报告生成脚本
 ------------------------
-读取 E:\\robot_inspection\\results\\detection_report.json 与结果图片，生成 HTML 总览报告。
+读取 E:\\robot_project\\robot_inspection\\results\\detection_report.json 与结果图片，生成 HTML 总览报告。
 
 【只读脚本】不重新推理、不修改检测算法、不修改 best.pt，只新增一个 HTML 文件。
 
 用法：
     python scripts\\make_detection_report.py
-    python scripts\\make_detection_report.py --out E:\\robot_inspection\\results\\detection_report.html
+    python scripts\\make_detection_report.py --out E:\\robot_project\\robot_inspection\\results\\detection_report.html
 """
 
 import argparse
@@ -20,7 +20,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 RESULTS_DIR = PROJ / "results"
 TEST_DIR = PROJ / "test_images"
 DATASET_TEST_DIR = PROJ / "dataset" / "box_yolo" / "images" / "test"

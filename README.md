@@ -74,8 +74,8 @@ SHA256 `EAEDA05109C1F696…`，通过模型交付包 / 云盘共享）
 | 项目 | 位置 / 版本 |
 | --- | --- |
 | Python（基础发行版） | `E:\Miniconda3\python.exe`，Python 3.11.14 |
-| 项目虚拟环境 | `E:\robot_inspection\.venv` |
-| 虚拟环境 Python | `E:\robot_inspection\.venv\Scripts\python.exe` |
+| 项目虚拟环境 | `E:\robot_project\robot_inspection\.venv` |
+| 虚拟环境 Python | `E:\robot_project\robot_inspection\.venv\Scripts\python.exe` |
 | PyTorch | 2.5.1+cu121（GPU 版，CUDA 12.1 runtime） |
 | torchvision | 0.20.1+cu121 |
 | ultralytics | 8.4.173 |
@@ -92,7 +92,7 @@ SHA256 `EAEDA05109C1F696…`，通过模型交付包 / 云盘共享）
 ## 2. 目录结构
 
 ```
-E:\robot_inspection\
+E:\robot_project\robot_inspection\
 ├── .venv\                     # 虚拟环境（不要删除）
 ├── dataset\
 │   └── box_yolo\              # ← 数据集解压到这里
@@ -120,23 +120,23 @@ E:\robot_inspection\
 
 ## 3. 数据集放置位置（重要）
 
-把 `box_yolo_dataset.zip` 放到 **`E:\robot_inspection\dataset\`** 目录下，
+把 `box_yolo_dataset.zip` 放到 **`E:\robot_project\robot_inspection\dataset\`** 目录下，
 然后解压，最终必须是：
 
 ```
-E:\robot_inspection\dataset\box_yolo\images\train\   （20 张）
-E:\robot_inspection\dataset\box_yolo\images\val\     （2 张）
-E:\robot_inspection\dataset\box_yolo\images\test\    （3 张）
-E:\robot_inspection\dataset\box_yolo\labels\train\   （20 个 .txt）
-E:\robot_inspection\dataset\box_yolo\labels\val\     （2 个 .txt）
-E:\robot_inspection\dataset\box_yolo\labels\test\    （3 个 .txt）
-E:\robot_inspection\dataset\box_yolo\data.yaml
+E:\robot_project\robot_inspection\dataset\box_yolo\images\train\   （20 张）
+E:\robot_project\robot_inspection\dataset\box_yolo\images\val\     （2 张）
+E:\robot_project\robot_inspection\dataset\box_yolo\images\test\    （3 张）
+E:\robot_project\robot_inspection\dataset\box_yolo\labels\train\   （20 个 .txt）
+E:\robot_project\robot_inspection\dataset\box_yolo\labels\val\     （2 个 .txt）
+E:\robot_project\robot_inspection\dataset\box_yolo\labels\test\    （3 个 .txt）
+E:\robot_project\robot_inspection\dataset\box_yolo\data.yaml
 ```
 
 解压后运行一次检查：
 
 ```bat
-E:\robot_inspection\run_check_dataset.bat
+E:\robot_project\robot_inspection\run_check_dataset.bat
 ```
 
 ---
@@ -144,13 +144,13 @@ E:\robot_inspection\run_check_dataset.bat
 ## 4. 训练
 
 ```bat
-E:\robot_inspection\run_train.bat
+E:\robot_project\robot_inspection\run_train.bat
 ```
 
 等价于：
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\train_seg.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\train_seg.py
 ```
 
 默认参数（针对 4GB 显存）：
@@ -174,41 +174,41 @@ E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\train_s
 先跑 1 轮做冒烟测试（验证流程是否通）：
 
 ```bat
-"E:\robot_inspection\.venv\Scripts\python.exe" "E:\robot_inspection\scripts\train_seg.py" --epochs 1 --name smoke_test
+"E:\robot_project\robot_inspection\.venv\Scripts\python.exe" "E:\robot_project\robot_inspection\scripts\train_seg.py" --epochs 1 --name smoke_test
 ```
 
 训练完成后：
 
-- 完整结果：`E:\robot_inspection\runs\<run_name>\`
-- 永久权重：`E:\robot_inspection\weights\best.pt`（脚本自动复制）
-- 训练日志：`E:\robot_inspection\logs\train_<run_name>.log`
+- 完整结果：`E:\robot_project\robot_inspection\runs\<run_name>\`
+- 永久权重：`E:\robot_project\robot_inspection\weights\best.pt`（脚本自动复制）
+- 训练日志：`E:\robot_project\robot_inspection\logs\train_<run_name>.log`
 
 ---
 
 ## 5. 检测（椭圆拟合 + PCA 编号）
 
 ```bat
-E:\robot_inspection\run_test.bat
+E:\robot_project\robot_inspection\run_test.bat
 ```
 
 脚本会按顺序自动查找测试图片：
 
-1. `E:\robot_inspection\test_images\`
+1. `E:\robot_project\robot_inspection\test_images\`
 2. `E:\vm_share\训练照片（箱体）\`（当前的 测试1~4.jpg 就在这里）
-3. `E:\robot_inspection\dataset\box_yolo\images\test\`
+3. `E:\robot_project\robot_inspection\dataset\box_yolo\images\test\`
 4. `E:\vm_share\训练照片\`
 
 也可以手动指定：
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\predict_holes.py --source "E:\path\to\图片.jpg"
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\predict_holes.py --source "E:\path\to\图片.jpg"
 ```
 
 输出：
 
-- 每张图片一张可视化：`E:\robot_inspection\results\<图片名>_result.jpg`
+- 每张图片一张可视化：`E:\robot_project\robot_inspection\results\<图片名>_result.jpg`
   - 半透明彩色 mask、白色轮廓、绿色椭圆、红色椭圆中心、`H01~H04` 标签、蓝色 PCA 长轴
-- 结构化结果：`E:\robot_inspection\results\detection_report.json`
+- 结构化结果：`E:\robot_project\robot_inspection\results\detection_report.json`
   （每孔含 confidence / mask 中心 / ellipse center / angle / width / height）
 - 控制台打印每张图片的检测个数（期望 4/4）与每孔参数
 
@@ -250,20 +250,20 @@ E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\predict
 
 ```bat
 :: 1) 基础 Python 3.11（本项目用 Miniconda 作为基础发行版）
-::    安装包：E:\robot_inspection\_installers\Miniconda3-py311-Windows-x86_64.exe
+::    安装包：E:\robot_project\robot_inspection\_installers\Miniconda3-py311-Windows-x86_64.exe
 Miniconda3-py311-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=E:\Miniconda3
 
 :: 2) 创建虚拟环境
-E:\Miniconda3\python.exe -m venv E:\robot_inspection\.venv
+E:\Miniconda3\python.exe -m venv E:\robot_project\robot_inspection\.venv
 
 :: 3) 安装 PyTorch GPU 版（必须用 CUDA 专用源）
-E:\robot_inspection\.venv\Scripts\python.exe -m pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe -m pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 --index-url https://download.pytorch.org/whl/cu121
 
 :: 4) 安装其余依赖
-E:\robot_inspection\.venv\Scripts\python.exe -m pip install -r E:\robot_inspection\requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe -m pip install -r E:\robot_project\robot_inspection\requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 :: 5) 验证
-E:\robot_inspection\.venv\Scripts\python.exe -c "import torch;print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe -c "import torch;print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 ```
 
 ---
@@ -275,12 +275,12 @@ E:\robot_inspection\.venv\Scripts\python.exe -c "import torch;print(torch.cuda.i
 `--batch 1 --imgsz 416`。
 
 **Q: 检测不到 4 个孔？**
-逐步排查：① 确认用的是 `E:\robot_inspection\weights\best.pt`；
+逐步排查：① 确认用的是 `E:\robot_project\robot_inspection\weights\best.pt`；
 ② 适当降低 `--conf`（例如 0.35）看看漏检原因；
 ③ 确认测试图片与训练集拍摄条件接近。
 
 **Q: 想让模型下次仍然能用？**
-`E:\robot_inspection\weights\best.pt` 是永久文件，复制到别处也不会消失；
+`E:\robot_project\robot_inspection\weights\best.pt` 是永久文件，复制到别处也不会消失；
 重装环境后只要这个文件还在，就能直接用来检测。
 
 ---

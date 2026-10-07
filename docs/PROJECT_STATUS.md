@@ -1,12 +1,16 @@
 # 机械臂智能视觉检测系统 —— 项目进度与后续计划
 
 更新日期：2026-10-07
-项目路径：`E:\robot_inspection`
+项目路径：`E:\robot_project\robot_inspection`
 仓库：https://github.com/ji2026-9/robot_inspection （私有）
 
 ---
 
 ## 一、一句话现状
+
+> **2026-10-07 目录整理**：原来散落在 `E:\` 根目录的 4 个项目文件夹，
+> 已全部归纳到 **`E:\robot_project\`**（见文末「十四」）。
+> 本文所有路径均已更新为新位置。
 
 **视觉检测这条线已经跑通并验证**：4 张实拍测试图 **16/16** 个孔全部检出，
 椭圆拟合 + PCA 编号 + GUI + 任务生成都能用；代码和文档已上 Git，
@@ -20,11 +24,11 @@
 | --- | --- |
 | 显卡 | NVIDIA GeForce RTX 3050 Ti Laptop（4 GB） |
 | 驱动 | 610.60（CUDA UMD 13.3） |
-| Python | 3.11.14（`E:\Miniconda3`）+ 虚拟环境 `E:\robot_inspection\.venv` |
+| Python | 3.11.14（`E:\Miniconda3`）+ 虚拟环境 `E:\robot_project\robot_inspection\.venv` |
 | 关键库 | torch 2.5.1+cu121、ultralytics 8.4.173、opencv 5.0.0、numpy 2.4.6、PySide6 6.11.2 |
 | 启动软件 | 双击桌面「机械臂智能视觉检测系统」（= `.venv\Scripts\pythonw.exe app\main.py`） |
 | 排查用 | 双击桌面「机械臂智能视觉检测系统(调试)」（带控制台，报错看得见） |
-| 另一套软件 | 朋友的「双机械臂孔检测系统」→ 桌面「双机械臂孔检测系统（朋友版）」，装在 `E:\friend_engine_local` |
+| 另一套软件 | 朋友的「双机械臂孔检测系统」→ 桌面「双机械臂孔检测系统（朋友版）」，装在 `E:\robot_project\friend_engine_local` |
 
 ---
 
@@ -72,12 +76,12 @@
 | 资产 | 位置 | 说明 |
 | --- | --- | --- |
 | 原始数据集（25 张） | `dataset\box_yolo\` | 20 train / 2 val / 3 test |
-| 训练集（28 张） | `E:\fusion_train\dataset_v28\` | 25 自有 + 朋友新增 3 张，25/3 划分 |
+| 训练集（28 张） | `E:\robot_project\fusion_train\dataset_v28\` | 25 自有 + 朋友新增 3 张，25/3 划分 |
 | 原始压缩包 | `E:\vm_share\box_yolo_dataset.zip` | 81 MB |
 | 现役模型 | `weights\best.pt` | fusion_v1（16/16） |
 | 模型留档 | `weights\fusion_v1_best.pt` | 同一份副本 |
 | 旧模型备份 | `weights\best_backup_20261007_before_fusion.pt` | 可一键回退 |
-| 朋友的代码与数据 | 分支 `feature/fusion` + `E:\friend_engine_test\` | 他的 Release：`v1.0-fusion-data` |
+| 朋友的代码与数据 | 分支 `feature/fusion` + `E:\robot_project\_reference\friend_engine_audit\` | 他的 Release：`v1.0-fusion-data` |
 
 ---
 
@@ -152,20 +156,20 @@
 
 ```bat
 :: 启动软件（也可以直接双击桌面快捷方式）
-E:\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_inspection\app\main.py
+E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\robot_inspection\app\main.py
 
 :: 自测（改完代码务必跑）
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\app\selftest_full.py
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\app\selftest_coldstart.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\app\selftest_full.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\app\selftest_coldstart.py
 
 :: 提交前安全检查（确认模型/数据没进 Git）
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\check_git_safety.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_git_safety.py
 
 :: 椭圆拟合方式对比（顺带相当于跑一遍 4 张测试图）
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\compare_ellipse_fit.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\compare_ellipse_fit.py
 
 :: 回退到旧模型
-copy /Y E:\robot_inspection\weights\best_backup_20261007_before_fusion.pt E:\robot_inspection\weights\best.pt
+copy /Y E:\robot_project\robot_inspection\weights\best_backup_20261007_before_fusion.pt E:\robot_project\robot_inspection\weights\best.pt
 ```
 
 ---
@@ -189,12 +193,17 @@ copy /Y E:\robot_inspection\weights\best_backup_20261007_before_fusion.pt E:\rob
 | | 我方「机械臂智能视觉检测系统」 | 朋友的「双机械臂孔检测系统」 |
 | --- | --- | --- |
 | 桌面快捷方式 | 机械臂智能视觉检测系统 | **双机械臂孔检测系统（朋友版）** |
-| 代码位置 | `E:\robot_inspection\app\` | `E:\friend_engine_local\` |
+| 代码位置 | `E:\robot_project\robot_inspection\app\` | `E:\robot_project\friend_engine_local\` |
 | 入口 | `app\main.py` | `app.py` |
 | 用哪个模型 | `weights\best.pt`（fusion_v1，4 张图 16/16） | `models\bore_best.pt` + `models\part_best.pt`（他的 28 张训练） |
 | 界面特点 | 简单的检测→任务→模拟执行流程，带 73 项自测 | 设备连接窗口、3D 模拟、实验记录、**模型与数据管理**（标注 + 增量训练） |
-| 运行环境 | `E:\robot_inspection\.venv` | 同一个环境（用目录链接 `.venv` 复用，不额外占空间） |
-| 已知缺口 | — | 「标注(Labelme)」按钮需要额外的 `.labelme_env` 环境，**目前未安装**（点了会提示"未安装完成"，不会崩） |
+| 运行环境 | `E:\robot_project\robot_inspection\.venv` | 同一个环境（用目录链接 `.venv` 复用，不额外占空间） |
+| 已知缺口 | 没有 part 约束、没有设备连接、没有数据管理 | 无（Labelme 标注环境已于 2026-10-07 装好，`.labelme_env`） |
+| 拟合策略 | 总是尝试边缘精修 | **已打补丁：同样总是尝试**（`scripts\patch_friend_engine.py`） |
+| 4 张测试图结果 | 16/16 | 16/16（16 个孔全部走边缘精修） |
+
+对比测量与取舍记录见 `docs\COMPARE_FIT_AND_MODEL.md`；
+界面优化建议见 `docs\UI_OPTIMIZATION_NOTES.md`。
 
 > 两套软件**不互相影响**：各自读自己的模型、各写自己的结果目录。
 > 想比较两套的结果，用同一批照片分别跑一遍即可。
@@ -202,9 +211,9 @@ copy /Y E:\robot_inspection\weights\best_backup_20261007_before_fusion.pt E:\rob
 **以后更新他的软件**（他在 `feature/fusion` 分支上改了代码之后）：
 
 ```bat
-cd /d E:\robot_inspection
+cd /d E:\robot_project\robot_inspection
 git fetch origin
-git archive origin/feature/fusion engine_bore_local | tar -x -C E:\friend_engine_local --strip-components=1
+git archive origin/feature/fusion engine_bore_local | tar -x -C E:\robot_project\friend_engine_local --strip-components=1
 ```
 
 > 这条命令只更新代码；`models\`、`data\`、`results\` 不在 Git 里，不会被覆盖。
@@ -218,3 +227,30 @@ git archive origin/feature/fusion engine_bore_local | tar -x -C E:\friend_engine
 3. 检测输出是**原图像素坐标**，**没有**做过标定/手眼转换，不能直接当机械臂坐标用。
 4. 只在 4 张同箱体、有限视角的照片上验证过 16/16，**不代表所有工况**。
 5. 外部数据集（T-LESS 等）只做过审计，**没有**用于训练，也没有制造伪标签。
+
+---
+
+## 十三、目录结构（2026-10-07 整理后）
+
+```
+E:\robot_project\                     ← 项目所有东西都在这一个文件夹里
+├── robot_inspection\                 ← 主项目（Git 仓库 + .venv + 代码/数据/结果）
+│   ├── app\ scripts\ docs\ configs\  ← 代码与文档
+│   ├── weights\best.pt               ← 现役模型 fusion_v1
+│   ├── dataset\ test_images\         ← 数据
+│   ├── results\ runs\ experiments\   ← 结果与训练输出
+│   └── .venv\                        ← 唯一的 Python 环境（5.3 GB）
+├── friend_engine_local\              ← 朋友的软件（可直接运行）
+│   ├── app.py                        ← 入口
+│   ├── models\                       ← 他的 bore/part 模型（+ 我们的 fusion_v1 副本）
+│   ├── data\database_seed\           ← 28 张标注图
+│   └── .labelme_env\                 ← 标注环境（2026-10-07 新装）
+├── fusion_train\dataset_v28\         ← 训练用的 28 张数据
+└── _reference\                       ← 参考资料（可删）
+    └── friend_engine_audit\          ← 审核时下载/导出的原始资料
+```
+
+**搬家后做过的验证**：Python 环境（CUDA/依赖）正常、`selftest_full` **73/73**、
+冷启动 PASS、4 张测试图 **16/16**、两个桌面快捷方式都能启动软件。
+
+> `E:\Miniconda3`（Python 基础环境）和 `E:\vm_share`（你的共享文件夹）**没有动**。

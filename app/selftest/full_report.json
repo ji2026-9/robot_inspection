@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-07 18:03:42",
+  "generated_at": "2026-10-07 19:10:50",
   "total": 73,
   "passed": 73,
   "failed": [],
@@ -7,7 +7,7 @@
     {
       "test": "A1 model loads",
       "pass": true,
-      "detail": "E:\\robot_inspection\\weights\\best.pt"
+      "detail": "E:\\robot_project\\robot_inspection\\weights\\best.pt"
     },
     {
       "test": "A2 detect 测试1 -> 4 holes",
@@ -37,17 +37,17 @@
     {
       "test": "A7 missing file -> error, no exception",
       "pass": true,
-      "detail": "['图片不存在或未选择: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_r5hwghi_\\\\nope.jpg']"
+      "detail": "['图片不存在或未选择: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_4z514f6k\\\\nope.jpg']"
     },
     {
       "test": "A8 corrupt image -> error, no exception",
       "pass": true,
-      "detail": "['图片读取失败（可能已损坏或格式不支持）: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_r5hwghi_\\\\junk.jpg']"
+      "detail": "['图片读取失败（可能已损坏或格式不支持）: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_4z514f6k\\\\junk.jpg']"
     },
     {
       "test": "A9 missing model -> error, no exception",
       "pass": true,
-      "detail": "['模型文件不存在: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_r5hwghi_\\\\missing_model.pt']"
+      "detail": "['模型文件不存在: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_4z514f6k\\\\missing_model.pt']"
     },
     {
       "test": "A10 draw_result output shape",
@@ -172,7 +172,7 @@
     {
       "test": "D11 save_run never overwrites",
       "pass": true,
-      "detail": "20261007_180331 vs 20261007_180331_01"
+      "detail": "20261007_191038 vs 20261007_191038_01"
     },
     {
       "test": "D12 saved json has required keys",
@@ -332,7 +332,7 @@
     {
       "test": "E21b engine label shows GPU/CPU + time",
       "pass": true,
-      "detail": "设备：GPU    耗时：0.61 s"
+      "detail": "设备：GPU    耗时：0.64 s"
     },
     {
       "test": "E22 save button ok",
@@ -342,7 +342,7 @@
     {
       "test": "E22b export tasks csv",
       "pass": true,
-      "detail": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gui_selftest_r5hwghi_\\runs\\20261007_180335_01\\tasks.csv"
+      "detail": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gui_selftest_4z514f6k\\runs\\20261007_191042_01\\tasks.csv"
     },
     {
       "test": "E22b2 second export does not overwrite",
@@ -352,7 +352,7 @@
     {
       "test": "E22c GUI uses camera layer",
       "pass": true,
-      "detail": "E:\\robot_inspection\\test_images\\测试1.jpg"
+      "detail": "E:\\robot_project\\robot_inspection\\test_images\\测试1.jpg"
     },
     {
       "test": "E23 log has content",
@@ -367,7 +367,7 @@
     {
       "test": "F1 cold-start test passes",
       "pass": true,
-      "detail": "[PASS] C1 cold-start load all test images  -> 4/4 | [PASS] C2 cold-start load chinese-dir jpg | [PASS] C3 cold-start load chinese-dir png | [PASS] C4 cold-start load ascii path | [PASS] C5 camera layer used  -> C:\\Users\\Administrator\\AppData\\Local\\Temp\\cold_4a3xkpz_\\ascii\\plain.jpg | [PASS] C6 detec"
+      "detail": "[PASS] C1 cold-start load all test images  -> 4/4 | [PASS] C2 cold-start load chinese-dir jpg | [PASS] C3 cold-start load chinese-dir png | [PASS] C4 cold-start load ascii path | [PASS] C5 camera layer used  -> C:\\Users\\Administrator\\AppData\\Local\\Temp\\cold_hmys02hf\\ascii\\plain.jpg | [PASS] C6 detec"
     }
   ]
 }

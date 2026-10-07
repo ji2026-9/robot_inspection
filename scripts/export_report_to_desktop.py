@@ -19,7 +19,7 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-EXT = Path(r"E:\robot_inspection\external_datasets")
+EXT = Path(r"E:\robot_project\robot_inspection\external_datasets")
 REP = EXT / "reports" / "external_dataset_audit.html"
 DESK = Path(r"C:\Users\Administrator\Desktop")
 
@@ -61,7 +61,7 @@ def main() -> int:
         "padding:12px 14px;margin-bottom:18px;font-size:13px;color:#065f46'>"
         "<b>单文件自包含版本</b>：所有图片已内嵌（data URI），可直接复制到任何电脑打开，"
         "不需要附带其它文件。<br>原始工作目录："
-        "<code>E:\\robot_inspection\\external_datasets\\</code></div>"
+        "<code>E:\\robot_project\\robot_inspection\\external_datasets\\</code></div>"
     )
     doc = doc.replace("<h1>", banner + "<h1>", 1)
     out1 = unique(DESK / "external_dataset_audit.html")

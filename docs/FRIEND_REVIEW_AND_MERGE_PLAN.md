@@ -152,7 +152,7 @@
 ## 七、合并命令（只取文件，不要他的历史）
 
 ```bat
-cd /d E:\robot_inspection
+cd /d E:\robot_project\robot_inspection
 git fetch origin
 
 :: 先看一眼差异（只读）
@@ -167,7 +167,7 @@ git checkout origin/feature/fusion -- engine_bore_local/inspection_gui/dobot_fee
 git checkout origin/feature/fusion -- engine_bore_local/PART修正说明.md
 
 :: 提交前检查
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\check_git_safety.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_git_safety.py
 ```
 
 > 不要直接 `git merge origin/feature/fusion`：那会把 `friend_gui_source/`、`friend_package/`

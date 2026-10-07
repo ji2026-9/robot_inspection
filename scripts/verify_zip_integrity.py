@@ -57,7 +57,7 @@ def main() -> int:
         print("  顶层目录={}".format(r["top_level"]))
         print("  示例路径={}".format(r["sample_paths"][:5]))
         print("  校验耗时 {} s".format(r["verify_seconds"]))
-    dest = Path(r"E:\robot_inspection\external_datasets\metadata\zip_integrity.json")
+    dest = Path(r"E:\robot_project\robot_inspection\external_datasets\metadata\zip_integrity.json")
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
     print("\n已保存:", dest)

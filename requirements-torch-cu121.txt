@@ -1,6 +1,6 @@
 # PyTorch GPU 版本（CUDA 12.1），必须使用 PyTorch 官方 CUDA 源安装：
 #
-#   E:\robot_inspection\.venv\Scripts\python.exe -m pip install -r requirements-torch-cu121.txt --index-url https://download.pytorch.org/whl/cu121
+#   E:\robot_project\robot_inspection\.venv\Scripts\python.exe -m pip install -r requirements-torch-cu121.txt --index-url https://download.pytorch.org/whl/cu121
 #
 torch==2.5.1+cu121
 torchvision==0.20.1+cu121

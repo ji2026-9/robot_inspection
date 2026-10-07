@@ -14,7 +14,7 @@
   M3 none                    : 无可靠参考 → uncertain
 
 用法：
-  python stable_hole_id.py --source E:\\robot_inspection\\test_images
+  python stable_hole_id.py --source E:\\robot_project\\robot_inspection\\test_images
   python stable_hole_id.py --source xxx.jpg --reference-axis 0,1
 """
 
@@ -27,7 +27,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 DEFAULT_WEIGHTS = PROJ / "weights" / "best.pt"
 OUT_DIR = PROJ / "experiments" / "stable_hole_id" / "results"
 VIS_DIR = PROJ / "experiments" / "stable_hole_id" / "visualizations"

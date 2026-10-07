@@ -7,7 +7,7 @@ Purpose
 Make sure that no model weights and no large data ever enter Git.
 Run this BEFORE every `git commit`:
 
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe E:\\robot_inspection\\scripts\\check_git_safety.py
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe E:\\robot_project\\robot_inspection\\scripts\\check_git_safety.py
 
 It inspects BOTH:
   * files already tracked by Git   (git ls-files)
@@ -28,7 +28,7 @@ try:  # keep Chinese/odd file names from crashing a GBK console
 except Exception:
     pass
 
-ROOT = Path(__file__).resolve().parents[1]          # E:\robot_inspection
+ROOT = Path(__file__).resolve().parents[1]          # E:\robot_project\robot_inspection
 
 MODEL_EXTS = (".pt", ".pth", ".onnx", ".engine", ".weights", ".h5", ".tflite")
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp")

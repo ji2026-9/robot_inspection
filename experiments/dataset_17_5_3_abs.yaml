@@ -1,5 +1,5 @@
 # 只读引用：指向 experiments\dataset_17_5_3，不修改该目录
-path: E:/robot_inspection/experiments/dataset_17_5_3
+path: E:/robot_project/robot_inspection/experiments/dataset_17_5_3
 train: images/train
 val: images/val
 test: images/test

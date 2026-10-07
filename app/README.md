@@ -1,7 +1,7 @@
 # 机械臂智能视觉检测系统 —— 第一版 GUI
 
-> 版本：v1.0　｜　位置：`E:\robot_inspection\app\`
-> 模型：`E:\robot_inspection\weights\best.pt`（YOLO11n-Seg，单类别 `cylinder_bore`）
+> 版本：v1.0　｜　位置：`E:\robot_project\robot_inspection\app\`
+> 模型：`E:\robot_project\robot_inspection\weights\best.pt`（YOLO11n-Seg，单类别 `cylinder_bore`）
 
 本程序**只做检测与任务编排**：不训练、不修改模型、不修改数据集、不修改原始测试图片。
 
@@ -12,14 +12,14 @@
 **方式一（推荐）**：双击
 
 ```
-E:\robot_inspection\app\run_gui.bat
+E:\robot_project\robot_inspection\app\run_gui.bat
 ```
 
 **方式二**：命令行
 
 ```bat
-cd /d E:\robot_inspection
-"E:\robot_inspection\.venv\Scripts\python.exe" app\main.py
+cd /d E:\robot_project\robot_inspection
+"E:\robot_project\robot_inspection\.venv\Scripts\python.exe" app\main.py
 ```
 
 > 依赖：PySide6-Essentials（已安装在项目 `.venv` 中）、ultralytics、opencv-python、PyTorch。
@@ -27,7 +27,7 @@ cd /d E:\robot_inspection
 ## 2. 如何选择图片
 
 点击底部 **【选择图片】** →
-文件对话框默认打开 `E:\robot_inspection\test_images\`（手机测试照片），
+文件对话框默认打开 `E:\robot_project\robot_inspection\test_images\`（手机测试照片），
 可选 `.jpg / .jpeg / .png / .bmp`。选中后左侧立即显示原图（**不会修改原图**）。
 
 ## 3. 如何做 AI 自动检测（模式 A，默认）
@@ -63,7 +63,7 @@ cd /d E:\robot_inspection
 每次检测（以及每次模拟执行）都会自动保存到**独立的时间戳目录**，绝不覆盖已有结果：
 
 ```
-E:\robot_inspection\results\gui_runs\<YYYYmmdd_HHMMSS>\
+E:\robot_project\robot_inspection\results\gui_runs\<YYYYmmdd_HHMMSS>\
     ├── <图片名>_result.jpg    检测结果可视化图
     └── detection.json         源图路径 / 检测时间 / H01~H04 / confidence / center_px /
                                orientation_status / 任务状态 / 警告与错误
@@ -186,7 +186,7 @@ v1.1 起改为**保持 OpenCV 原始的 (轴, 角度) 配对**，仅额外提供
 ## 13. 自动化测试
 
 ```bat
-"E:\robot_inspection\.venv\Scripts\python.exe" app\selftest_full.py
+"E:\robot_project\robot_inspection\.venv\Scripts\python.exe" app\selftest_full.py
 ```
 
 覆盖 **64 项**：视觉层（含模型缺失/图片缺失/图片损坏/椭圆配对回归）、

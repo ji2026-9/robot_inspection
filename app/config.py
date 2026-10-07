@@ -21,7 +21,7 @@ def _resolve_project_root() -> Path:
         return candidate
     if (candidate / "test_images").is_dir():
         return candidate
-    return Path(r"E:\robot_inspection")
+    return Path(r"E:\robot_project\robot_inspection")
 
 
 # ---------- project paths ----------

@@ -22,7 +22,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-EXT = Path(r"E:\robot_inspection\external_datasets")
+EXT = Path(r"E:\robot_project\robot_inspection\external_datasets")
 REPORTS = EXT / "reports"
 TLESS = EXT / "tless_sample"
 WP = EXT / "workpieces"

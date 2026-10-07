@@ -24,7 +24,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 ROOT = PROJ / "experiments" / "stable_hole_id"
 sys.path.insert(0, str(ROOT))
 

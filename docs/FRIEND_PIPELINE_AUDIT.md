@@ -8,7 +8,7 @@
 > 本文表格里的 `7E33DF6223CC2546…` 是**当时的**旧 baseline。
 > 详见 `docs\FUSION_V1_TRAINING.md`。
 数据：**本项目自带 `test_images` 4 张**（两边模型都没训练过的干净图）
-方式：把他的代码导出到 `E:\friend_engine_test\`（**不在项目内**），用他的 `EngineDetector` 直接跑，
+方式：把他的代码导出到 `E:\robot_project\_reference\friend_engine_audit\`（**不在项目内**），用他的 `EngineDetector` 直接跑，
 输出全部写到该临时目录；**没有修改本项目的任何文件**。
 
 ---
@@ -158,13 +158,13 @@ rotation_recovered_count = 0
 
 ```bat
 :: 1) 导出他的代码（不进入本项目工作区）
-cd /d E:\robot_inspection
-git archive origin/feature/fusion engine_bore_local | tar -x -C E:\friend_engine_test
+cd /d E:\robot_project\robot_inspection
+git archive origin/feature/fusion engine_bore_local | tar -x -C E:\robot_project\_reference\friend_engine_audit
 
 :: 2) 从 Release v1.0-fusion-data 下载 models.zip / database_seed.zip 解压到该目录
 
 :: 3) 把我方 best.pt 放到 friend_package\package_v1\weights\best.pt
 
 :: 4) 跑三种模式
-E:\robot_inspection\.venv\Scripts\python.exe E:\friend_engine_test\run_friend_pipeline.py --modes friend,own,fusion
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\_reference\friend_engine_audit\run_friend_pipeline.py --modes friend,own,fusion
 ```

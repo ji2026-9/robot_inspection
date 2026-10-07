@@ -20,7 +20,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-ROOT = Path(r"E:\robot_inspection\external_datasets\tless_sample")
+ROOT = Path(r"E:\robot_project\robot_inspection\external_datasets\tless_sample")
 
 
 def main() -> int:

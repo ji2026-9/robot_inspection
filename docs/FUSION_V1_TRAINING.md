@@ -18,14 +18,14 @@
 | 净新增 | **3** | 4096×3072 / 3072×4096（另一个相机），Labelme 多边形 → 转成 YOLO-seg |
 | **合计** | **28** | 25 训练 / 3 验证（seed=42，他的照片至少 2 张留在训练集） |
 
-数据集位置：**`E:\fusion_train\dataset_v28\`**（**故意放在 Git 仓库之外**，数据不入 Git）
+数据集位置：**`E:\robot_project\fusion_train\dataset_v28\`**（**故意放在 Git 仓库之外**，数据不入 Git）
 验证：图片与标签一一对应，每张 4 个多边形，随机抽查坐标已归一化。
 
 ## 二、训练配置
 
 ```
-预训练权重 : E:\robot_inspection\yolo11n-seg.pt
-数据       : E:\fusion_train\dataset_v28\data.yaml   (25 train / 3 val)
+预训练权重 : E:\robot_project\robot_inspection\yolo11n-seg.pt
+数据       : E:\robot_project\fusion_train\dataset_v28\data.yaml   (25 train / 3 val)
 epochs=100  imgsz=640  batch=2  workers=2  patience=20
 seed=42     deterministic=True     device=0 (RTX 3050 Ti)
 输出       : experiments\fusion_v1\runs\fusion_v1_seed42
@@ -73,7 +73,7 @@ seed=42     deterministic=True     device=0 (RTX 3050 Ti)
 | `weights\best_backup_20261007_before_fusion.pt` | 训练前备份，与旧 `best.pt` 逐字节相同 |
 | `experiments\fusion_v1\runs\fusion_v1_seed42\` | 完整训练输出（22 个文件：曲线、混淆矩阵、batch 图、best/last） |
 | `experiments\fusion_v1\logs\` | 原生训练日志 + 脚本日志 |
-| `E:\fusion_train\dataset_v28\` | 训练数据（仓库外，含 `split_manifest.csv`） |
+| `E:\robot_project\fusion_train\dataset_v28\` | 训练数据（仓库外，含 `split_manifest.csv`） |
 
 命名遵循 `DATA_AND_MODEL_MANAGEMENT.md`：**新模型用新名字，不覆盖 `best.pt`**。
 
@@ -119,7 +119,7 @@ https://github.com/ji2026-9/robot_inspection/releases/tag/v1.1-model
 回退方式（无论选哪个都有效）：
 
 ```bat
-copy /Y E:\robot_inspection\weights\best_backup_20261007_before_fusion.pt E:\robot_inspection\weights\best.pt
+copy /Y E:\robot_project\robot_inspection\weights\best_backup_20261007_before_fusion.pt E:\robot_project\robot_inspection\weights\best.pt
 ```
 
 ---

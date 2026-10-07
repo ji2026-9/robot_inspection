@@ -8,12 +8,12 @@ Build the GitHub Release assets for the robot_inspection project.
   C. 不上传      : .venv / __pycache__ / _installers          -> 不打包
 
 用法：
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe E:\\robot_inspection\\scripts\\make_release_assets.py
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe E:\\robot_project\\robot_inspection\\scripts\\make_release_assets.py
     # 默认只生成 8 个核心附件（不含 3 GB 的外部数据集）
     # 确实需要外部数据集时再加 --with-external（会生成 09~11）：
     ... make_release_assets.py --with-external
 
-输出目录：E:\\robot_inspection\\release_assets\\
+输出目录：E:\\robot_project\\robot_inspection\\release_assets\\
 本脚本**只读取**项目文件，从不修改、不移动、不删除任何原始内容。
 """
 
@@ -25,7 +25,7 @@ import time
 import zipfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]          # E:\robot_inspection
+ROOT = Path(__file__).resolve().parents[1]          # E:\robot_project\robot_inspection
 OUT = ROOT / "release_assets"
 VM_SHARE = Path(r"E:\vm_share")
 

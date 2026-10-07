@@ -17,7 +17,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 EXT = PROJ / "external_datasets"
 REPORTS = EXT / "reports"
 META = EXT / "metadata"
@@ -90,15 +90,15 @@ def main():
     A("<title>外部工业视觉数据集审计报告</title><style>{}</style></head><body><div class='wrap'>".format(css))
     A("<h1>外部工业视觉数据集审计报告</h1>")
     A("<div class='sub'>目标：<b>工业箱体上的 4 个大型结构孔视觉识别与机器人自动检测</b>（不是法兰）<br>"
-      "项目：<span class='mono'>E:\\robot_inspection</span>　|　生成时间：{}<br>"
+      "项目：<span class='mono'>E:\\robot_project\\robot_inspection</span>　|　生成时间：{}<br>"
       "本阶段只做「搜索 → 筛选 → 小规模下载/抽样 → 审计 → 排名」，<b>未训练任何模型，未改动任何现有数据</b>。</div>".format(NOW))
 
     # 1
     A("<h2>第一部分　当前任务说明</h2><div class='panel'>")
     A("<p>最终系统流程：目标感知 → 四个大型孔识别 → 孔中心/轮廓提取 → H01/H02/H03/H04 编号 → 指定孔（如“测量 H03”）"
       " → 转换到机器人坐标系 → 机器人移动探头 → 对指定孔做实际尺寸/几何检测。</p>")
-    A("<ul><li>当前正式数据集：<span class='mono'>E:\\robot_inspection\\dataset\\box_yolo</span>（25 张 Labelme 图，类别仅 <span class='mono'>0: cylinder_bore</span>）</li>"
-      "<li>正式实验划分：<span class='mono'>E:\\robot_inspection\\experiments\\dataset_17_5_3</span>（17 train / 5 val / 3 test）</li>"
+    A("<ul><li>当前正式数据集：<span class='mono'>E:\\robot_project\\robot_inspection\\dataset\\box_yolo</span>（25 张 Labelme 图，类别仅 <span class='mono'>0: cylinder_bore</span>）</li>"
+      "<li>正式实验划分：<span class='mono'>E:\\robot_project\\robot_inspection\\experiments\\dataset_17_5_3</span>（17 train / 5 val / 3 test）</li>"
       "<li>已完成 5 个随机种子（0/42/123/7/2024）× best/last × 4 张测试图 = 40 组；4/4 检测率 38/40 = 95%；"
       "seed=2024 在测试3 最下方孔为临界漏检（0.455/0.465）</li></ul>")
     A("<div class='kpi'><div><b>{}</b><span>原始检索命中</span></div>"

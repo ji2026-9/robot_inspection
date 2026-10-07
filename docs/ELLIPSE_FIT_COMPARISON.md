@@ -103,6 +103,6 @@ app/edge_bore_refinement.py     (来自 feature/fusion，逐字节一致)
 ## 六、复现命令
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\compare_ellipse_fit.py
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\compare_ellipse_fit.py --conf 0.5
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\compare_ellipse_fit.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\compare_ellipse_fit.py --conf 0.5
 ```

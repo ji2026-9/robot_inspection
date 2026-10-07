@@ -43,7 +43,7 @@
 ## 四、提交前检查
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\check_git_safety.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_git_safety.py
 ```
 
 确认输出 `RESULT: PASS`。
