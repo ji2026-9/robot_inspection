@@ -844,6 +844,121 @@ def patch_canvas_theme(engine: Path) -> str:
     return "；".join(out) or "无需修改"
 
 
+def patch_dialog_layouts(engine: Path) -> str:
+    """Three concrete layout complaints from real use:
+
+    1. 实验记录: the 10 columns totalled ~2000 px inside a 1260 px dialog, the right
+       columns were cut and the horizontal scrollbar was easy to miss. Make every
+       column fit its content, stretch the last one, and size the dialog to the
+       screen.
+    2. 设备连接: the page content was squeezed (table rows cut, buttons drawn outside
+       the group box). Give the dialog more height and tighten the card padding.
+    3. main window: expanding 诊断信息 squeezed the left column so 「其他功能」
+       disappeared. Put the left column in a scroll area.
+    """
+    edits = [
+        (engine / "inspection_gui" / "records_view.py", [
+            ("        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)\n"
+             "        header.setStretchLastSection(False)\n",
+             "        # [local patch] fit every column instead of clipping the right ones\n"
+             "        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)\n"
+             "        header.setStretchLastSection(True)\n"),
+            ("        self.resize(1260, 720)\n        self.setMinimumSize(760, 450)",
+             "        _screen = self.screen()\n"
+             "        self.resize(min(1400, _screen.availableGeometry().width() - 60),\n"
+             "                    min(780, _screen.availableGeometry().height() - 60))\n"
+             "        self.setMinimumSize(760, 450)"),
+        ]),
+        (engine / "inspection_gui" / "devices_view.py", [
+            ("        outer = QVBoxLayout(page)",
+             "        outer = QVBoxLayout(page)\n"
+             "        outer.setContentsMargins(12, 14, 12, 14)   # [local patch]\n"
+             "        outer.setSpacing(12)                        # [local patch]"),
+            ("                margin-top: 10px; padding: 12px 10px 8px; font-weight: 600;",
+             "                margin-top: 18px; padding: 14px 12px 10px; font-weight: 600;"),
+            ("        self.fields.setFixedHeight(230)   # [local patch] 6 rows + header",
+             "        self.fields.setFixedHeight(246)   # [local patch] 6 rows + header\n"
+             "        self.fields.verticalHeader().setDefaultSectionSize(33)   # [local patch]\n"
+             "        self.fields.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)"),
+            ("        self.fields.setFixedHeight(252)   # [local patch] 6 rows + header",
+             "        self.fields.setFixedHeight(246)   # [local patch] 6 rows + header\n"
+             "        self.fields.verticalHeader().setDefaultSectionSize(33)   # [local patch]\n"
+             "        self.fields.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)"),
+            ("    QComboBox,\n    QDialog,\n    QGroupBox,",
+             "    QComboBox,\n    QDialog,\n    QFrame,\n    QGroupBox,"),
+            ("        _height = min(820, _screen.availableGeometry().height() - 70) if _screen else 780\n"
+             "        self.resize(720, _height)",
+             "        _height = min(880, _screen.availableGeometry().height() - 30) if _screen else 820\n"
+             "        self.resize(760, _height)"),
+            ("        self.fields.setFixedHeight(214)   # [local patch] was 273 -> bottom row got clipped",
+             "        self.fields.setFixedHeight(230)   # [local patch] 6 rows + header"),
+            ("            QDialog#inspectionDevices QGroupBox {\n"
+             "                background: white; border: 1px solid #d5deea; border-radius: 8px;\n"
+             "                margin-top: 12px; padding: 15px 10px 10px; font-weight: 600;\n"
+             "            }",
+             "            QDialog#inspectionDevices QGroupBox {\n"
+             "                background: white; border: 1px solid #d5deea; border-radius: 8px;\n"
+             "                margin-top: 10px; padding: 12px 10px 8px; font-weight: 600;\n"
+             "            }"),
+            ("            scroll = QScrollArea()\n"
+             "            scroll.setWidgetResizable(True)\n"
+             "            scroll.setWidget(page)",
+             "            scroll = QScrollArea()\n"
+             "            scroll.setWidgetResizable(True)\n"
+             "            scroll.setFrameShape(QFrame.Shape.NoFrame)\n"
+             "            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)\n"
+             "            scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)\n"
+             "            page.setMinimumWidth(560)\n"
+             "            scroll.setWidget(page)"),
+        ]),
+        (engine / "inspection_gui" / "gui.py", [
+            ("        left = QWidget()\n"
+             "        left.setFixedWidth(232)   # [local patch]\n"
+             "        left_layout = QVBoxLayout(left)",
+             "        left_inner = QWidget()\n"
+             "        left_layout = QVBoxLayout(left_inner)"),
+            ("        left_layout.addStretch(1)\n        body_layout.addWidget(left)",
+             "        left_layout.addStretch(1)\n"
+             "        # [local patch] keep the left column reachable when 诊断信息 expands\n"
+             "        left = QScrollArea()\n"
+             "        left.setWidgetResizable(True)\n"
+             "        left.setWidget(left_inner)\n"
+             "        left.setFrameShape(QFrame.Shape.NoFrame)\n"
+             "        left.setFixedWidth(252)\n"
+             "        left.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)\n"
+             "        left.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)\n"
+             "        body_layout.addWidget(left)"),
+        ]),
+    ]
+    applied, skipped, missing = [], [], []
+    for path, pairs in edits:
+        if not path.is_file():
+            missing.append(path.name)
+            continue
+        text = path.read_text(encoding="utf-8")
+        original = text
+        for old, new in pairs:
+            if new in text:
+                skipped.append(path.name)
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+            else:
+                missing.append("{}:{}".format(path.name, old.strip()[:24]))
+        if text != original:
+            shutil.copy2(path, path.with_suffix(".py.bak"))
+            path.write_text(text, encoding="utf-8")
+            applied.append(path.name)
+    out = []
+    if applied:
+        out.append("已修: " + ", ".join(sorted(set(applied))))
+    if skipped:
+        out.append("已是最新: " + ", ".join(sorted(set(skipped))))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out) or "无需修改"
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -896,6 +1011,7 @@ def main() -> int:
     print("8) 3D 场景  :", patch_3d_scene(engine))
     print("9) 界面重排 :", patch_ui_redesign(engine))
     print("9b) 画布配色:", patch_canvas_theme(engine))
+    print("9c) 弹窗布局:", patch_dialog_layouts(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
