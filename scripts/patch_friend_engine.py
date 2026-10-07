@@ -275,6 +275,199 @@ def patch_tk_dark_mode(engine: Path) -> str:
     return "已加入 ttk 深色模式配色（原文件备份为 app.py.bak）"
 
 
+def patch_ui_layout(engine: Path) -> str:
+    """Three layout problems found while running the app:
+
+    1. the hole table used five FIXED column widths (~510 px) inside a panel that is
+       often narrower -> the last column was clipped and a horizontal scrollbar
+       appeared. Let the small columns fit their content and give the coordinate
+       column the remaining space.
+    2. the 3D scene drew its labels at projected positions that can fall outside the
+       viewport -> labels were cut at the edges. Clamp them inside.
+    3. the device dialog asked for a 760 px height with a fixed-height table, so on a
+       864 px screen the bottom row was clipped. Make it screen-aware and let the
+       table be a bit shorter.
+    """
+    edits = [
+        (engine / "inspection_gui" / "gui.py", [
+            ("        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)\n"
+             "        self.table.horizontalHeader().setStretchLastSection(True)\n"
+             "        for column, width in enumerate((60, 80, 160, 110, 100)):\n"
+             "            self.table.setColumnWidth(column, width)\n",
+             "        # [local patch] fit the panel instead of five fixed widths (was clipped)\n"
+             "        _header = self.table.horizontalHeader()\n"
+             "        _header.setStretchLastSection(False)\n"
+             "        for _column in (0, 1, 3, 4):\n"
+             "            _header.setSectionResizeMode(_column, QHeaderView.ResizeMode.ResizeToContents)\n"
+             "        _header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)\n"),
+            ("        scroll.setMinimumWidth(420)",
+             "        scroll.setMinimumWidth(360)   # [local patch] allow a narrower panel"),
+            ("        split.setSizes([900, 580])",
+             "        split.setSizes([880, 560])      # [local patch]\n"
+             "        split.setStretchFactor(0, 3)\n"
+             "        split.setStretchFactor(1, 2)"),
+        ]),
+        (engine / "inspection_gui" / "simulation_scene3d.py", [
+            ("        for label,point in [('A · 工业相机',(-355,-100,15)),('B · 测针',(355,-100,15))]:\n"
+             "            q = project(point)\n"
+             "            p.setPen(QColor('#8ad8ff'))\n"
+             "            p.drawText(q,label)\n"
+             "        for i,x in enumerate((-150,-50,50,150)):\n"
+             "            p.setPen(QColor('#f3ddad'))\n"
+             "            p.drawText(project((x,-43,105)),f'H{i+1:02}')\n",
+             "        def _inside(q, right=104, bottom=18):\n"
+             "            # [local patch] keep scene labels inside the viewport\n"
+             "            x = min(max(q.x(), 16.0), max(16.0, self.width() - right))\n"
+             "            y = min(max(q.y(), 30.0), max(30.0, self.height() - bottom))\n"
+             "            return QPointF(x, y)\n"
+             "        for label,point in [('A · 工业相机',(-355,-100,15)),('B · 测针',(355,-100,15))]:\n"
+             "            p.setPen(QColor('#8ad8ff'))\n"
+             "            p.drawText(_inside(project(point), 104), label)\n"
+             "        for i,x in enumerate((-150,-50,50,150)):\n"
+             "            p.setPen(QColor('#f3ddad'))\n"
+             "            p.drawText(_inside(project((x,-43,105)), 46), f'H{i+1:02}')\n"),
+        ]),
+        (engine / "inspection_gui" / "devices_view.py", [
+            ("        self.fields.setFixedHeight(273)",
+             "        self.fields.setFixedHeight(214)   # [local patch] was 273 -> bottom row got clipped"),
+            ("        self.resize(720, 760)\n        self.setMinimumSize(600, 700)",
+             "        # [local patch] screen-aware size so the bottom buttons are never cut off\n"
+             "        _screen = self.screen()\n"
+             "        _height = min(820, _screen.availableGeometry().height() - 70) if _screen else 780\n"
+             "        self.resize(720, _height)\n"
+             "        self.setMinimumSize(560, 620)"),
+        ]),
+    ]
+    applied, skipped, missing = [], [], []
+    for path, pairs in edits:
+        if not path.is_file():
+            missing.append(path.name)
+            continue
+        text = path.read_text(encoding="utf-8")
+        original = text
+        for old, new in pairs:
+            if new in text:
+                skipped.append(path.name)
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+            else:
+                missing.append("{}:{}".format(path.name, old.strip()[:26]))
+        if text != original:
+            shutil.copy2(path, path.with_suffix(".py.bak"))
+            path.write_text(text, encoding="utf-8")
+            applied.append(path.name)
+    out = []
+    if applied:
+        out.append("已优化: " + ", ".join(sorted(set(applied))))
+    if skipped:
+        out.append("已是最新: " + ", ".join(sorted(set(skipped))))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out) or "无需修改"
+
+
+def patch_3d_scene(engine: Path) -> str:
+    """Redraw the simulated arm as a CR5A-style collaborative robot (reference:
+    DobotStudio Pro) and lighten the scene to match that look.
+
+    The old arm was straight cylinders with flat bands; a CR5A has a pedestal base,
+    tapered links, rounded joint hubs with blue rings and a dark tool flange.
+    """
+    f = engine / "inspection_gui" / "simulation_scene3d.py"
+    if not f.is_file():
+        return "找不到 simulation_scene3d.py"
+    text = f.read_text(encoding="utf-8")
+    if "CR5A-style" in text:
+        return "已打过补丁（跳过）"
+
+    old_arm = (
+        "    def arm(self,base,target,color):\n"
+        "        side=1 if base<0 else -1\n"
+        "        points=[np.array([base,0.,20.]),np.array([base,0.,130.]),\n"
+        "                np.array([base+side*75,65.,350.]),target+np.array([-side*80,35,60]),target]\n"
+        "        self.cylinder((base,0,0),(base,0,75),48,'#e4eaf2')\n"
+        "        for i,(a,b) in enumerate(zip(points,points[1:])):\n"
+        "            self.cylinder(a,b,29 if i<2 else 22,'#e3e9ef')\n"
+        "        for point in points[1:]:\n"
+        "            self.cylinder(point+[0,-30,0],point+[0,30,0],34,'#edf2f6')\n"
+        "            self.cylinder(point+[0,-32,0],point+[0,-28,0],35,color)\n"
+        "            self.cylinder(point+[0,28,0],point+[0,32,0],35,color)\n"
+        "            self.cylinder(point+[0,-34,0],point+[0,-32,0],19,'#657788')\n")
+    new_arm = (
+        "    def joint(self,center,radius,ring_color,half=30,bulge=5):\n"
+        "        # [local patch] CR5A-style joint hub with two blue rings\n"
+        "        c=np.asarray(center,dtype=float)\n"
+        "        self.cylinder(c+[0,-half,0],c+[0,half,0],radius,'#e6eaee',24)\n"
+        "        self.cylinder(c+[0,-half,0],c+[0,-half+5,0],radius+bulge,ring_color,24)\n"
+        "        self.cylinder(c+[0,half-5,0],c+[0,half,0],radius+bulge,ring_color,24)\n"
+        "        self.cylinder(c+[0,-half-3,0],c+[0,-half,0],radius*0.55,'#93a0ae',20)\n"
+        "        self.cylinder(c+[0,half,0],c+[0,half+3,0],radius*0.55,'#93a0ae',20)\n"
+        "\n"
+        "    def taper(self,a,b,r1,r2,color,n=24,caps=True):\n"
+        "        # [local patch] cone-shaped link (the old arm used straight tubes)\n"
+        "        a,b=np.asarray(a,dtype=float),np.asarray(b,dtype=float)\n"
+        "        axis=b-a; axis/=max(float(np.linalg.norm(axis)),1e-9)\n"
+        "        u=np.cross(axis,[0,0,1] if abs(axis[2])<.9 else [0,1,0]); u/=np.linalg.norm(u)\n"
+        "        v=np.cross(axis,u)\n"
+        "        o1=[r1*(math.cos(i*2*math.pi/n)*u+math.sin(i*2*math.pi/n)*v) for i in range(n)]\n"
+        "        o2=[r2*(math.cos(i*2*math.pi/n)*u+math.sin(i*2*math.pi/n)*v) for i in range(n)]\n"
+        "        for i in range(n):\n"
+        "            j=(i+1)%n\n"
+        "            self.face([a+o1[i],a+o1[j],b+o2[j],b+o2[i]],color)\n"
+        "        if caps:\n"
+        "            self.face([a+o for o in o1],color)\n"
+        "            self.face([b+o for o in o2],color)\n"
+        "\n"
+        "    def arm(self,base,target,color):\n"
+        "        # [local patch] CR5A-style arm: pedestal, tapered links, blue joint rings,\n"
+        "        # dark tool flange (geometry is still illustrative, not real kinematics)\n"
+        "        side=1 if base<0 else -1\n"
+        "        p1=np.array([base,0.,132.])\n"
+        "        p2=np.array([base+side*78,66.,352.])\n"
+        "        p3=target+np.array([-side*82,36,64])\n"
+        "        self.cylinder((base,0,0),(base,0,12),58,'#c5cbd3',32)\n"
+        "        self.cylinder((base,0,12),(base,0,58),46,'#eef1f4',32)\n"
+        "        self.cylinder((base,0,58),(base,0,70),51,color,32)\n"
+        "        self.joint(p1,40,color,30)\n"
+        "        self.taper(p1,p2,37,27,'#eef2f5',26)\n"
+        "        self.joint(p2,33,color,26)\n"
+        "        self.taper(p2,p3,28,21,'#e7ebef',26)\n"
+        "        d=(target-p3); L=max(float(np.linalg.norm(d)),1e-6); d=d/L\n"
+        "        for k,off in enumerate((0.0,26.0,50.0)):\n"
+        "            self.joint(p3+d*off,20-k*2,color,15,3)\n"
+        "        self.cylinder(target-d*14,target-d*4,17,'#d3d9df',20)\n"
+        "        self.cylinder(target-d*4,target+d*3,11,'#31363d',20)\n")
+    if old_arm not in text:
+        return "没找到原来的 arm() 代码，请人工检查"
+    text = text.replace(old_arm, new_arm, 1)
+
+    # lighten the scene to the DobotStudio look (white grid floor, light table)
+    theme = [
+        ("QColor('#101c30')", "QColor('#f4f6f9')"),
+        ("(470,285,-15), '#52647b'", "(470,285,-15), '#e2e7ee'"),
+        ("3, '#26364d', 6", "3, '#ccd4dd', 6"),
+        ("(x+75,75,0), '#344862'", "(x+75,75,0), '#c3ccd7'"),
+        ("(205,70,90), '#87796a', top=False", "(205,70,90), '#a99a87', top=False"),
+        ("(x,0,89),35,'#273448',24, caps=False", "(x,0,89),35,'#8d98a7',24, caps=False"),
+        ("self.disk(x,0,34,35,'#101827')", "self.disk(x,0,34,35,'#6f7a89')"),
+        ("'#b4a28b'", "'#c6b49b'"),
+        ("QColor('#c8dcf7')", "QColor('#33415a')"),
+        ("QColor('#8399b7')", "QColor('#6b7a90')"),
+        ("QColor('#8ad8ff')", "QColor('#2563eb')"),
+        ("QColor('#f3ddad')", "QColor('#b45309')"),
+        ("            p.setPen(Qt.PenStyle.NoPen)\n            p.setBrush(color)",
+         "            # [local patch] thin edge so light parts stay readable\n"
+         "            p.setPen(QPen(QColor(120,132,150,80),0.6))\n"
+         "            p.setBrush(color)"),
+    ]
+    for old, new in theme:
+        text = text.replace(old, new)
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "机械臂已改为 CR5A 样式，场景改为浅色（原文件备份为 simulation_scene3d.py.bak）"
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -323,10 +516,12 @@ def main() -> int:
     print("4) 深色模式 :", patch_dark_mode(engine))
     print("5) 照片目录 :", patch_photo_dir(engine))
     print("6) Tk 配色  :", patch_tk_dark_mode(engine))
+    print("7) 界面布局 :", patch_ui_layout(engine))
+    print("8) 3D 场景  :", patch_3d_scene(engine))
     if args.swap_model:
-        print("7) 模型注册 :", point_registry(engine))
+        print("9) 模型注册 :", point_registry(engine))
     else:
-        print("7) 模型注册 :", restore_registry(engine))
+        print("9) 模型注册 :", restore_registry(engine))
 
     reg = engine / "active_models.json"
     if reg.is_file():
