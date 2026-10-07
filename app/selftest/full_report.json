@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-06 21:12:21",
+  "generated_at": "2026-10-07 17:25:45",
   "total": 73,
   "passed": 73,
   "failed": [],
@@ -37,17 +37,17 @@
     {
       "test": "A7 missing file -> error, no exception",
       "pass": true,
-      "detail": "['图片不存在或未选择: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_6d62ds5w\\\\nope.jpg']"
+      "detail": "['图片不存在或未选择: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_sxgxltq5\\\\nope.jpg']"
     },
     {
       "test": "A8 corrupt image -> error, no exception",
       "pass": true,
-      "detail": "['图片读取失败（可能已损坏或格式不支持）: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_6d62ds5w\\\\junk.jpg']"
+      "detail": "['图片读取失败（可能已损坏或格式不支持）: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_sxgxltq5\\\\junk.jpg']"
     },
     {
       "test": "A9 missing model -> error, no exception",
       "pass": true,
-      "detail": "['模型文件不存在: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_6d62ds5w\\\\missing_model.pt']"
+      "detail": "['模型文件不存在: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_sxgxltq5\\\\missing_model.pt']"
     },
     {
       "test": "A10 draw_result output shape",
@@ -57,7 +57,7 @@
     {
       "test": "A11 ellipse pairing regression (RMS < 5%)",
       "pass": true,
-      "detail": "worst=2.61%"
+      "detail": "worst=4.59%"
     },
     {
       "test": "B1 file camera start",
@@ -137,7 +137,7 @@
     {
       "test": "D4 manual H03 found",
       "pass": true,
-      "detail": "目标已定位：H03  中心 (1237.23, 1631.37)  置信度 0.925"
+      "detail": "目标已定位：H03  中心 (1239.95, 1637.57)  置信度 0.925"
     },
     {
       "test": "D5 manual missing target refused",
@@ -172,7 +172,7 @@
     {
       "test": "D11 save_run never overwrites",
       "pass": true,
-      "detail": "20261006_211212 vs 20261006_211212_01"
+      "detail": "20261007_172519 vs 20261007_172519_01"
     },
     {
       "test": "D12 saved json has required keys",
@@ -267,7 +267,7 @@
     {
       "test": "E14b simulation drew a visible overlay (order/done kept)",
       "pass": true,
-      "detail": "done=['H03'] probe=(1237.23, 1631.37)"
+      "detail": "done=['H03'] probe=(1239.95, 1637.57)"
     },
     {
       "test": "E14c progress bar reached the end",
@@ -332,7 +332,7 @@
     {
       "test": "E21b engine label shows GPU/CPU + time",
       "pass": true,
-      "detail": "设备：GPU    耗时：0.17 s"
+      "detail": "设备：GPU    耗时：0.69 s"
     },
     {
       "test": "E22 save button ok",
@@ -342,7 +342,7 @@
     {
       "test": "E22b export tasks csv",
       "pass": true,
-      "detail": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gui_selftest_6d62ds5w\\runs\\20261006_211214_01\\tasks.csv"
+      "detail": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gui_selftest_sxgxltq5\\runs\\20261007_172524_01\\tasks.csv"
     },
     {
       "test": "E22b2 second export does not overwrite",
@@ -367,7 +367,7 @@
     {
       "test": "F1 cold-start test passes",
       "pass": true,
-      "detail": "[PASS] C1 cold-start load all test images  -> 4/4 | [PASS] C2 cold-start load chinese-dir jpg | [PASS] C3 cold-start load chinese-dir png | [PASS] C4 cold-start load ascii path | [PASS] C5 camera layer used  -> C:\\Users\\Administrator\\AppData\\Local\\Temp\\cold_my1gx1sx\\ascii\\plain.jpg | [PASS] C6 detec"
+      "detail": "[PASS] C1 cold-start load all test images  -> 4/4 | [PASS] C2 cold-start load chinese-dir jpg | [PASS] C3 cold-start load chinese-dir png | [PASS] C4 cold-start load ascii path | [PASS] C5 camera layer used  -> C:\\Users\\Administrator\\AppData\\Local\\Temp\\cold_8kc49m9r\\ascii\\plain.jpg | [PASS] C6 detec"
     }
   ]
 }
