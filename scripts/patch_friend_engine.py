@@ -468,6 +468,382 @@ def patch_3d_scene(engine: Path) -> str:
     return "机械臂已改为 CR5A 样式，场景改为浅色（原文件备份为 simulation_scene3d.py.bak）"
 
 
+NEW_STYLE = '''
+QMainWindow, QDialog { background: #eef2f7; color: #22324a; }
+QLabel { color: #22324a; }
+#topBar { background: #0f3d78; }
+#appTitle { color: #ffffff; font-size: 21px; font-weight: 700; }
+#appSub { color: #aecbf0; font-size: 12px; }
+#modelChip { color: #d9e8ff; font-size: 12px; }
+QGroupBox { background: #ffffff; border: 1px solid #dde5ee; border-radius: 10px;
+            margin-top: 14px; padding: 12px 12px 10px; font-weight: 600; }
+QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; color: #17457f; }
+QPushButton { background: #ffffff; border: 1px solid #c7d5e5; border-radius: 8px;
+              padding: 8px 12px; color: #16324f; font-weight: 600; }
+QPushButton:hover { background: #eef5ff; border-color: #7ba7dd; }
+QPushButton:pressed { background: #deeafa; }
+QPushButton:disabled { background: #f3f6fa; color: #9aa8ba; border-color: #e3e9f1; }
+QPushButton#primary { background: #1256a8; border-color: #1256a8; color: #ffffff;
+                      padding: 11px 12px; font-size: 14px; }
+QPushButton#primary:hover { background: #0e4a93; }
+QPushButton#primary:disabled { background: #b9cbe4; border-color: #b9cbe4; }
+QPushButton#flat { background: transparent; border: none; color: #35618f; padding: 4px 8px; }
+QPushButton#flat:hover { color: #1256a8; }
+QComboBox { background: #ffffff; color: #16324f; border: 1px solid #c7d5e5;
+            border-radius: 7px; padding: 5px 8px; }
+QComboBox QAbstractItemView { background: #ffffff; color: #16324f; selection-background-color: #dbeafe; }
+QCheckBox, QRadioButton { color: #22324a; }
+QLabel#bigCount { font-size: 15px; font-weight: 700; color: #17457f; }
+QLabel#systemState { font-size: 15px; font-weight: 700; color: #12805a; }
+QLabel#warnNote { color: #9a6212; font-size: 11px; }
+QLabel#hintNote, QLabel#legend { color: #6d7f96; font-size: 11px; }
+QLabel#canvas { background: #f7f9fc; border: 1px solid #dde5ee; border-radius: 8px; color: #8a97a8; }
+QTableWidget { background: #ffffff; color: #22324a; alternate-background-color: #f5f8fc;
+               border: none; gridline-color: #e6ecf3; }
+QTableWidget::item { color: #22324a; padding: 4px; }
+QHeaderView::section { background: #eef3fa; color: #17457f; padding: 7px;
+                       border: none; border-bottom: 1px solid #d8e2ee; font-weight: 600; }
+QProgressBar { border: 1px solid #d8e2ee; border-radius: 7px; background: #f4f7fb;
+               text-align: center; color: #17457f; min-height: 18px; }
+QProgressBar::chunk { background: #2f7fd6; border-radius: 6px; }
+QScrollArea { border: none; background: transparent; }
+QPlainTextEdit#log { background: #0f2438; color: #d7e6f7; border-radius: 8px;
+                     padding: 5px; font-size: 11px; }
+QFrame#statusBar { background: #f3f6fa; border-top: 1px solid #dde5ee; }
+QLabel#deviceLine { color: #8b4b30; font-weight: 600; }
+'''
+
+NEW_BUILD_UI = '''    def _build_ui(self):
+        central = QWidget()
+        self.setCentralWidget(central)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        # ---- 顶部标题栏 ----
+        top = QFrame()
+        top.setObjectName('topBar')
+        top.setFixedHeight(62)
+        top_layout = QHBoxLayout(top)
+        top_layout.setContentsMargins(20, 8, 20, 8)
+        titles = QVBoxLayout()
+        titles.setSpacing(0)
+        app_title = QLabel('双机械臂孔检测系统')
+        app_title.setObjectName('appTitle')
+        app_sub = QLabel('工业箱体孔位识别 · 椭圆拟合 · 孔心定位')
+        app_sub.setObjectName('appSub')
+        titles.addWidget(app_title)
+        titles.addWidget(app_sub)
+        top_layout.addLayout(titles)
+        top_layout.addStretch(1)
+        self.model_label = QLabel()
+        self.model_label.setObjectName('modelChip')
+        self.model_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        top_layout.addWidget(self.model_label)
+        root.addWidget(top)
+
+        # ---- 主体：左操作 / 中图像 / 右结果 ----
+        body = QWidget()
+        body_layout = QHBoxLayout(body)
+        body_layout.setContentsMargins(14, 12, 14, 10)
+        body_layout.setSpacing(12)
+        root.addWidget(body, 1)
+
+        left = QWidget()
+        left.setFixedWidth(238)
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(10)
+
+        actions = QGroupBox('操作')
+        actions_layout = QVBoxLayout(actions)
+        actions_layout.setSpacing(8)
+        self.btn_select = QPushButton('① 选择照片')
+        self.btn_select.setObjectName('primary')
+        self.btn_detect = QPushButton('② 开始检测')
+        self.btn_detect.setObjectName('primary')
+        self.btn_send = QPushButton('③ 发送测量任务')
+        self.btn_send.setEnabled(False)
+        self.btn_send.setToolTip('设备连接、三维坐标、孔轴方向和标定验证完成后才能下发测量任务。')
+        for _button in (self.btn_select, self.btn_detect, self.btn_send):
+            actions_layout.addWidget(_button)
+        left_layout.addWidget(actions)
+
+        photos = QGroupBox('本组照片')
+        photos_layout = QVBoxLayout(photos)
+        photos_layout.setSpacing(6)
+        self.page_label = QLabel('未选择照片')
+        self.page_label.setObjectName('bigCount')
+        self.selector = QComboBox()
+        navigation = QHBoxLayout()
+        self.previous_button = QPushButton('上一张')
+        self.next_button = QPushButton('下一张')
+        navigation.addWidget(self.previous_button)
+        navigation.addWidget(self.next_button)
+        self.batch_progress = QProgressBar()
+        self.batch_progress.setRange(0, 1)
+        self.batch_progress.setValue(0)
+        self.batch_progress.setFormat('本组进度 %v/%m')
+        photos_layout.addWidget(self.page_label)
+        photos_layout.addWidget(self.selector)
+        photos_layout.addLayout(navigation)
+        photos_layout.addWidget(self.batch_progress)
+        left_layout.addWidget(photos)
+
+        others = QGroupBox('其他功能')
+        others_layout = QVBoxLayout(others)
+        others_layout.setSpacing(6)
+        self.btn_devices = QPushButton('设备连接')
+        self.btn_records = QPushButton('实验记录')
+        self.btn_models = QPushButton('模型与数据管理')
+        self.btn_simulation = QPushButton('模拟测量动画')
+        self.btn_results = QPushButton('打开结果文件夹')
+        for _button in (self.btn_devices, self.btn_records, self.btn_models,
+                        self.btn_simulation, self.btn_results):
+            others_layout.addWidget(_button)
+        left_layout.addWidget(others)
+        left_layout.addStretch(1)
+        body_layout.addWidget(left)
+
+        visual = QGroupBox('视觉检测区')
+        visual_layout = QVBoxLayout(visual)
+        visual_layout.setSpacing(8)
+        self.image_label = QLabel('请选择一组测试照片')
+        self.image_label.setObjectName('canvas')
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setMinimumSize(420, 260)
+        self.image_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        visual_layout.addWidget(self.image_label, 1)
+        image_tools = QHBoxLayout()
+        self.image_info = QLabel('尚未选择照片')
+        self.chk_fit = QCheckBox('适应孔区域')
+        self.chk_fit.setChecked(True)
+        self.sld_zoom = QSlider(Qt.Orientation.Horizontal)
+        self.sld_zoom.setRange(100, 300)
+        self.sld_zoom.setValue(100)
+        self.sld_zoom.setMaximumWidth(150)
+        self.lbl_zoom = QLabel('100%')
+        image_tools.addWidget(self.image_info, 1)
+        image_tools.addWidget(self.chk_fit)
+        image_tools.addWidget(QLabel('缩放'))
+        image_tools.addWidget(self.sld_zoom)
+        image_tools.addWidget(self.lbl_zoom)
+        visual_layout.addLayout(image_tools)
+        legend = QLabel('青色：孔轮廓　黄色：拟合椭圆　红色十字：图像圆心')
+        legend.setObjectName('legend')
+        visual_layout.addWidget(legend)
+        body_layout.addWidget(visual, 1)
+
+        right = QWidget()
+        right.setFixedWidth(376)
+        right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(10)
+
+        status_box = QGroupBox('AI 检测状态')
+        status_layout = QVBoxLayout(status_box)
+        status_layout.setSpacing(6)
+        self.lbl_system = QLabel('● 系统就绪')
+        self.lbl_system.setObjectName('systemState')
+        self.lbl_detected = QLabel('已识别：— / 4')
+        self.lbl_centers = QLabel('圆心：—')
+        self.lbl_avg = QLabel('平均置信度：—')
+        self.lbl_part = QLabel('part 置信度：—')
+        self.lbl_constraint = QLabel('part 位置筛选：—')
+        self.lbl_engine = QLabel('设备：本地 GPU / CPU')
+        self.lbl_engine.setWordWrap(True)
+        status_grid = QGridLayout()
+        status_grid.addWidget(self.lbl_detected, 0, 0)
+        status_grid.addWidget(self.lbl_centers, 0, 1)
+        status_grid.addWidget(self.lbl_avg, 1, 0)
+        status_grid.addWidget(self.lbl_constraint, 1, 1)
+        status_layout.addWidget(self.lbl_system)
+        status_layout.addLayout(status_grid)
+        right_layout.addWidget(status_box)
+
+        task_box = QGroupBox('孔位与测量准备')
+        task_layout = QVBoxLayout(task_box)
+        task_layout.setSpacing(6)
+        self.task_note = QLabel('孔号按当前图像位置排序；尚未建立固定物理孔身份。')
+        self.task_note.setObjectName('warnNote')
+        self.task_note.setWordWrap(True)
+        self.table = QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels(['孔号', '置信度', '图像圆心 px', '定位状态', '三维坐标'])
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(30)
+        _header = self.table.horizontalHeader()
+        _header.setStretchLastSection(False)
+        for _column in (0, 1, 3, 4):
+            _header.setSectionResizeMode(_column, QHeaderView.ResizeMode.ResizeToContents)
+        _header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        task_layout.addWidget(self.task_note)
+        task_layout.addWidget(self.table, 1)
+        self.coordinate_note = QLabel('当前圆心为图像像素坐标；三维定位与测量机械臂坐标待标定。')
+        self.coordinate_note.setObjectName('hintNote')
+        self.coordinate_note.setWordWrap(True)
+        task_layout.addWidget(self.coordinate_note)
+        right_layout.addWidget(task_box, 1)
+        body_layout.addWidget(right)
+
+        # ---- 模型与数据管理弹窗（保留原功能）----
+        self.model_dialog = QDialog(self)
+        self.model_dialog.setWindowTitle('模型与数据管理')
+        self.model_dialog.resize(560, 230)
+        management = QVBoxLayout(self.model_dialog)
+        note = QLabel('添加照片并标注 → 训练候选模型 → 查看验证结果\\n'
+                      '正式模型仍按验证结果选择，验证通过后才启用。')
+        note.setWordWrap(True)
+        management.addWidget(note)
+        self.btn_dataset = QPushButton('添加训练数据 / 自动更新')
+        self.btn_validation = QPushButton('训练验证结果')
+        management.addWidget(self.btn_dataset)
+        management.addWidget(self.btn_validation)
+
+        # ---- 底部状态栏 ----
+        bottom = QFrame()
+        bottom.setObjectName('statusBar')
+        bottom_layout = QVBoxLayout(bottom)
+        bottom_layout.setContentsMargins(16, 6, 16, 8)
+        bottom_layout.setSpacing(4)
+        bar = QHBoxLayout()
+        self.connection_line = QLabel('工业相机：未连接　｜　拍照机械臂 A：未连接　｜　测量机械臂 B：未连接')
+        self.connection_line.setObjectName('deviceLine')
+        diagnostics_toggle = QPushButton('▶ 诊断信息')
+        diagnostics_toggle.setObjectName('flat')
+        diagnostics_toggle.setCheckable(True)
+        bar.addWidget(self.connection_line, 1)
+        bar.addWidget(diagnostics_toggle)
+        bottom_layout.addLayout(bar)
+        self.diagnostics = QWidget()
+        diagnostics_layout = QVBoxLayout(self.diagnostics)
+        diagnostics_layout.setContentsMargins(0, 0, 0, 0)
+        details = QHBoxLayout()
+        details.addWidget(self.lbl_part)
+        details.addWidget(self.lbl_engine, 1)
+        diagnostics_layout.addLayout(details)
+        self.logbox = QPlainTextEdit()
+        self.logbox.setObjectName('log')
+        self.logbox.setReadOnly(True)
+        self.logbox.setMaximumHeight(110)
+        diagnostics_layout.addWidget(self.logbox)
+        self.diagnostics.hide()
+        bottom_layout.addWidget(self.diagnostics)
+        root.addWidget(bottom)
+
+        self.device_states = {}
+
+        # ---- 信号 ----
+        self.btn_select.clicked.connect(self.select_images)
+        self.btn_detect.clicked.connect(self.start_batch)
+        self.btn_devices.clicked.connect(self.show_device_panel)
+        self.btn_records.clicked.connect(self.show_records)
+        self.btn_dataset.clicked.connect(self.bridge.open_dataset)
+        self.btn_validation.clicked.connect(self.bridge.open_validation)
+        self.btn_results.clicked.connect(self.open_results)
+        self.btn_models.clicked.connect(self.show_model_management)
+        self.btn_simulation.clicked.connect(self.show_simulation)
+        self.previous_button.clicked.connect(lambda: self.show_index(self.current_index - 1))
+        self.next_button.clicked.connect(lambda: self.show_index(self.current_index + 1))
+        self.selector.currentIndexChanged.connect(self.show_index)
+        self.chk_fit.toggled.connect(self.render_view)
+        self.sld_zoom.valueChanged.connect(self.render_view)
+        self.table.cellDoubleClicked.connect(self.open_current_result)
+        diagnostics_toggle.toggled.connect(self.diagnostics.setVisible)
+        diagnostics_toggle.toggled.connect(lambda expanded: diagnostics_toggle.setText(
+            '▼ 诊断信息' if expanded else '▶ 诊断信息'))
+        QShortcut(QKeySequence('Ctrl+O'), self, activated=self.select_images)
+        QShortcut(QKeySequence('F5'), self, activated=self.start_batch)
+
+'''
+
+
+def patch_ui_redesign(engine: Path) -> str:
+    """Full main-window redesign: blue header bar, left action column, centre image
+    card, right result column, bottom status bar (reference: DobotStudio look)."""
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    text = f.read_text(encoding="utf-8")
+    if "[redesign]" in text or "#topBar" in text:
+        return "已打过补丁（跳过）"
+
+    # 1) QFrame is needed by the new layout
+    if "QFrame," not in text:
+        text = text.replace(
+            "    QSizePolicy, QSlider, QSplitter, QTableWidget, QTableWidgetItem,",
+            "    QFrame, QSizePolicy, QSlider, QSplitter, QTableWidget, QTableWidgetItem,", 1)
+
+    # 2) replace the stylesheet
+    style_start = text.find('STYLE = """')
+    if style_start < 0:
+        return "没找到 STYLE 块"
+    style_end = text.find('"""', style_start + 10) + 3
+    text = text[:style_start] + 'STYLE = r"""' + NEW_STYLE + '"""' + text[style_end:]
+
+    # 3) replace the whole _build_ui method
+    ui_start = text.find("    def _build_ui(self):")
+    ui_end = text.find("    def log(self, message):")
+    if ui_start < 0 or ui_end < 0 or ui_end <= ui_start:
+        return "没找到 _build_ui 方法边界"
+    text = text[:ui_start] + NEW_BUILD_UI + text[ui_end:]
+
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "界面已整体重排（原文件备份为 gui.py.bak）"
+
+
+def patch_canvas_theme(engine: Path) -> str:
+    """The photo canvas was a dark slate gradient, which clashed with the new light
+    UI. Make it light (like the reference software's white work area) and give the
+    header bar a little more room."""
+    edits = [
+        (engine / "inspection_gui" / "view_render.py", [
+            ("def _gradient_canvas(h, w, top=(42, 23, 15), bottom=(59, 41, 30)):",
+             "def _gradient_canvas(h, w, top=(252, 249, 246), bottom=(240, 245, 250)):"),
+            ("    Colours are slate blue: #0f172a (top) -> #1e293b (bottom).",
+             "    [local patch] light grey-blue: #f6f9fc (top) -> #f0f5fa (bottom),\n"
+             "    to match the light application theme."),
+        ]),
+        (engine / "inspection_gui" / "gui.py", [
+            ("        top.setFixedHeight(62)", "        top.setFixedHeight(70)   # [local patch]"),
+            ("        titles.setSpacing(0)", "        titles.setSpacing(3)      # [local patch]"),
+            ("        right.setFixedWidth(376)", "        right.setFixedWidth(424)  # [local patch] table needs room"),
+            ("        left.setFixedWidth(238)", "        left.setFixedWidth(232)   # [local patch]"),
+        ]),
+    ]
+    applied, skipped, missing = [], [], []
+    for path, pairs in edits:
+        if not path.is_file():
+            missing.append(path.name)
+            continue
+        text = path.read_text(encoding="utf-8")
+        original = text
+        for old, new in pairs:
+            if new in text:
+                skipped.append(path.name)
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+            else:
+                missing.append("{}:{}".format(path.name, old.strip()[:24]))
+        if text != original:
+            shutil.copy2(path, path.with_suffix(".py.bak"))
+            path.write_text(text, encoding="utf-8")
+            applied.append(path.name)
+    out = []
+    if applied:
+        out.append("已改: " + ", ".join(sorted(set(applied))))
+    if skipped:
+        out.append("已是最新: " + ", ".join(sorted(set(skipped))))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out) or "无需修改"
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -518,10 +894,12 @@ def main() -> int:
     print("6) Tk 配色  :", patch_tk_dark_mode(engine))
     print("7) 界面布局 :", patch_ui_layout(engine))
     print("8) 3D 场景  :", patch_3d_scene(engine))
+    print("9) 界面重排 :", patch_ui_redesign(engine))
+    print("9b) 画布配色:", patch_canvas_theme(engine))
     if args.swap_model:
-        print("9) 模型注册 :", point_registry(engine))
+        print("10) 模型注册:", point_registry(engine))
     else:
-        print("9) 模型注册 :", restore_registry(engine))
+        print("10) 模型注册:", restore_registry(engine))
 
     reg = engine / "active_models.json"
     if reg.is_file():
