@@ -268,6 +268,15 @@ class DevicePage(QWidget):
         box_layout.addWidget(explanation)
         outer.addWidget(settings_box)
 
+        if device_id == 'camera':
+            parameters_button = QPushButton('相机采集参数（曝光／增益／触发）')
+            def show_parameters():
+                from .camera_parameters import CameraParametersDialog
+                self.parameters_dialog = CameraParametersDialog(_registered_backends.get('camera'), self)
+                self.parameters_dialog.show()
+            parameters_button.clicked.connect(show_parameters)
+            outer.addWidget(parameters_button)
+
         if device_id == 'robot_b':
             evidence_box = QGroupBox('测量机械臂后台信息与状态')
             evidence_layout = QVBoxLayout(evidence_box)

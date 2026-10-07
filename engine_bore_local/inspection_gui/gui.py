@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import hashlib
+import time
 import json
 from pathlib import Path
 
@@ -19,6 +20,9 @@ from PySide6.QtWidgets import (
 )
 
 from experiment_records import ExperimentRecords
+from .capture_archive import save_capture, capture_information
+from .measurement_readiness import ReadinessDialog, readiness_rows
+from .camera_parameters import CameraParametersDialog
 from .vision_workspace import ClickablePhoto, CameraPreviewWorker, pick_hole, selected_targets
 from .review_view import HoleReviewDialog, review_summary
 from .devices_view import show_devices
@@ -104,6 +108,7 @@ class MainWindow(QMainWindow):
         self.camera_worker = None
         self.photo_mapping = None
         self.hole_selections = {}
+        self.confirmed_task = None
         self.display_photo = None
         self.display_crop = None
         self.thread = None
@@ -187,12 +192,20 @@ class MainWindow(QMainWindow):
         camera_actions = QHBoxLayout()
         self.btn_live = QPushButton('开始实时采集')
         self.btn_live_stop = QPushButton('停止采集')
-        self.btn_capture = QPushButton('拍摄当前位置')
+        self.btn_capture = QPushButton('拍摄并留样')
         self.btn_live.clicked.connect(self.start_camera_preview)
         self.btn_live_stop.clicked.connect(self.stop_camera_preview)
         self.btn_capture.clicked.connect(self.capture_camera_photo)
         for button in (self.btn_live, self.btn_live_stop, self.btn_capture): camera_actions.addWidget(button)
         live_layout.addLayout(camera_actions)
+        archive_actions = QHBoxLayout()
+        parameters_button = QPushButton('相机采集参数')
+        parameters_button.clicked.connect(self.show_camera_parameters)
+        archive_button = QPushButton('打开拍摄留样')
+        archive_button.clicked.connect(self.open_capture_archive)
+        archive_actions.addWidget(parameters_button)
+        archive_actions.addWidget(archive_button)
+        live_layout.addLayout(archive_actions)
         self.btn_capture.setEnabled(False)
         self.btn_live_stop.setEnabled(False)
         frames.addWidget(live_box)
@@ -317,6 +330,9 @@ class MainWindow(QMainWindow):
         self.btn_send = QPushButton('发送测量任务（待设备与标定就绪）')
         self.btn_send.setEnabled(False)
         self.btn_send.setToolTip('设备连接、三维坐标、孔轴方向和标定验证完成后才能下发测量任务。')
+        self.btn_readiness = QPushButton('测量就绪检查')
+        self.btn_readiness.clicked.connect(self.show_readiness)
+        task_layout.addWidget(self.btn_readiness)
         task_layout.addWidget(self.btn_send)
         side_layout.addWidget(task_box, 1)
         scroll = QScrollArea()
@@ -406,6 +422,7 @@ class MainWindow(QMainWindow):
 
     def refresh_after_update(self):
         self.detector.release()
+        self.confirmed_task = None
         self.refresh_model_summary()
         if self.records_dialog:
             self.records_dialog.refresh()
@@ -452,7 +469,11 @@ class MainWindow(QMainWindow):
             self.display_photo = imread_unicode(self.current_result.get('result_image') or '')
         self.page_label.setText(f'{self.current_index + 1}/{len(self.paths)}')
         dimensions = f' · {self.display_photo.shape[1]}×{self.display_photo.shape[0]}' if self.display_photo is not None else ''
-        self.image_info.setText(Path(path).name + dimensions)
+        info = capture_information(path)
+        capture_note = ''
+        if info:
+            capture_note = '\n留样时间：' + info.get('frame_received_at_local', info['saved_at']) + '  相机：' + (info.get('camera', {}).get('model') or '未获取')
+        self.image_info.setText(Path(path).name + dimensions + capture_note)
         self.refresh_current_summary()
         self.render_view()
         self.set_controls()
@@ -573,6 +594,7 @@ class MainWindow(QMainWindow):
             output = destination / (datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
             output.write_text(json.dumps(task, ensure_ascii=False, indent=2), encoding='utf-8')
             self.selection_note.setText('已确认测孔：' + '、'.join(h['id'] for h in targets) + '\n清单已保存，尚未发送机械臂或执行测量。')
+            self.confirmed_task = task
             self.log('测孔清单：' + str(output))
         except (ValueError, KeyError, OSError) as error:
             QMessageBox.warning(self, '选孔未完成', str(error))
@@ -626,21 +648,67 @@ class MainWindow(QMainWindow):
     def capture_camera_photo(self):
         if self.batch_running or self.bridge.busy:
             return
-        frame = self.camera_worker.snapshot() if self.camera_worker and self.camera_worker.isRunning() else None
-        if frame is None:
+        packet = self.camera_worker.snapshot_packet() if self.camera_worker and self.camera_worker.isRunning() else None
+        if packet is None:
             QMessageBox.warning(self, '没有有效图像', '请先启动实时采集，确认相机正在提供新图像。')
             return
-        from .vision import imwrite_unicode
-        folder = BASE / 'data' / 'camera_captures'
-        folder.mkdir(parents=True, exist_ok=True)
-        photo = folder / (datetime.now().strftime('capture_%Y%m%d_%H%M%S_%f') + '.png')
-        if not imwrite_unicode(photo, frame):
-            QMessageBox.warning(self, '拍摄保存失败', '图像未保存，请检查磁盘空间。')
+        from .devices_view import _registered_backends, _load_settings, SETTINGS_PATH
+        settings, _ = _load_settings(SETTINGS_PATH)
+        metadata = {'camera': settings.get('camera', {}),
+                    'camera_driver': getattr(self.camera_worker.backend, 'name', type(self.camera_worker.backend).__name__),
+                    'camera_identity_note': '相机名称型号来自连接配置，未取得厂家设备身份读回时不视为验证。',
+                    'frame_received_at_local': datetime.fromtimestamp(packet['frame_received_at']).astimezone().isoformat(),
+                    'camera_parameters_actual': packet.get('camera_parameters_actual'),
+                    'robot_a_pose': None, 'robot_a_pose_note': '未取得有效拍照机械臂位姿',
+                    'model_version': self.active_models.get('version'),
+                    'camera_parameters_note': '仅记录设备实际读回值，未获取时保持空值，不用期望配置替代。'}
+        backend = _registered_backends.get('robot_a')
+        latest = getattr(backend, 'latest', None)
+        if isinstance(latest, dict) and latest.get('received_at') and 0 <= time.time()-latest['received_at'] < 2:
+            metadata['robot_a_pose'] = {k: latest.get(k) for k in ('pose','joints','received_at','user_index','tool_index')}
+            metadata['robot_a_pose_note'] = '附近时刻的机械臂反馈，不是硬件同步曝光位姿。'
+        try:
+            photo, sidecar, info = save_capture(BASE / 'data' / 'camera_captures', packet['frame'], metadata)
+        except (OSError, ValueError, TypeError, cv2.error) as error:
+            QMessageBox.warning(self, '留样未完成，暂停检测', str(error))
             return
+        self.confirmed_task = None
         self.set_images([str(photo)])
         self.measure_mode.setCurrentIndex(0)
         self.selection_note.setText('已冻结本次相机照片。点击“开始检测”，再按图上编号选择要测的孔。')
-        self.log('相机拍摄图片：' + str(photo))
+        self.log('相机原图已留样：' + str(photo) + '；拍摄信息：' + str(sidecar))
+
+    def show_camera_parameters(self):
+        from .devices_view import _registered_backends
+        self.camera_parameters_dialog = CameraParametersDialog(_registered_backends.get('camera'), self)
+        self.camera_parameters_dialog.show()
+
+    def open_capture_archive(self):
+        folder = BASE / 'data' / 'camera_captures'
+        folder.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def show_readiness(self):
+        from .devices_view import _registered_backends
+        result = self.current_result or {}
+        photo = result.get('image_path')
+        info = capture_information(photo) if photo else None
+        archived = False
+        if info:
+            try: archived = hashlib.sha256(Path(photo).read_bytes()).hexdigest() == info.get('image_sha256')
+            except OSError: pass
+        task = self.confirmed_task or {}
+        confirmed = bool(photo and task.get('image') == photo and
+                         task.get('selection_mode') == ('automatic' if self.measure_mode.currentIndex() == 0 else 'manual') and
+                         task.get('model') == self.active_models.get('bore') and
+                         {t['id'] for t in task.get('targets', [])} == self.current_selected_ids())
+        if confirmed:
+            try: confirmed = hashlib.sha256(Path(photo).read_bytes()).hexdigest() == task.get('image_sha256')
+            except OSError: confirmed = False
+        rows = readiness_rows(_registered_backends, archived, confirmed)
+        self.btn_send.setEnabled(False)
+        self.readiness_dialog = ReadinessDialog(rows, self)
+        self.readiness_dialog.show()
 
     def review_hole(self, row, column=0):
         result = self.current_result or {}
@@ -706,6 +774,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, '实验记录未能保存', str(error))
             return
         self.hole_selections.clear()
+        self.confirmed_task = None
         self.batch_running = True
         self.completed_count = 0
         self.record_error = False
@@ -738,6 +807,9 @@ class MainWindow(QMainWindow):
                       'selected_bores': [], 'centers': [], 'bore_selected_count': 0,
                       'part_max_confidence': 0, 'warnings': result.get('errors', []),
                       'errors': result.get('errors', []), 'result_image': ''}
+        capture_info = capture_information(self.paths[index])
+        if capture_info:
+            report['capture_archive'] = capture_info
         result['record_report'] = report
         try:
             self.records.update(self.active_group, report=report)
