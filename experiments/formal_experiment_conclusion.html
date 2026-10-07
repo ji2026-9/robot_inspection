@@ -1,0 +1,147 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='utf-8'>
+<title>正式训练对照实验结论文档</title><style>
+    body{margin:0;padding:32px;background:#f5f7fa;color:#1f2937;line-height:1.75;
+         font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;
+          border-radius:14px;padding:34px 40px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    h1{font-size:27px;margin:0 0 8px}
+    h2{font-size:20px;margin:32px 0 12px;padding-left:10px;border-left:5px solid #2563eb}
+    .meta{color:#6b7280;font-size:13px;margin-bottom:22px}
+    table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0}
+    th,td{border:1px solid #e2e8f0;padding:8px 10px;text-align:left}
+    th{background:#eef2f7;font-weight:600}
+    code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:13px;
+         font-family:Consolas,monospace}
+    blockquote{margin:14px 0;padding:12px 16px;background:#fffbeb;border-left:4px solid #f59e0b;
+               color:#92400e;font-size:14px}
+    strong{color:#111827}
+    ul{padding-left:22px}
+    </style></head><body><div class='wrap'>
+<h1>正式训练对照实验结论文档</h1>
+<div class='meta'>项目：<code>E:\robot_inspection</code>（机械臂孔位检测 / YOLO-Seg 分割）<br>生成时间：2026-10-06 17:20:47<br>由 <code>scripts\make_conclusion_docs.py</code> 依据 formal_comparison.json 与 formal_comparison_v2.json 自动生成，数据未做修饰。</div>
+<hr>
+<h2>1. 实验目的</h2>
+<p>在本地 RTX 3050 Ti（4GB）上，用完全一致的训练配置改变随机种子，判断 YOLO11n-Seg 对「工件 4 个大型圆孔（cylinder_bore）」检测结果的稳定性：</p>
+<ul><li>不同随机种子之间的结果波动有多大；</li></ul>
+<ul><li>`best.pt` 与 `last.pt` 两种 checkpoint 的选择是否影响结论；</li></ul>
+<ul><li>把验证集从 2 张增加到 5 张后，模型选择是否更可靠；</li></ul>
+<ul><li>测试3 中内壁高反光的那个孔，其低置信度是否主要来自训练随机性。</li></ul>
+<h2>2. 数据集划分</h2>
+<p>正式数据集为 17 train / 5 val / 3 test（`experiments\dataset_17_5_3\`，由原始数据复制生成，原始目录未改动）。</p>
+<ul><li>**原始 3 张 test 保持不变**，仍为 `001.jpg`、`004.jpg`、`021.jpg`；</li></ul>
+<ul><li>**从原 train 中划出的 val 图片为 `002.jpg`、`013.jpg`、`022.jpg`**（原 train 20 张按文件名排序取第 1/9/17 张，规则写在 `scripts\make_split_17_5_3.py` 中，可复现）；</li></ul>
+<ul><li>另外 2 张 val 为原始 val 的 `008.jpg`、`009.jpg`；</li></ul>
+<ul><li>其余 17 张为 train；</li></ul>
+<ul><li>**测试图片为 `测试1.jpg`、`测试2.jpg`、`测试3.jpg`、`测试4.jpg`**（4 张，均未参与训练/验证，属于新增测试图）。</li></ul>
+<p>各子集图片与 YOLO-Seg label 数量一一对应（train 17/17、val 5/5、test 3/3）。</p>
+<h2>3. 训练配置</h2>
+<table>
+<tr><th>项目</th><th>值</th></tr>
+<tr><td>模型</td><td>`yolo11n-seg.pt`（未更换更大模型）</td></tr>
+<tr><td>任务</td><td>segment（实例分割）</td></tr>
+<tr><td>imgsz</td><td>640</td></tr>
+<tr><td>batch</td><td>8</td></tr>
+<tr><td>epochs</td><td>100</td></tr>
+<tr><td>patience</td><td>0（关闭早停，必须跑满 100 轮）</td></tr>
+<tr><td>device</td><td>0（NVIDIA GeForce RTX 3050 Ti Laptop GPU，4GB）</td></tr>
+<tr><td>workers</td><td>2</td></tr>
+<tr><td>deterministic</td><td>True</td></tr>
+<tr><td>随机种子</td><td>第一阶段 0 / 42 / 123；扩展阶段追加 7 / 2024</td></tr>
+<tr><td>实际显存占用</td><td>约 1.45–1.55 GB / 4 GB</td></tr>
+</table>
+<p>目标孔检测采用 4/4 作为主要工程指标（每张图片期望检出全部 4 个目标大孔）。</p>
+<h2>4. 三个 seed 的训练指标</h2>
+<p>（Mask / 分割指标；best epoch 按 `fitness = 0.1×mAP50-95(Box) + 0.9×mAP50-95(Mask)` 计算）</p>
+<table>
+<tr><th>seed</th><th>实际轮数</th><th>best epoch</th><th>Precision</th><th>Recall</th><th>mAP50</th><th>mAP50-95</th><th>训练耗时</th></tr>
+<tr><td>0</td><td>100</td><td>100</td><td>0.9975</td><td>1.0000</td><td>0.9950</td><td>0.9681</td><td>124 秒</td></tr>
+<tr><td>42</td><td>100</td><td>74</td><td>0.9969</td><td>1.0000</td><td>0.9950</td><td>0.9847</td><td>121 秒</td></tr>
+<tr><td>123</td><td>100</td><td>100</td><td>0.9970</td><td>1.0000</td><td>0.9950</td><td>0.9845</td><td>122 秒</td></tr>
+</table>
+<p>三个 seed 的 Precision 均 ≥ 0.9969、Recall 均为 1.0000、mAP50 均为 0.9950；mAP50-95 在 0.9681–0.9847 之间。</p>
+<h2>5. best / last 对比</h2>
+<p>（下表为测试3 反光孔的 confidence，confidence 阈值 0.50）</p>
+<table>
+<tr><th>seed</th><th>best</th><th>last</th><th>best − last</th></tr>
+<tr><td>0</td><td>0.7932</td><td>0.6427</td><td>+0.1505</td></tr>
+<tr><td>42</td><td>0.8011</td><td>0.7990</td><td>+0.0021</td></tr>
+<tr><td>123</td><td>0.6337</td><td>0.6337</td><td>+0.0000</td></tr>
+<tr><td>**平均**</td><td>**0.7427**</td><td>**0.6918**</td><td>**+0.0509**</td></tr>
+</table>
+<p>在本阶段（17/5/3、batch=8、patience=0、跑满 100 轮）下，best 与 last 对反光孔的差异较小，未出现上一阶段「last 明显优于 best」的现象。另外注意：seed=123 的 best.pt 与 last.pt 权重逐张量完全相同（best epoch = 100），因此该 seed 两列数值一致。</p>
+<h2>6. 4 张测试图片的 4/4 检测结果</h2>
+<table>
+<tr><th>seed</th><th>weight</th><th>测试1</th><th>测试2</th><th>测试3</th><th>测试4</th></tr>
+<tr><td>0</td><td>best</td><td>4/4</td><td>4/4</td><td>4/4</td><td>4/4</td></tr>
+<tr><td>0</td><td>last</td><td>4/4</td><td>4/4</td><td>4/4</td><td>4/4</td></tr>
+<tr><td>42</td><td>best</td><td>4/4</td><td>4/4</td><td>4/4</td><td>4/4</td></tr>
+<tr><td>42</td><td>last</td><td>4/4</td><td>4/4</td><td>4/4</td><td>4/4</td></tr>
+<tr><td>123</td><td>best</td><td>4/4</td><td>4/4</td><td>4/4</td><td>4/4</td></tr>
+<tr><td>123</td><td>last</td><td>4/4</td><td>4/4</td><td>4/4</td><td>4/4</td></tr>
+</table>
+<p>当前 24/24 模型-图片组合均实现 4/4。</p>
+<p>对应统计：</p>
+<ul><li>组合数：3 seed × 2 checkpoint × 4 图片 = 24 组；</li></ul>
+<ul><li>**目标孔没有任何一个 confidence &lt; 0.5**；所有被选中目标孔的 confidence 最小值为 0.6337，平均 0.9574（共 96 个孔）。</li></ul>
+<ul><li>在 conf≥0.5 下，没有出现未匹配到目标孔的额外检测。</li></ul>
+<h2>7. 反光孔 confidence 对比</h2>
+<p>测试3 中内壁为镜面反光的孔（从上往下第 3 个，图像中心 y ≈ 2561）是本次实验中置信度最低的目标孔，反光孔为当前最弱目标孔。</p>
+<table>
+<tr><th>权重</th><th>seed=0</th><th>seed=42</th><th>seed=123</th><th>平均</th></tr>
+<tr><td>best</td><td>0.7932</td><td>0.8011</td><td>0.6337</td><td>0.7427</td></tr>
+<tr><td>last</td><td>0.6427</td><td>0.7990</td><td>0.6337</td><td>0.6918</td></tr>
+</table>
+<p>其余 3 个孔的 confidence 普遍在 0.87–0.998 之间，明显高于反光孔。</p>
+<h2>8. seed 波动分析</h2>
+<table>
+<tr><th>统计量（各 seed 反光孔均值）</th><th>值</th></tr>
+<tr><td>均值</td><td>0.7172</td></tr>
+<tr><td>最小值</td><td>0.6337</td></tr>
+<tr><td>最大值</td><td>0.8001</td></tr>
+<tr><td>极差（最大−最小）</td><td>0.1663</td></tr>
+</table>
+<p>seed=42 在当前有限样本上反光孔 confidence 最高，但不能据此宣称 seed=42 普遍最优——本阶段每个 seed 只有 1 次训练、4 张测试图片，样本量不足以支持这种结论。</p>
+<h2>9. 对 YOLO11n-Seg 是否满足当前任务的判断</h2>
+<p>在本阶段（第一阶段，3 个 seed、24 组组合）的范围内：</p>
+<ul><li>24/24 组组合均为 4/4，未出现漏检；</li></ul>
+<ul><li>目标孔 confidence 全部高于 0.5；</li></ul>
+<ul><li>conf≥0.5 下没有出现未匹配到目标孔的额外检测；</li></ul>
+<ul><li>反光孔是唯一明显偏弱的目标（0.6337–0.8011）。</li></ul>
+<p>因此在本阶段的测试集与实验范围内，暂时没有数据支持必须升级 YOLO11s；是否需要升级应由后续更大规模、更多场景的数据来判定。</p>
+<h2>10. 当前实验局限性</h2>
+<p>1. 训练样本仅 25 张（17/5/3），验证集只有 5 张，模型选择与统计的噪声仍然较大；</p>
+<p>2. 测试集只有 4 张图片，且与训练图为同一批次、同一拍摄条件；</p>
+<p>3. 每个 seed 只训练 1 次，无法区分「seed 效应」与「单次运行偶然性」；</p>
+<p>4. 反光孔样本极少，其置信度受光照/反光角度影响明显；</p>
+<p>5. 未做跨设备、跨光照、跨工件的泛化测试；</p>
+<p>6. 未评估像素坐标到机器人坐标的转换误差。</p>
+<h2>11. 下一阶段实验计划</h2>
+<p>1. 后续需要增加随机种子进行稳定性验证（本阶段已追加 seed=7、seed=2024，见附录）；</p>
+<p>2. 补充更多拍摄条件（不同光照、反光角度、工件摆放）的图像；</p>
+<p>3. 扩大验证集与独立测试集，避免用 4 张测试图反复做模型选择；</p>
+<p>4. 对反光孔做针对性数据补充后重新评估；</p>
+<p>5. 在稳定性确认后再推进像素坐标 → 机器人坐标的标定与误差评估。</p>
+<hr>
+<h2>附录：扩展实验（seed=7 / seed=2024）与 5-seed 汇总（v2）</h2>
+<p>追加 seed=7 与 seed=2024 后，共 5 seed × 2 checkpoint × 4 图片 = 40 组。</p>
+<table>
+<tr><th>统计项</th><th>结果</th></tr>
+<tr><td>4/4 组合比例</td><td>**38/40 = 95.0%**</td></tr>
+<tr><td>各 seed 4/4</td><td>seed=0 8/8、seed=42 8/8、seed=123 8/8、seed=7 8/8、seed=2024 6/8</td></tr>
+<tr><td>目标孔 confidence 最小值</td><td>0.6233</td></tr>
+<tr><td>目标孔 confidence 平均值</td><td>0.9518</td></tr>
+<tr><td>目标孔 confidence &lt; 0.5 的数量</td><td>0</td></tr>
+<tr><td>目标孔漏检数量</td><td>**2**</td></tr>
+<tr><td>conf≥0.5 未匹配检测（疑似误检）</td><td>0</td></tr>
+<tr><td>反光孔 confidence（10 组）</td><td>0.7932、0.6427、0.8011、0.7990、0.6337、0.6337、0.6820、0.6641、0.6233、0.6821</td></tr>
+<tr><td>反光孔 seed 级 均值 / 标准差 / 最小 / 最大</td><td>0.6955 / 0.0593 / 0.6337 / 0.8001</td></tr>
+<tr><td>best 反光孔均值 / last 反光孔均值 / 差值</td><td>0.7067 / 0.6843 / +0.0223</td></tr>
+</table>
+<p>关键补充事实（必须如实记录）：</p>
+<ul><li>新增的 **seed=2024 在测试3 出现漏检**：best 与 last 都只检出 3/4，漏掉的是**从上往下第 4 个（最下方）孔**；</li></ul>
+<ul><li>该孔在 conf=0.05 低阈值下的最高置信度为 **0.4554（best）/ 0.4649（last）**，略低于正式阈值 0.5，属于**临界漏检**；</li></ul>
+<ul><li>因此 5-seed 汇总的 4/4 比例为 **38/40 = 95.0%**，而不是 100%；</li></ul>
+<ul><li>其余 4 个 seed（0 / 42 / 123 / 7）仍为 8/8 全部 4/4；</li></ul>
+<ul><li>目标孔 confidence 最小值 0.6233，仍全部高于 0.5；conf≥0.5 下未出现未匹配检测。</li></ul>
+<blockquote>说明：本附录记录的是在正文（第一阶段 3-seed）完成之后追加的实验。正文第 6 节「24/24」与第 9 节「暂时没有数据支持必须升级 YOLO11s」均指第一阶段范围；加入扩展实验后的完整结论请以 v2 汇总为准。</blockquote>
+</div></body></html>

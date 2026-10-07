@@ -1,0 +1,94 @@
+# ============================================================
+#  机械臂智能视觉检测系统 —— Git 忽略规则
+#  ------------------------------------------------------------
+#  原则：Git 只保存  代码 / 配置 / 文档 / 轻量实验记录
+#        模型权重、数据集、原始图片、训练输出、交付包
+#        一律不进 Git（用 云盘 / 移动硬盘 / 模型交付包 共享）
+# ============================================================
+
+# ---------- Python ----------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ---------- Virtual environment ----------
+.venv/
+venv/
+env/
+
+# ---------- Model weights ----------
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# ---------- Large datasets ----------
+dataset/
+external_datasets/
+
+# ---------- Test images / raw images ----------
+test_images/
+
+# ---------- Training outputs ----------
+runs/
+
+# ---------- Logs ----------
+logs/
+
+# ---------- Temporary files ----------
+tmp/
+temp/
+
+# ---------- Local transfer packages ----------
+friend_transfer/
+
+# ---------- IDE ----------
+.vscode/
+.idea/
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+
+# ---------- Python tooling ----------
+.pytest_cache/
+.mypy_cache/
+
+# ============================================================
+#  以下为本项目「额外补充」规则（原始清单之外，按实际目录加的）
+# ============================================================
+
+# 本机安装包（Miniconda / Python 安装器，共约 117 MB）
+_installers/
+
+# 审计用的原始大图
+_audit/
+
+# 检测 / 报告可视化输出（结果图片 + HTML）
+results/
+
+# 压缩包（数据集包、模型交付包等，体积大，用云盘传）
+*.zip
+
+# 实验目录：只保留代码与轻量记录（.py/.md/.json/.csv/.yaml/.html/.txt）
+#            模型与图片不入 Git
+experiments/dataset_17_5_3/
+experiments/**/*.pt
+experiments/**/*.pth
+experiments/**/*.jpg
+experiments/**/*.jpeg
+experiments/**/*.png
+experiments/**/*.cache
+
+# app 目录：忽略「生成」的诊断截图与自检截图
+#           （.py / .md / .json 仍然进入 Git）
+app/diag/**/*.jpg
+app/diag/**/*.jpeg
+app/diag/**/*.png
+app/selftest/**/*.png
+
+# 杂项备份
+*.bak
+*.orig
+*~

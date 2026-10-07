@@ -1,0 +1,347 @@
+[
+  {
+    "image": "测试1.jpg",
+    "hole": "H01",
+    "contour_pts": 1785,
+    "fitEllipse": {
+      "area_ratio": 0.9992,
+      "rms_pct": 0.88,
+      "p95_pct": 1.74
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.989,
+      "rms_pct": 1.09,
+      "p95_pct": 1.96
+    },
+    "saved": {
+      "area_ratio": 0.9992,
+      "rms_pct": 0.88,
+      "p95_pct": 1.74
+    },
+    "angle_deg": 30.47,
+    "w": 597.47,
+    "h": 664.24
+  },
+  {
+    "image": "测试1.jpg",
+    "hole": "H02",
+    "contour_pts": 1580,
+    "fitEllipse": {
+      "area_ratio": 0.9993,
+      "rms_pct": 1.1,
+      "p95_pct": 2.14
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9856,
+      "rms_pct": 1.41,
+      "p95_pct": 2.9
+    },
+    "saved": {
+      "area_ratio": 0.9993,
+      "rms_pct": 1.1,
+      "p95_pct": 2.14
+    },
+    "angle_deg": 56.56,
+    "w": 521.68,
+    "h": 597.77
+  },
+  {
+    "image": "测试1.jpg",
+    "hole": "H03",
+    "contour_pts": 1442,
+    "fitEllipse": {
+      "area_ratio": 0.9987,
+      "rms_pct": 1.88,
+      "p95_pct": 3.74
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9799,
+      "rms_pct": 2.51,
+      "p95_pct": 6.67
+    },
+    "saved": {
+      "area_ratio": 0.9987,
+      "rms_pct": 1.88,
+      "p95_pct": 3.74
+    },
+    "angle_deg": 62.92,
+    "w": 458.35,
+    "h": 559.17
+  },
+  {
+    "image": "测试1.jpg",
+    "hole": "H04",
+    "contour_pts": 1326,
+    "fitEllipse": {
+      "area_ratio": 0.9995,
+      "rms_pct": 2.3,
+      "p95_pct": 4.57
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9685,
+      "rms_pct": 3.15,
+      "p95_pct": 8.14
+    },
+    "saved": {
+      "area_ratio": 0.9995,
+      "rms_pct": 2.3,
+      "p95_pct": 4.57
+    },
+    "angle_deg": 65.98,
+    "w": 400.85,
+    "h": 525.82
+  },
+  {
+    "image": "测试2.jpg",
+    "hole": "H01",
+    "contour_pts": 1675,
+    "fitEllipse": {
+      "area_ratio": 1.0001,
+      "rms_pct": 1.05,
+      "p95_pct": 1.99
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9845,
+      "rms_pct": 1.33,
+      "p95_pct": 2.84
+    },
+    "saved": {
+      "area_ratio": 1.0001,
+      "rms_pct": 1.05,
+      "p95_pct": 1.99
+    },
+    "angle_deg": 26.6,
+    "w": 587.69,
+    "h": 591.68
+  },
+  {
+    "image": "测试2.jpg",
+    "hole": "H02",
+    "contour_pts": 1496,
+    "fitEllipse": {
+      "area_ratio": 0.9999,
+      "rms_pct": 1.24,
+      "p95_pct": 2.43
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9813,
+      "rms_pct": 1.63,
+      "p95_pct": 4.05
+    },
+    "saved": {
+      "area_ratio": 0.9999,
+      "rms_pct": 1.24,
+      "p95_pct": 2.43
+    },
+    "angle_deg": 97.8,
+    "w": 501.47,
+    "h": 553.05
+  },
+  {
+    "image": "测试2.jpg",
+    "hole": "H03",
+    "contour_pts": 1354,
+    "fitEllipse": {
+      "area_ratio": 0.9986,
+      "rms_pct": 1.34,
+      "p95_pct": 2.4
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9879,
+      "rms_pct": 1.54,
+      "p95_pct": 3.15
+    },
+    "saved": {
+      "area_ratio": 0.9986,
+      "rms_pct": 1.34,
+      "p95_pct": 2.4
+    },
+    "angle_deg": 99.03,
+    "w": 439.53,
+    "h": 521.15
+  },
+  {
+    "image": "测试2.jpg",
+    "hole": "H04",
+    "contour_pts": 1249,
+    "fitEllipse": {
+      "area_ratio": 0.9989,
+      "rms_pct": 1.5,
+      "p95_pct": 2.72
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9846,
+      "rms_pct": 1.8,
+      "p95_pct": 3.99
+    },
+    "saved": {
+      "area_ratio": 0.9988,
+      "rms_pct": 1.5,
+      "p95_pct": 2.72
+    },
+    "angle_deg": 101.09,
+    "w": 393.0,
+    "h": 487.25
+  },
+  {
+    "image": "测试3.jpg",
+    "hole": "H01",
+    "contour_pts": 1882,
+    "fitEllipse": {
+      "area_ratio": 0.9992,
+      "rms_pct": 1.93,
+      "p95_pct": 4.36
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9648,
+      "rms_pct": 3.23,
+      "p95_pct": 8.92
+    },
+    "saved": {
+      "area_ratio": 0.9992,
+      "rms_pct": 1.93,
+      "p95_pct": 4.36
+    },
+    "angle_deg": 139.45,
+    "w": 644.02,
+    "h": 672.18
+  },
+  {
+    "image": "测试3.jpg",
+    "hole": "H02",
+    "contour_pts": 1766,
+    "fitEllipse": {
+      "area_ratio": 0.9976,
+      "rms_pct": 2.61,
+      "p95_pct": 5.59
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9618,
+      "rms_pct": 4.0,
+      "p95_pct": 11.3
+    },
+    "saved": {
+      "area_ratio": 0.9976,
+      "rms_pct": 2.61,
+      "p95_pct": 5.59
+    },
+    "angle_deg": 76.66,
+    "w": 596.88,
+    "h": 637.17
+  },
+  {
+    "image": "测试3.jpg",
+    "hole": "H03",
+    "contour_pts": 1724,
+    "fitEllipse": {
+      "area_ratio": 1.0,
+      "rms_pct": 1.03,
+      "p95_pct": 2.07
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.985,
+      "rms_pct": 1.32,
+      "p95_pct": 2.91
+    },
+    "saved": {
+      "area_ratio": 1.0,
+      "rms_pct": 1.03,
+      "p95_pct": 2.07
+    },
+    "angle_deg": 73.18,
+    "w": 586.75,
+    "h": 627.78
+  },
+  {
+    "image": "测试4.jpg",
+    "hole": "H01",
+    "contour_pts": 1856,
+    "fitEllipse": {
+      "area_ratio": 0.9992,
+      "rms_pct": 0.98,
+      "p95_pct": 1.82
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.987,
+      "rms_pct": 1.19,
+      "p95_pct": 2.11
+    },
+    "saved": {
+      "area_ratio": 0.9992,
+      "rms_pct": 0.98,
+      "p95_pct": 1.82
+    },
+    "angle_deg": 37.09,
+    "w": 635.71,
+    "h": 677.55
+  },
+  {
+    "image": "测试4.jpg",
+    "hole": "H02",
+    "contour_pts": 1846,
+    "fitEllipse": {
+      "area_ratio": 0.9982,
+      "rms_pct": 1.57,
+      "p95_pct": 3.14
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9828,
+      "rms_pct": 1.82,
+      "p95_pct": 3.9
+    },
+    "saved": {
+      "area_ratio": 0.9982,
+      "rms_pct": 1.57,
+      "p95_pct": 3.14
+    },
+    "angle_deg": 9.86,
+    "w": 643.04,
+    "h": 663.35
+  },
+  {
+    "image": "测试4.jpg",
+    "hole": "H03",
+    "contour_pts": 1831,
+    "fitEllipse": {
+      "area_ratio": 0.9994,
+      "rms_pct": 0.91,
+      "p95_pct": 1.73
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.986,
+      "rms_pct": 1.22,
+      "p95_pct": 2.62
+    },
+    "saved": {
+      "area_ratio": 0.9994,
+      "rms_pct": 0.91,
+      "p95_pct": 1.73
+    },
+    "angle_deg": 147.21,
+    "w": 629.92,
+    "h": 664.56
+  },
+  {
+    "image": "测试4.jpg",
+    "hole": "H04",
+    "contour_pts": 1839,
+    "fitEllipse": {
+      "area_ratio": 0.9994,
+      "rms_pct": 0.87,
+      "p95_pct": 1.77
+    },
+    "fitEllipse_on_hull": {
+      "area_ratio": 0.9875,
+      "rms_pct": 1.09,
+      "p95_pct": 2.15
+    },
+    "saved": {
+      "area_ratio": 0.9994,
+      "rms_pct": 0.87,
+      "p95_pct": 1.76
+    },
+    "angle_deg": 141.06,
+    "w": 619.34,
+    "h": 681.06
+  }
+]

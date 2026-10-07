@@ -1,0 +1,373 @@
+{
+  "generated_at": "2026-10-06 21:12:21",
+  "total": 73,
+  "passed": 73,
+  "failed": [],
+  "results": [
+    {
+      "test": "A1 model loads",
+      "pass": true,
+      "detail": "E:\\robot_inspection\\weights\\best.pt"
+    },
+    {
+      "test": "A2 detect 测试1 -> 4 holes",
+      "pass": true,
+      "detail": "det=4 complete=True avg=0.9157"
+    },
+    {
+      "test": "A3 holes have ids H01..H04",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "A4 device resolved",
+      "pass": true,
+      "detail": "0"
+    },
+    {
+      "test": "A5 detect 测试3 -> 3 holes, incomplete",
+      "pass": true,
+      "detail": "det=3 complete=False"
+    },
+    {
+      "test": "A6 incomplete raises warning, no fake hole",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "A7 missing file -> error, no exception",
+      "pass": true,
+      "detail": "['图片不存在或未选择: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_6d62ds5w\\\\nope.jpg']"
+    },
+    {
+      "test": "A8 corrupt image -> error, no exception",
+      "pass": true,
+      "detail": "['图片读取失败（可能已损坏或格式不支持）: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_6d62ds5w\\\\junk.jpg']"
+    },
+    {
+      "test": "A9 missing model -> error, no exception",
+      "pass": true,
+      "detail": "['模型文件不存在: C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\gui_selftest_6d62ds5w\\\\missing_model.pt']"
+    },
+    {
+      "test": "A10 draw_result output shape",
+      "pass": true,
+      "detail": "(4608, 2592, 3)"
+    },
+    {
+      "test": "A11 ellipse pairing regression (RMS < 5%)",
+      "pass": true,
+      "detail": "worst=2.61%"
+    },
+    {
+      "test": "B1 file camera start",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "B2 file camera reports not connected (honest)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "B3 file camera stop -> no frame",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "B4 file camera bad path -> start False",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "B5 mock camera",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "B6 factory",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "C1 never claims connected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "C2 connect() refuses",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "C3 move_to_target refuses",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "C4 execute_measurement refuses",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "C5 simulate returns simulated_done",
+      "pass": true,
+      "detail": "3"
+    },
+    {
+      "test": "C6 stop() honoured",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D1 auto tasks (complete) -> 4 pending",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D2 auto tasks (incomplete) refused",
+      "pass": true,
+      "detail": "检测不完整，请重新采集图像或调整检测参数。（已识别 3/4，未生成任务）"
+    },
+    {
+      "test": "D3 auto tasks (no result) refused",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D4 manual H03 found",
+      "pass": true,
+      "detail": "目标已定位：H03  中心 (1237.23, 1631.37)  置信度 0.925"
+    },
+    {
+      "test": "D5 manual missing target refused",
+      "pass": true,
+      "detail": "当前图像中没有可靠定位到 H04。"
+    },
+    {
+      "test": "D6 manual without detection refused",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D7 execute without tasks refused",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D8 real execute refused (no robot)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D9 simulate marks all done",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D10 save_run writes json+image",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D11 save_run never overwrites",
+      "pass": true,
+      "detail": "20261006_211212 vs 20261006_211212_01"
+    },
+    {
+      "test": "D12 saved json has required keys",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "D13 saved json has no private keys",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E1 window title",
+      "pass": true,
+      "detail": "机械臂智能视觉检测系统 v1.0"
+    },
+    {
+      "test": "E2 initial table empty & robot unconnected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E3 detect without image -> no crash",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E4 load bad path returns False",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E5 load 测试1 ok",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E6 image info updated",
+      "pass": true,
+      "detail": "测试1.jpg   2592x4608"
+    },
+    {
+      "test": "E7 detect 测试1 -> 4 holes shown",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E8 auto tasks created",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E9 status shows 检测完成",
+      "pass": true,
+      "detail": "● 检测完成"
+    },
+    {
+      "test": "E10 hole checklist all ticked",
+      "pass": true,
+      "detail": "H01 ✓   H02 ✓   H03 ✓   H04 ✓"
+    },
+    {
+      "test": "E11 manual mode enables combo",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E12 manual H03 -> 1 task",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E12b button label names the manual target",
+      "pass": true,
+      "detail": "生成任务：H03"
+    },
+    {
+      "test": "E12c create-task button visible in manual mode",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E13 execute refused -> status text",
+      "pass": true,
+      "detail": "执行状态：机器人未连接，无法执行真实检测"
+    },
+    {
+      "test": "E14 simulate -> completed rows",
+      "pass": true,
+      "detail": "ticks=4 exec=执行状态：模拟执行完成 1/1（未连接真实机器人）"
+    },
+    {
+      "test": "E14b simulation drew a visible overlay (order/done kept)",
+      "pass": true,
+      "detail": "done=['H03'] probe=(1237.23, 1631.37)"
+    },
+    {
+      "test": "E14c progress bar reached the end",
+      "pass": true,
+      "detail": "1"
+    },
+    {
+      "test": "E15 robot label still 未连接",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E15b re-generating tasks does not wipe execution status",
+      "pass": true,
+      "detail": "['simulated_done']"
+    },
+    {
+      "test": "E15c button label reflects auto mode",
+      "pass": true,
+      "detail": "重新生成任务（4 孔）"
+    },
+    {
+      "test": "E15d create-task button hidden in auto mode",
+      "pass": true,
+      "detail": "visible=False"
+    },
+    {
+      "test": "E16 测试3 -> 3 holes, incomplete",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E17 no tasks for incomplete",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E18 status shows incomplete",
+      "pass": true,
+      "detail": "● 检测不完整（3/4）"
+    },
+    {
+      "test": "E18b previous run status cleared on new image",
+      "pass": true,
+      "detail": "exec=执行状态：等待机器人连接 prog=0"
+    },
+    {
+      "test": "E19 manual missing H04 -> empty",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E20 zoom slider all values ok",
+      "pass": true,
+      "detail": "130%"
+    },
+    {
+      "test": "E21 resize re-render ok",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E21b engine label shows GPU/CPU + time",
+      "pass": true,
+      "detail": "设备：GPU    耗时：0.17 s"
+    },
+    {
+      "test": "E22 save button ok",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "E22b export tasks csv",
+      "pass": true,
+      "detail": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\gui_selftest_6d62ds5w\\runs\\20261006_211214_01\\tasks.csv"
+    },
+    {
+      "test": "E22b2 second export does not overwrite",
+      "pass": true,
+      "detail": "['tasks.csv', 'tasks_02.csv']"
+    },
+    {
+      "test": "E22c GUI uses camera layer",
+      "pass": true,
+      "detail": "E:\\robot_inspection\\test_images\\测试1.jpg"
+    },
+    {
+      "test": "E23 log has content",
+      "pass": true,
+      "detail": "47 lines"
+    },
+    {
+      "test": "E24 window closes cleanly",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "test": "F1 cold-start test passes",
+      "pass": true,
+      "detail": "[PASS] C1 cold-start load all test images  -> 4/4 | [PASS] C2 cold-start load chinese-dir jpg | [PASS] C3 cold-start load chinese-dir png | [PASS] C4 cold-start load ascii path | [PASS] C5 camera layer used  -> C:\\Users\\Administrator\\AppData\\Local\\Temp\\cold_my1gx1sx\\ascii\\plain.jpg | [PASS] C6 detec"
+    }
+  ]
+}

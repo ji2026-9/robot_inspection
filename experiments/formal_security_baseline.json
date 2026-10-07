@@ -1,0 +1,36 @@
+{
+  "taken_at": "2026-10-06 17:13:55",
+  "weights_best_pt": {
+    "path": "E:\\robot_inspection\\weights\\best.pt",
+    "size": 5989021,
+    "sha256": "7E33DF6223CC25463683131FD5098713100E8552F782111D848737BA9503BDFE"
+  },
+  "dataset_box_yolo": {
+    "path": "E:\\robot_inspection\\dataset\\box_yolo",
+    "files": 54,
+    "manifest_sha256": "B2D45C38C59AC5B0AA3108643459D92432406810912514A664EBE08937CF4805"
+  },
+  "dataset_zip": {
+    "path": "E:\\vm_share\\box_yolo_dataset.zip",
+    "size": 81379159,
+    "sha256": "D2BCCBAA70642F7337221FEDEA276F858E6BBCD817C8E327959E44CCDBDE0F0A"
+  },
+  "test_images": {
+    "测试1.jpg": {
+      "size": 3236334,
+      "sha256": "42E63EA3D561D96A643D75AC5A785962E6C1E6CDD984FDBBF13D78901D41342E"
+    },
+    "测试2.jpg": {
+      "size": 3519795,
+      "sha256": "4F20177E2829ACCB9BBDF1D81F9E8BC1345BCAC3E1ECAAF5FD90F8392D8561DC"
+    },
+    "测试3.jpg": {
+      "size": 3608799,
+      "sha256": "2CB0AFE2F3903E10F18B5610029B44ABB8C0F82B737BBFD367C7253BE1748C86"
+    },
+    "测试4.jpg": {
+      "size": 3390800,
+      "sha256": "484A78814307EFBD270A7A6768EDAC66F2CC321F463AD4DF43AEFB409A70C869"
+    }
+  }
+}

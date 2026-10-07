@@ -1,0 +1,19 @@
+# 机械臂孔位检测项目 —— Python 依赖（除 PyTorch 外的部分）
+# 适用环境：Windows + Python 3.11 + RTX 3050 Ti (4GB VRAM)
+#
+# 安装方式：
+#   E:\robot_inspection\.venv\Scripts\python.exe -m pip install -r requirements.txt
+#
+# 注意：torch / torchvision 必须用 CUDA 专用源单独安装，见 requirements-torch-cu121.txt
+
+ultralytics==8.4.173
+opencv-python==5.0.0.93
+numpy==2.4.6
+matplotlib==3.11.2
+pandas==3.0.6
+pyyaml==6.0.3
+tqdm==4.70.1
+scipy==1.17.1
+seaborn==0.13.2
+psutil==7.2.2
+py-cpuinfo==9.0.0

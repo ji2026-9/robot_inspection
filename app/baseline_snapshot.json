@@ -1,0 +1,53 @@
+{
+  "taken_at": "2026-10-06 20:00:56",
+  "task": "gui_v1",
+  "best_pt": {
+    "sha256": "7E33DF6223CC25463683131FD5098713100E8552F782111D848737BA9503BDFE",
+    "size": 5989021
+  },
+  "dataset_manifest": "B2D45C38C59AC5B0AA3108643459D92432406810912514A664EBE08937CF4805",
+  "dataset_files": 54,
+  "zip": {
+    "sha256": "D2BCCBAA70642F7337221FEDEA276F858E6BBCD817C8E327959E44CCDBDE0F0A",
+    "size": 81379159
+  },
+  "test_images": {
+    "测试1.jpg": "42E63EA3D561D96A643D75AC5A785962E6C1E6CDD984FDBBF13D78901D41342E",
+    "测试2.jpg": "4F20177E2829ACCB9BBDF1D81F9E8BC1345BCAC3E1ECAAF5FD90F8392D8561DC",
+    "测试3.jpg": "2CB0AFE2F3903E10F18B5610029B44ABB8C0F82B737BBFD367C7253BE1748C86",
+    "测试4.jpg": "484A78814307EFBD270A7A6768EDAC66F2CC321F463AD4DF43AEFB409A70C869"
+  },
+  "predict_holes_py": {
+    "sha256": "F9C1C0FA160C2D15B148C650549862107385DB8D07204880C9B17068BE2AB237",
+    "size": 10903
+  },
+  "runs": [
+    "box_yolo_yolo11n_seg",
+    "smoke_test"
+  ],
+  "scripts": [
+    "analyze_tless_objects.py",
+    "audit_external_datasets.py",
+    "audit_phase3_datasets.py",
+    "audit_phase4_tless.py",
+    "build_external_audit_html.py",
+    "build_external_dataset_report.py",
+    "build_phase2_report.py",
+    "build_phase3_report.py",
+    "build_phase4_docs.py",
+    "check_dataset.py",
+    "chunked_download.py",
+    "eval_confidences.py",
+    "export_report_to_desktop.py",
+    "make_conclusion_docs.py",
+    "make_detection_report.py",
+    "make_formal_comparison.py",
+    "make_formal_comparison_v2.py",
+    "make_split_17_5_3.py",
+    "make_training_report.py",
+    "predict_holes.py",
+    "search_public_datasets.py",
+    "train_seg.py",
+    "verify_zip_integrity.py"
+  ]
+}

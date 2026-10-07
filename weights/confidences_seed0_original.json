@@ -1,0 +1,50 @@
+{
+  "tag": "seed0_original",
+  "weights": "E:\\robot_inspection\\weights\\best.pt",
+  "conf_floor": 0.05,
+  "images": [
+    {
+      "image": "测试1.jpg",
+      "n_detections": 4,
+      "confidences": [
+        0.9652,
+        0.9247,
+        0.9232,
+        0.8499
+      ]
+    },
+    {
+      "image": "测试2.jpg",
+      "n_detections": 4,
+      "confidences": [
+        0.9791,
+        0.9594,
+        0.9457,
+        0.9317
+      ]
+    },
+    {
+      "image": "测试3.jpg",
+      "n_detections": 4,
+      "confidences": [
+        0.9671,
+        0.8187,
+        0.6512,
+        0.172
+      ]
+    },
+    {
+      "image": "测试4.jpg",
+      "n_detections": 7,
+      "confidences": [
+        0.9625,
+        0.9456,
+        0.9361,
+        0.891,
+        0.0615,
+        0.0567,
+        0.0542
+      ]
+    }
+  ]
+}

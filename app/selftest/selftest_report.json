@@ -1,0 +1,307 @@
+{
+  "generated_at": "2026-10-06 21:12:22",
+  "model": "E:\\robot_inspection\\weights\\best.pt",
+  "expected_holes": 4,
+  "images": [
+    {
+      "image": "测试1.jpg",
+      "load_ok": true,
+      "detections": 4,
+      "complete": true,
+      "avg_conf": 0.9157,
+      "device_used": "0",
+      "orientation_status": "uncertain",
+      "holes": [
+        {
+          "id": "H01",
+          "confidence": 0.9652,
+          "center_px": [
+            1044.19,
+            2948.91
+          ]
+        },
+        {
+          "id": "H02",
+          "confidence": 0.8499,
+          "center_px": [
+            1147.75,
+            2245.43
+          ]
+        },
+        {
+          "id": "H03",
+          "confidence": 0.9247,
+          "center_px": [
+            1237.23,
+            1631.37
+          ]
+        },
+        {
+          "id": "H04",
+          "confidence": 0.9232,
+          "center_px": [
+            1317.55,
+            1095.72
+          ]
+        }
+      ],
+      "warnings": [],
+      "errors": [],
+      "tasks_created": [
+        "H01",
+        "H02",
+        "H03",
+        "H04"
+      ],
+      "run_dir_after_detect": "E:\\robot_inspection\\results\\gui_runs\\20261006_211226",
+      "manual_H03": {
+        "tasks": [
+          "H03"
+        ],
+        "table_rows": 1
+      },
+      "after_simulate": [
+        {
+          "id": "H01",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H02",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H03",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H04",
+          "status": "simulated_done"
+        }
+      ],
+      "simulation_ticks": 15,
+      "exec_label": "执行状态：模拟执行完成 4/4（未连接真实机器人）",
+      "robot_label": "机器人：未连接",
+      "run_dir_after_simulate": "E:\\robot_inspection\\results\\gui_runs\\20261006_211227",
+      "screenshot": "E:\\robot_inspection\\app\\selftest\\gui_测试1.png"
+    },
+    {
+      "image": "测试2.jpg",
+      "load_ok": true,
+      "detections": 4,
+      "complete": true,
+      "avg_conf": 0.954,
+      "device_used": "0",
+      "orientation_status": "uncertain",
+      "holes": [
+        {
+          "id": "H01",
+          "confidence": 0.9457,
+          "center_px": [
+            963.98,
+            2919.8
+          ]
+        },
+        {
+          "id": "H02",
+          "confidence": 0.9317,
+          "center_px": [
+            975.1,
+            2278.81
+          ]
+        },
+        {
+          "id": "H03",
+          "confidence": 0.9594,
+          "center_px": [
+            984.16,
+            1718.77
+          ]
+        },
+        {
+          "id": "H04",
+          "confidence": 0.9791,
+          "center_px": [
+            990.2,
+            1227.72
+          ]
+        }
+      ],
+      "warnings": [],
+      "errors": [],
+      "tasks_created": [
+        "H01",
+        "H02",
+        "H03",
+        "H04"
+      ],
+      "run_dir_after_detect": "E:\\robot_inspection\\results\\gui_runs\\20261006_211228",
+      "manual_H03": {
+        "tasks": [
+          "H03"
+        ],
+        "table_rows": 1
+      },
+      "after_simulate": [
+        {
+          "id": "H01",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H02",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H03",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H04",
+          "status": "simulated_done"
+        }
+      ],
+      "simulation_ticks": 15,
+      "exec_label": "执行状态：模拟执行完成 4/4（未连接真实机器人）",
+      "robot_label": "机器人：未连接",
+      "run_dir_after_simulate": "E:\\robot_inspection\\results\\gui_runs\\20261006_211228_01",
+      "screenshot": "E:\\robot_inspection\\app\\selftest\\gui_测试2.png"
+    },
+    {
+      "image": "测试3.jpg",
+      "load_ok": true,
+      "detections": 3,
+      "complete": false,
+      "avg_conf": 0.8123,
+      "device_used": "0",
+      "orientation_status": "uncertain",
+      "holes": [
+        {
+          "id": "H01",
+          "confidence": 0.6512,
+          "center_px": [
+            1383.72,
+            3355.96
+          ]
+        },
+        {
+          "id": "H02",
+          "confidence": 0.8187,
+          "center_px": [
+            1505.76,
+            1808.12
+          ]
+        },
+        {
+          "id": "H03",
+          "confidence": 0.9671,
+          "center_px": [
+            1566.58,
+            1100.93
+          ]
+        }
+      ],
+      "warnings": [
+        "检测不完整：期望 4 个目标，仅识别到 3 个；未伪造缺失目标。"
+      ],
+      "errors": [],
+      "tasks_created": [],
+      "run_dir_after_detect": "E:\\robot_inspection\\results\\gui_runs\\20261006_211229",
+      "manual_H03": {
+        "tasks": [
+          "H03"
+        ],
+        "table_rows": 1
+      },
+      "manual_missing_target": {
+        "target": "H04",
+        "tasks": []
+      },
+      "after_simulate": [],
+      "simulation_ticks": 0,
+      "exec_label": "执行状态：等待机器人连接",
+      "robot_label": "机器人：未连接",
+      "run_dir_after_simulate": "E:\\robot_inspection\\results\\gui_runs\\20261006_211229",
+      "screenshot": "E:\\robot_inspection\\app\\selftest\\gui_测试3.png"
+    },
+    {
+      "image": "测试4.jpg",
+      "load_ok": true,
+      "detections": 4,
+      "complete": true,
+      "avg_conf": 0.9338,
+      "device_used": "0",
+      "orientation_status": "uncertain",
+      "holes": [
+        {
+          "id": "H01",
+          "confidence": 0.9361,
+          "center_px": [
+            1053.23,
+            3270.86
+          ]
+        },
+        {
+          "id": "H02",
+          "confidence": 0.9456,
+          "center_px": [
+            1062.87,
+            2495.32
+          ]
+        },
+        {
+          "id": "H03",
+          "confidence": 0.891,
+          "center_px": [
+            1077.82,
+            1723.25
+          ]
+        },
+        {
+          "id": "H04",
+          "confidence": 0.9625,
+          "center_px": [
+            1089.66,
+            954.18
+          ]
+        }
+      ],
+      "warnings": [],
+      "errors": [],
+      "tasks_created": [
+        "H01",
+        "H02",
+        "H03",
+        "H04"
+      ],
+      "run_dir_after_detect": "E:\\robot_inspection\\results\\gui_runs\\20261006_211229_01",
+      "manual_H03": {
+        "tasks": [
+          "H03"
+        ],
+        "table_rows": 1
+      },
+      "after_simulate": [
+        {
+          "id": "H01",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H02",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H03",
+          "status": "simulated_done"
+        },
+        {
+          "id": "H04",
+          "status": "simulated_done"
+        }
+      ],
+      "simulation_ticks": 15,
+      "exec_label": "执行状态：模拟执行完成 4/4（未连接真实机器人）",
+      "robot_label": "机器人：未连接",
+      "run_dir_after_simulate": "E:\\robot_inspection\\results\\gui_runs\\20261006_211230",
+      "screenshot": "E:\\robot_inspection\\app\\selftest\\gui_测试4.png"
+    }
+  ]
+}

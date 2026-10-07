@@ -1,0 +1,5214 @@
+{
+  "generated_at": "2026-10-06 17:19:53",
+  "config": {
+    "seeds": [
+      0,
+      42,
+      123,
+      7,
+      2024
+    ],
+    "weights": [
+      "best",
+      "last"
+    ],
+    "imgsz": 640,
+    "conf_main": 0.5,
+    "conf_analysis": 0.05,
+    "dataset": "dataset_17_5_3 (17 train / 5 val / 3 test)",
+    "hole_order": "Hole1~Hole4 = 从上到下（图像 y 升序）",
+    "match_tolerance_px": 200.0
+  },
+  "train_metrics": {
+    "0": {
+      "epochs_run": 100,
+      "best_epoch": 100,
+      "seconds": 124.321,
+      "precision": 0.99748,
+      "recall": 1.0,
+      "map50": 0.995,
+      "map5095": 0.96811
+    },
+    "42": {
+      "epochs_run": 100,
+      "best_epoch": 74,
+      "seconds": 120.993,
+      "precision": 0.99692,
+      "recall": 1.0,
+      "map50": 0.995,
+      "map5095": 0.98474
+    },
+    "123": {
+      "epochs_run": 100,
+      "best_epoch": 100,
+      "seconds": 121.562,
+      "precision": 0.99705,
+      "recall": 1.0,
+      "map50": 0.995,
+      "map5095": 0.98447
+    },
+    "7": {
+      "epochs_run": 100,
+      "best_epoch": 93,
+      "seconds": 119.857,
+      "precision": 0.99723,
+      "recall": 1.0,
+      "map50": 0.995,
+      "map5095": 0.9719
+    },
+    "2024": {
+      "epochs_run": 100,
+      "best_epoch": 83,
+      "seconds": 122.556,
+      "precision": 0.99758,
+      "recall": 1.0,
+      "map50": 0.995,
+      "map5095": 0.98421
+    }
+  },
+  "summary": {
+    "n_groups": 40,
+    "n_4of4": 38,
+    "rate_4of4": 0.95,
+    "per_seed_4of4": {
+      "0": "8/8",
+      "42": "8/8",
+      "123": "8/8",
+      "7": "8/8",
+      "2024": "6/8"
+    },
+    "hole_conf_min": 0.6233,
+    "hole_conf_mean": 0.9518196202531647,
+    "hole_conf_below_050": 0,
+    "n_misses": 2,
+    "misses": [
+      [
+        2024,
+        "best",
+        "测试3.jpg",
+        [
+          "Hole4"
+        ]
+      ],
+      [
+        2024,
+        "last",
+        "测试3.jpg",
+        [
+          "Hole4"
+        ]
+      ]
+    ],
+    "n_groups_with_spurious": 0,
+    "spurious_total": 0,
+    "spurious": [],
+    "reflective": {
+      "all": [
+        0.7932,
+        0.6427,
+        0.8011,
+        0.799,
+        0.6337,
+        0.6337,
+        0.682,
+        0.6641,
+        0.6233,
+        0.6821
+      ],
+      "by_seed": {
+        "0": {
+          "values": [
+            0.7932,
+            0.6427
+          ],
+          "mean": 0.7179500000000001,
+          "min": 0.6427,
+          "max": 0.7932
+        },
+        "42": {
+          "values": [
+            0.8011,
+            0.799
+          ],
+          "mean": 0.80005,
+          "min": 0.799,
+          "max": 0.8011
+        },
+        "123": {
+          "values": [
+            0.6337,
+            0.6337
+          ],
+          "mean": 0.6337,
+          "min": 0.6337,
+          "max": 0.6337
+        },
+        "7": {
+          "values": [
+            0.682,
+            0.6641
+          ],
+          "mean": 0.67305,
+          "min": 0.6641,
+          "max": 0.682
+        },
+        "2024": {
+          "values": [
+            0.6233,
+            0.6821
+          ],
+          "mean": 0.6527000000000001,
+          "min": 0.6233,
+          "max": 0.6821
+        }
+      },
+      "seed_level": {
+        "mean": 0.69549,
+        "std": 0.05931237139079839,
+        "min": 0.6337,
+        "max": 0.80005
+      },
+      "best_mean": 0.7066600000000001,
+      "last_mean": 0.68432,
+      "best_minus_last": 0.022340000000000027
+    }
+  },
+  "groups": [
+    {
+      "seed": 0,
+      "weight": "best",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9661,
+          "center": [
+            1316.64,
+            1098.05
+          ],
+          "ellipse_width": 403.82,
+          "ellipse_height": 526.03,
+          "ellipse_angle_deg": 63.53,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.963,
+          "center": [
+            1237.84,
+            1634.03
+          ],
+          "ellipse_width": 457.68,
+          "ellipse_height": 552.13,
+          "ellipse_angle_deg": 60.98,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9947,
+          "center": [
+            1148.99,
+            2244.51
+          ],
+          "ellipse_width": 523.1,
+          "ellipse_height": 597.67,
+          "ellipse_angle_deg": 51.5,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9976,
+          "center": [
+            1045.25,
+            2950.01
+          ],
+          "ellipse_width": 592.66,
+          "ellipse_height": 666.14,
+          "ellipse_angle_deg": 30.27,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.963,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 0,
+      "weight": "best",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9603,
+          "center": [
+            991.69,
+            1228.09
+          ],
+          "ellipse_width": 394.99,
+          "ellipse_height": 482.45,
+          "ellipse_angle_deg": 101.09,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9862,
+          "center": [
+            984.05,
+            1717.93
+          ],
+          "ellipse_width": 441.17,
+          "ellipse_height": 513.54,
+          "ellipse_angle_deg": 98.88,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9955,
+          "center": [
+            974.19,
+            2277.99
+          ],
+          "ellipse_width": 509.32,
+          "ellipse_height": 548.26,
+          "ellipse_angle_deg": 95.05,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9966,
+          "center": [
+            963.52,
+            2920.23
+          ],
+          "ellipse_width": 586.02,
+          "ellipse_height": 595.03,
+          "ellipse_angle_deg": 14.27,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.9603,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 0,
+      "weight": "best",
+      "image": "测试3.jpg",
+      "n_main": 4,
+      "n_low": 6,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9958,
+          "center": [
+            1566.64,
+            1100.89
+          ],
+          "ellipse_width": 590.33,
+          "ellipse_height": 626.53,
+          "ellipse_angle_deg": 64.67,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9858,
+          "center": [
+            1506.77,
+            1821.14
+          ],
+          "ellipse_width": 615.5,
+          "ellipse_height": 637.34,
+          "ellipse_angle_deg": 59.47,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.7932,
+          "center": [
+            1433.52,
+            2562.88
+          ],
+          "ellipse_width": 610.36,
+          "ellipse_height": 633.59,
+          "ellipse_angle_deg": 104.85,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.975,
+          "center": [
+            1387.53,
+            3345.58
+          ],
+          "ellipse_width": 650.49,
+          "ellipse_height": 693.59,
+          "ellipse_angle_deg": 169.66,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.7932,
+      "is_4of4": true,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.7932,
+        "center": [
+          1433.52,
+          2562.88
+        ]
+      }
+    },
+    {
+      "seed": 0,
+      "weight": "best",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9958,
+          "center": [
+            1089.11,
+            954.25
+          ],
+          "ellipse_width": 621.54,
+          "ellipse_height": 677.51,
+          "ellipse_angle_deg": 143.52,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9893,
+          "center": [
+            1078.08,
+            1726.58
+          ],
+          "ellipse_width": 635.66,
+          "ellipse_height": 669.06,
+          "ellipse_angle_deg": 158.75,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9958,
+          "center": [
+            1066.78,
+            2497.4
+          ],
+          "ellipse_width": 640.65,
+          "ellipse_height": 663.89,
+          "ellipse_angle_deg": 18.13,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9977,
+          "center": [
+            1054.23,
+            3271.45
+          ],
+          "ellipse_width": 634.35,
+          "ellipse_height": 680.56,
+          "ellipse_angle_deg": 33.29,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9893,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 0,
+      "weight": "last",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 7,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9709,
+          "center": [
+            1319.78,
+            1095.94
+          ],
+          "ellipse_width": 395.94,
+          "ellipse_height": 531.52,
+          "ellipse_angle_deg": 67.24,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9429,
+          "center": [
+            1237.34,
+            1633.01
+          ],
+          "ellipse_width": 457.14,
+          "ellipse_height": 552.8,
+          "ellipse_angle_deg": 62.24,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9886,
+          "center": [
+            1148.15,
+            2244.57
+          ],
+          "ellipse_width": 522.9,
+          "ellipse_height": 596.84,
+          "ellipse_angle_deg": 51.93,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9943,
+          "center": [
+            1044.92,
+            2950.3
+          ],
+          "ellipse_width": 593.05,
+          "ellipse_height": 663.92,
+          "ellipse_angle_deg": 31.03,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 3,
+      "min_conf": 0.9429,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 0,
+      "weight": "last",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9574,
+          "center": [
+            991.0,
+            1227.86
+          ],
+          "ellipse_width": 394.07,
+          "ellipse_height": 482.55,
+          "ellipse_angle_deg": 100.95,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9779,
+          "center": [
+            983.58,
+            1717.23
+          ],
+          "ellipse_width": 440.74,
+          "ellipse_height": 512.79,
+          "ellipse_angle_deg": 99.07,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9922,
+          "center": [
+            973.64,
+            2277.73
+          ],
+          "ellipse_width": 509.97,
+          "ellipse_height": 546.99,
+          "ellipse_angle_deg": 96.43,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9927,
+          "center": [
+            962.8,
+            2920.2
+          ],
+          "ellipse_width": 585.81,
+          "ellipse_height": 593.49,
+          "ellipse_angle_deg": 13.0,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.9574,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 0,
+      "weight": "last",
+      "image": "测试3.jpg",
+      "n_main": 4,
+      "n_low": 8,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9913,
+          "center": [
+            1566.43,
+            1100.73
+          ],
+          "ellipse_width": 588.91,
+          "ellipse_height": 626.83,
+          "ellipse_angle_deg": 67.71,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9782,
+          "center": [
+            1506.21,
+            1819.1
+          ],
+          "ellipse_width": 611.22,
+          "ellipse_height": 637.37,
+          "ellipse_angle_deg": 64.54,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.6427,
+          "center": [
+            1432.34,
+            2561.34
+          ],
+          "ellipse_width": 608.03,
+          "ellipse_height": 630.11,
+          "ellipse_angle_deg": 112.51,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9325,
+          "center": [
+            1386.63,
+            3345.36
+          ],
+          "ellipse_width": 650.6,
+          "ellipse_height": 693.22,
+          "ellipse_angle_deg": 167.93,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 2,
+      "min_conf": 0.6427,
+      "is_4of4": true,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.6427,
+        "center": [
+          1432.34,
+          2561.34
+        ]
+      }
+    },
+    {
+      "seed": 0,
+      "weight": "last",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9915,
+          "center": [
+            1088.28,
+            953.82
+          ],
+          "ellipse_width": 620.51,
+          "ellipse_height": 677.6,
+          "ellipse_angle_deg": 143.24,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9819,
+          "center": [
+            1076.94,
+            1725.42
+          ],
+          "ellipse_width": 633.45,
+          "ellipse_height": 668.65,
+          "ellipse_angle_deg": 158.27,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9914,
+          "center": [
+            1066.0,
+            2497.16
+          ],
+          "ellipse_width": 640.44,
+          "ellipse_height": 661.03,
+          "ellipse_angle_deg": 17.88,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9949,
+          "center": [
+            1053.59,
+            3270.6
+          ],
+          "ellipse_width": 634.16,
+          "ellipse_height": 679.85,
+          "ellipse_angle_deg": 31.78,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9819,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 42,
+      "weight": "best",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9864,
+          "center": [
+            1317.58,
+            1096.64
+          ],
+          "ellipse_width": 402.13,
+          "ellipse_height": 528.16,
+          "ellipse_angle_deg": 64.7,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9943,
+          "center": [
+            1235.7,
+            1632.99
+          ],
+          "ellipse_width": 463.35,
+          "ellipse_height": 548.47,
+          "ellipse_angle_deg": 57.08,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.977,
+          "center": [
+            1147.6,
+            2242.77
+          ],
+          "ellipse_width": 521.75,
+          "ellipse_height": 591.38,
+          "ellipse_angle_deg": 50.58,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.983,
+          "center": [
+            1046.47,
+            2948.39
+          ],
+          "ellipse_width": 594.79,
+          "ellipse_height": 658.0,
+          "ellipse_angle_deg": 31.02,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.977,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 42,
+      "weight": "best",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9977,
+          "center": [
+            991.86,
+            1228.6
+          ],
+          "ellipse_width": 390.22,
+          "ellipse_height": 484.79,
+          "ellipse_angle_deg": 100.6,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9966,
+          "center": [
+            984.92,
+            1718.38
+          ],
+          "ellipse_width": 439.98,
+          "ellipse_height": 509.03,
+          "ellipse_angle_deg": 99.68,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9923,
+          "center": [
+            973.42,
+            2276.29
+          ],
+          "ellipse_width": 508.49,
+          "ellipse_height": 542.06,
+          "ellipse_angle_deg": 100.31,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9199,
+          "center": [
+            962.57,
+            2919.08
+          ],
+          "ellipse_width": 588.12,
+          "ellipse_height": 589.31,
+          "ellipse_angle_deg": 24.4,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.9199,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 42,
+      "weight": "best",
+      "image": "测试3.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9707,
+          "center": [
+            1565.66,
+            1099.78
+          ],
+          "ellipse_width": 591.6,
+          "ellipse_height": 619.09,
+          "ellipse_angle_deg": 65.74,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9661,
+          "center": [
+            1508.72,
+            1821.55
+          ],
+          "ellipse_width": 618.92,
+          "ellipse_height": 634.0,
+          "ellipse_angle_deg": 72.14,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.8011,
+          "center": [
+            1436.72,
+            2560.97
+          ],
+          "ellipse_width": 596.13,
+          "ellipse_height": 637.38,
+          "ellipse_angle_deg": 114.66,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.8873,
+          "center": [
+            1386.99,
+            3347.85
+          ],
+          "ellipse_width": 652.95,
+          "ellipse_height": 690.41,
+          "ellipse_angle_deg": 157.65,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.8011,
+      "is_4of4": true,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.8011,
+        "center": [
+          1436.72,
+          2560.97
+        ]
+      }
+    },
+    {
+      "seed": 42,
+      "weight": "best",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9879,
+          "center": [
+            1087.88,
+            954.16
+          ],
+          "ellipse_width": 617.77,
+          "ellipse_height": 680.41,
+          "ellipse_angle_deg": 141.56,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9855,
+          "center": [
+            1076.4,
+            1725.41
+          ],
+          "ellipse_width": 632.75,
+          "ellipse_height": 663.32,
+          "ellipse_angle_deg": 148.98,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9675,
+          "center": [
+            1066.35,
+            2497.59
+          ],
+          "ellipse_width": 643.94,
+          "ellipse_height": 662.17,
+          "ellipse_angle_deg": 16.84,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9664,
+          "center": [
+            1056.05,
+            3270.92
+          ],
+          "ellipse_width": 632.3,
+          "ellipse_height": 674.68,
+          "ellipse_angle_deg": 34.91,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.9664,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 42,
+      "weight": "last",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9742,
+          "center": [
+            1319.58,
+            1096.58
+          ],
+          "ellipse_width": 398.47,
+          "ellipse_height": 530.64,
+          "ellipse_angle_deg": 65.04,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9936,
+          "center": [
+            1238.33,
+            1633.08
+          ],
+          "ellipse_width": 460.29,
+          "ellipse_height": 555.83,
+          "ellipse_angle_deg": 59.34,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9396,
+          "center": [
+            1151.19,
+            2245.86
+          ],
+          "ellipse_width": 520.42,
+          "ellipse_height": 595.75,
+          "ellipse_angle_deg": 51.05,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9912,
+          "center": [
+            1046.31,
+            2949.92
+          ],
+          "ellipse_width": 592.01,
+          "ellipse_height": 666.88,
+          "ellipse_angle_deg": 28.27,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9396,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 42,
+      "weight": "last",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 6,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.997,
+          "center": [
+            992.58,
+            1227.8
+          ],
+          "ellipse_width": 388.79,
+          "ellipse_height": 489.96,
+          "ellipse_angle_deg": 98.66,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9965,
+          "center": [
+            986.48,
+            1718.0
+          ],
+          "ellipse_width": 439.52,
+          "ellipse_height": 512.31,
+          "ellipse_angle_deg": 97.93,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.982,
+          "center": [
+            975.72,
+            2276.27
+          ],
+          "ellipse_width": 506.76,
+          "ellipse_height": 546.11,
+          "ellipse_angle_deg": 94.84,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9363,
+          "center": [
+            962.04,
+            2921.13
+          ],
+          "ellipse_width": 587.2,
+          "ellipse_height": 592.48,
+          "ellipse_angle_deg": 59.49,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 2,
+      "min_conf": 0.9363,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 42,
+      "weight": "last",
+      "image": "测试3.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9818,
+          "center": [
+            1565.14,
+            1101.17
+          ],
+          "ellipse_width": 589.33,
+          "ellipse_height": 630.23,
+          "ellipse_angle_deg": 69.58,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9816,
+          "center": [
+            1508.5,
+            1822.13
+          ],
+          "ellipse_width": 614.65,
+          "ellipse_height": 635.11,
+          "ellipse_angle_deg": 65.85,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.799,
+          "center": [
+            1434.19,
+            2561.43
+          ],
+          "ellipse_width": 596.41,
+          "ellipse_height": 637.27,
+          "ellipse_angle_deg": 112.31,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.886,
+          "center": [
+            1386.63,
+            3348.25
+          ],
+          "ellipse_width": 652.56,
+          "ellipse_height": 689.05,
+          "ellipse_angle_deg": 161.99,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.799,
+      "is_4of4": true,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.799,
+        "center": [
+          1434.19,
+          2561.43
+        ]
+      }
+    },
+    {
+      "seed": 42,
+      "weight": "last",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9886,
+          "center": [
+            1087.71,
+            956.1
+          ],
+          "ellipse_width": 621.25,
+          "ellipse_height": 678.23,
+          "ellipse_angle_deg": 140.25,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9802,
+          "center": [
+            1077.44,
+            1726.46
+          ],
+          "ellipse_width": 634.85,
+          "ellipse_height": 661.13,
+          "ellipse_angle_deg": 149.44,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9708,
+          "center": [
+            1067.65,
+            2497.44
+          ],
+          "ellipse_width": 641.63,
+          "ellipse_height": 665.74,
+          "ellipse_angle_deg": 15.91,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9726,
+          "center": [
+            1054.68,
+            3270.22
+          ],
+          "ellipse_width": 626.75,
+          "ellipse_height": 676.23,
+          "ellipse_angle_deg": 29.31,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.9708,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 123,
+      "weight": "best",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9775,
+          "center": [
+            1318.21,
+            1095.63
+          ],
+          "ellipse_width": 402.21,
+          "ellipse_height": 530.62,
+          "ellipse_angle_deg": 65.36,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9825,
+          "center": [
+            1238.87,
+            1631.29
+          ],
+          "ellipse_width": 459.82,
+          "ellipse_height": 559.37,
+          "ellipse_angle_deg": 60.97,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9537,
+          "center": [
+            1150.66,
+            2241.25
+          ],
+          "ellipse_width": 522.31,
+          "ellipse_height": 594.61,
+          "ellipse_angle_deg": 51.23,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9728,
+          "center": [
+            1046.22,
+            2946.21
+          ],
+          "ellipse_width": 589.81,
+          "ellipse_height": 667.36,
+          "ellipse_angle_deg": 24.01,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9537,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 123,
+      "weight": "best",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9944,
+          "center": [
+            993.14,
+            1227.61
+          ],
+          "ellipse_width": 393.36,
+          "ellipse_height": 484.81,
+          "ellipse_angle_deg": 100.88,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9768,
+          "center": [
+            985.65,
+            1715.65
+          ],
+          "ellipse_width": 438.45,
+          "ellipse_height": 513.55,
+          "ellipse_angle_deg": 99.16,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9717,
+          "center": [
+            976.05,
+            2275.42
+          ],
+          "ellipse_width": 509.24,
+          "ellipse_height": 546.82,
+          "ellipse_angle_deg": 99.35,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9858,
+          "center": [
+            963.67,
+            2917.41
+          ],
+          "ellipse_width": 586.31,
+          "ellipse_height": 593.07,
+          "ellipse_angle_deg": 89.18,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9717,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 123,
+      "weight": "best",
+      "image": "测试3.jpg",
+      "n_main": 4,
+      "n_low": 7,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9875,
+          "center": [
+            1567.05,
+            1099.0
+          ],
+          "ellipse_width": 590.2,
+          "ellipse_height": 625.51,
+          "ellipse_angle_deg": 67.44,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9045,
+          "center": [
+            1508.25,
+            1814.73
+          ],
+          "ellipse_width": 609.09,
+          "ellipse_height": 633.45,
+          "ellipse_angle_deg": 66.97,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.6337,
+          "center": [
+            1434.34,
+            2562.22
+          ],
+          "ellipse_width": 596.55,
+          "ellipse_height": 637.49,
+          "ellipse_angle_deg": 115.1,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9054,
+          "center": [
+            1388.76,
+            3345.73
+          ],
+          "ellipse_width": 653.2,
+          "ellipse_height": 690.82,
+          "ellipse_angle_deg": 163.7,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.6337,
+      "is_4of4": true,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.6337,
+        "center": [
+          1434.34,
+          2562.22
+        ]
+      }
+    },
+    {
+      "seed": 123,
+      "weight": "best",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9847,
+          "center": [
+            1090.13,
+            953.2
+          ],
+          "ellipse_width": 619.34,
+          "ellipse_height": 679.85,
+          "ellipse_angle_deg": 142.63,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9734,
+          "center": [
+            1079.66,
+            1723.43
+          ],
+          "ellipse_width": 629.27,
+          "ellipse_height": 664.0,
+          "ellipse_angle_deg": 156.27,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9598,
+          "center": [
+            1066.23,
+            2493.91
+          ],
+          "ellipse_width": 635.04,
+          "ellipse_height": 667.85,
+          "ellipse_angle_deg": 8.64,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9628,
+          "center": [
+            1056.38,
+            3269.69
+          ],
+          "ellipse_width": 631.04,
+          "ellipse_height": 677.5,
+          "ellipse_angle_deg": 28.94,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9598,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 123,
+      "weight": "last",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9775,
+          "center": [
+            1318.21,
+            1095.63
+          ],
+          "ellipse_width": 402.21,
+          "ellipse_height": 530.62,
+          "ellipse_angle_deg": 65.36,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9825,
+          "center": [
+            1238.87,
+            1631.29
+          ],
+          "ellipse_width": 459.82,
+          "ellipse_height": 559.37,
+          "ellipse_angle_deg": 60.97,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9537,
+          "center": [
+            1150.66,
+            2241.25
+          ],
+          "ellipse_width": 522.31,
+          "ellipse_height": 594.61,
+          "ellipse_angle_deg": 51.23,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9728,
+          "center": [
+            1046.22,
+            2946.21
+          ],
+          "ellipse_width": 589.81,
+          "ellipse_height": 667.36,
+          "ellipse_angle_deg": 24.01,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9537,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 123,
+      "weight": "last",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9944,
+          "center": [
+            993.14,
+            1227.61
+          ],
+          "ellipse_width": 393.36,
+          "ellipse_height": 484.81,
+          "ellipse_angle_deg": 100.88,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9768,
+          "center": [
+            985.65,
+            1715.65
+          ],
+          "ellipse_width": 438.45,
+          "ellipse_height": 513.55,
+          "ellipse_angle_deg": 99.16,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9717,
+          "center": [
+            976.05,
+            2275.42
+          ],
+          "ellipse_width": 509.24,
+          "ellipse_height": 546.82,
+          "ellipse_angle_deg": 99.35,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9858,
+          "center": [
+            963.67,
+            2917.41
+          ],
+          "ellipse_width": 586.31,
+          "ellipse_height": 593.07,
+          "ellipse_angle_deg": 89.18,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9717,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 123,
+      "weight": "last",
+      "image": "测试3.jpg",
+      "n_main": 4,
+      "n_low": 7,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9875,
+          "center": [
+            1567.05,
+            1099.0
+          ],
+          "ellipse_width": 590.2,
+          "ellipse_height": 625.51,
+          "ellipse_angle_deg": 67.44,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9045,
+          "center": [
+            1508.25,
+            1814.73
+          ],
+          "ellipse_width": 609.09,
+          "ellipse_height": 633.45,
+          "ellipse_angle_deg": 66.97,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.6337,
+          "center": [
+            1434.34,
+            2562.22
+          ],
+          "ellipse_width": 596.55,
+          "ellipse_height": 637.49,
+          "ellipse_angle_deg": 115.1,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9054,
+          "center": [
+            1388.76,
+            3345.73
+          ],
+          "ellipse_width": 653.2,
+          "ellipse_height": 690.82,
+          "ellipse_angle_deg": 163.7,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.6337,
+      "is_4of4": true,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.6337,
+        "center": [
+          1434.34,
+          2562.22
+        ]
+      }
+    },
+    {
+      "seed": 123,
+      "weight": "last",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9847,
+          "center": [
+            1090.13,
+            953.2
+          ],
+          "ellipse_width": 619.34,
+          "ellipse_height": 679.85,
+          "ellipse_angle_deg": 142.63,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9734,
+          "center": [
+            1079.66,
+            1723.43
+          ],
+          "ellipse_width": 629.27,
+          "ellipse_height": 664.0,
+          "ellipse_angle_deg": 156.27,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9598,
+          "center": [
+            1066.23,
+            2493.91
+          ],
+          "ellipse_width": 635.04,
+          "ellipse_height": 667.85,
+          "ellipse_angle_deg": 8.64,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9628,
+          "center": [
+            1056.38,
+            3269.69
+          ],
+          "ellipse_width": 631.04,
+          "ellipse_height": 677.5,
+          "ellipse_angle_deg": 28.94,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9598,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 7,
+      "weight": "best",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.992,
+          "center": [
+            1317.67,
+            1097.74
+          ],
+          "ellipse_width": 405.86,
+          "ellipse_height": 533.97,
+          "ellipse_angle_deg": 64.41,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9787,
+          "center": [
+            1239.13,
+            1634.65
+          ],
+          "ellipse_width": 462.72,
+          "ellipse_height": 562.26,
+          "ellipse_angle_deg": 61.04,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9862,
+          "center": [
+            1151.09,
+            2244.56
+          ],
+          "ellipse_width": 523.19,
+          "ellipse_height": 598.2,
+          "ellipse_angle_deg": 49.98,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9693,
+          "center": [
+            1046.77,
+            2949.51
+          ],
+          "ellipse_width": 593.35,
+          "ellipse_height": 665.54,
+          "ellipse_angle_deg": 27.93,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.9693,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 7,
+      "weight": "best",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9868,
+          "center": [
+            993.86,
+            1229.51
+          ],
+          "ellipse_width": 396.9,
+          "ellipse_height": 484.73,
+          "ellipse_angle_deg": 100.6,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9925,
+          "center": [
+            985.94,
+            1717.93
+          ],
+          "ellipse_width": 444.34,
+          "ellipse_height": 516.27,
+          "ellipse_angle_deg": 99.25,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9914,
+          "center": [
+            976.37,
+            2277.27
+          ],
+          "ellipse_width": 507.3,
+          "ellipse_height": 552.78,
+          "ellipse_angle_deg": 96.64,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9851,
+          "center": [
+            965.09,
+            2921.9
+          ],
+          "ellipse_width": 589.25,
+          "ellipse_height": 593.67,
+          "ellipse_angle_deg": 68.02,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.9851,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 7,
+      "weight": "best",
+      "image": "测试3.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9881,
+          "center": [
+            1566.31,
+            1100.45
+          ],
+          "ellipse_width": 588.3,
+          "ellipse_height": 628.76,
+          "ellipse_angle_deg": 72.74,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9734,
+          "center": [
+            1508.53,
+            1824.31
+          ],
+          "ellipse_width": 625.87,
+          "ellipse_height": 638.48,
+          "ellipse_angle_deg": 50.24,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.682,
+          "center": [
+            1437.94,
+            2560.75
+          ],
+          "ellipse_width": 619.69,
+          "ellipse_height": 639.28,
+          "ellipse_angle_deg": 121.38,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9397,
+          "center": [
+            1389.53,
+            3345.67
+          ],
+          "ellipse_width": 657.04,
+          "ellipse_height": 692.34,
+          "ellipse_angle_deg": 165.31,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.682,
+      "is_4of4": true,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.682,
+        "center": [
+          1437.94,
+          2560.75
+        ]
+      }
+    },
+    {
+      "seed": 7,
+      "weight": "best",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9834,
+          "center": [
+            1089.14,
+            953.86
+          ],
+          "ellipse_width": 621.33,
+          "ellipse_height": 683.32,
+          "ellipse_angle_deg": 143.58,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9674,
+          "center": [
+            1077.26,
+            1727.26
+          ],
+          "ellipse_width": 633.46,
+          "ellipse_height": 666.96,
+          "ellipse_angle_deg": 157.82,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9684,
+          "center": [
+            1066.14,
+            2497.96
+          ],
+          "ellipse_width": 639.37,
+          "ellipse_height": 664.83,
+          "ellipse_angle_deg": 15.82,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9751,
+          "center": [
+            1056.06,
+            3269.95
+          ],
+          "ellipse_width": 632.47,
+          "ellipse_height": 681.35,
+          "ellipse_angle_deg": 28.95,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9674,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 7,
+      "weight": "last",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 6,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9892,
+          "center": [
+            1317.53,
+            1099.18
+          ],
+          "ellipse_width": 404.55,
+          "ellipse_height": 532.52,
+          "ellipse_angle_deg": 65.67,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9813,
+          "center": [
+            1239.83,
+            1635.25
+          ],
+          "ellipse_width": 462.82,
+          "ellipse_height": 557.56,
+          "ellipse_angle_deg": 61.68,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9732,
+          "center": [
+            1150.22,
+            2246.05
+          ],
+          "ellipse_width": 524.77,
+          "ellipse_height": 594.52,
+          "ellipse_angle_deg": 50.52,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9593,
+          "center": [
+            1046.74,
+            2950.33
+          ],
+          "ellipse_width": 595.96,
+          "ellipse_height": 661.84,
+          "ellipse_angle_deg": 28.55,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 2,
+      "min_conf": 0.9593,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 7,
+      "weight": "last",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 6,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.985,
+          "center": [
+            993.18,
+            1229.72
+          ],
+          "ellipse_width": 394.09,
+          "ellipse_height": 490.9,
+          "ellipse_angle_deg": 100.49,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9878,
+          "center": [
+            986.64,
+            1719.35
+          ],
+          "ellipse_width": 442.14,
+          "ellipse_height": 517.95,
+          "ellipse_angle_deg": 100.02,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9805,
+          "center": [
+            976.85,
+            2277.96
+          ],
+          "ellipse_width": 507.05,
+          "ellipse_height": 554.21,
+          "ellipse_angle_deg": 99.17,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9774,
+          "center": [
+            964.82,
+            2922.1
+          ],
+          "ellipse_width": 587.54,
+          "ellipse_height": 596.67,
+          "ellipse_angle_deg": 95.05,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 2,
+      "min_conf": 0.9774,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 7,
+      "weight": "last",
+      "image": "测试3.jpg",
+      "n_main": 4,
+      "n_low": 6,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9838,
+          "center": [
+            1565.69,
+            1101.0
+          ],
+          "ellipse_width": 590.39,
+          "ellipse_height": 629.52,
+          "ellipse_angle_deg": 74.63,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9565,
+          "center": [
+            1509.0,
+            1823.54
+          ],
+          "ellipse_width": 622.59,
+          "ellipse_height": 638.11,
+          "ellipse_angle_deg": 69.54,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.6641,
+          "center": [
+            1436.47,
+            2561.42
+          ],
+          "ellipse_width": 607.0,
+          "ellipse_height": 643.7,
+          "ellipse_angle_deg": 120.8,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9448,
+          "center": [
+            1390.03,
+            3345.84
+          ],
+          "ellipse_width": 657.07,
+          "ellipse_height": 692.45,
+          "ellipse_angle_deg": 158.69,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.6641,
+      "is_4of4": true,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.6641,
+        "center": [
+          1436.47,
+          2561.42
+        ]
+      }
+    },
+    {
+      "seed": 7,
+      "weight": "last",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9763,
+          "center": [
+            1089.04,
+            954.64
+          ],
+          "ellipse_width": 620.87,
+          "ellipse_height": 686.36,
+          "ellipse_angle_deg": 143.21,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9565,
+          "center": [
+            1078.41,
+            1726.87
+          ],
+          "ellipse_width": 633.06,
+          "ellipse_height": 665.56,
+          "ellipse_angle_deg": 149.5,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9593,
+          "center": [
+            1066.76,
+            2497.98
+          ],
+          "ellipse_width": 643.37,
+          "ellipse_height": 660.84,
+          "ellipse_angle_deg": 15.81,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9718,
+          "center": [
+            1056.23,
+            3270.49
+          ],
+          "ellipse_width": 637.46,
+          "ellipse_height": 679.97,
+          "ellipse_angle_deg": 30.33,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9565,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 2024,
+      "weight": "best",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9869,
+          "center": [
+            1317.16,
+            1096.46
+          ],
+          "ellipse_width": 401.96,
+          "ellipse_height": 526.66,
+          "ellipse_angle_deg": 64.89,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9624,
+          "center": [
+            1235.26,
+            1632.94
+          ],
+          "ellipse_width": 460.88,
+          "ellipse_height": 549.82,
+          "ellipse_angle_deg": 56.72,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9313,
+          "center": [
+            1149.34,
+            2243.4
+          ],
+          "ellipse_width": 521.73,
+          "ellipse_height": 603.08,
+          "ellipse_angle_deg": 56.81,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.964,
+          "center": [
+            1044.81,
+            2948.66
+          ],
+          "ellipse_width": 597.13,
+          "ellipse_height": 659.83,
+          "ellipse_angle_deg": 35.61,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.9313,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 2024,
+      "weight": "best",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9849,
+          "center": [
+            989.43,
+            1227.13
+          ],
+          "ellipse_width": 388.87,
+          "ellipse_height": 483.81,
+          "ellipse_angle_deg": 99.62,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9852,
+          "center": [
+            983.3,
+            1717.71
+          ],
+          "ellipse_width": 438.51,
+          "ellipse_height": 517.13,
+          "ellipse_angle_deg": 98.96,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9791,
+          "center": [
+            974.61,
+            2275.46
+          ],
+          "ellipse_width": 499.75,
+          "ellipse_height": 551.67,
+          "ellipse_angle_deg": 95.26,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.8822,
+          "center": [
+            966.61,
+            2921.26
+          ],
+          "ellipse_width": 585.73,
+          "ellipse_height": 591.59,
+          "ellipse_angle_deg": 27.05,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.8822,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 2024,
+      "weight": "best",
+      "image": "测试3.jpg",
+      "n_main": 3,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9852,
+          "center": [
+            1569.39,
+            1100.94
+          ],
+          "ellipse_width": 588.77,
+          "ellipse_height": 622.19,
+          "ellipse_angle_deg": 65.87,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.7724,
+          "center": [
+            1508.47,
+            1816.11
+          ],
+          "ellipse_width": 602.86,
+          "ellipse_height": 640.16,
+          "ellipse_angle_deg": 77.19,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.6233,
+          "center": [
+            1436.5,
+            2562.96
+          ],
+          "ellipse_width": 598.76,
+          "ellipse_height": 628.31,
+          "ellipse_angle_deg": 113.16,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": false,
+          "confidence": null,
+          "center": [
+            1394.7,
+            3348.02
+          ],
+          "ellipse_width": null,
+          "ellipse_height": null,
+          "ellipse_angle_deg": null,
+          "match_dist": null
+        }
+      ],
+      "missed": [
+        "Hole4"
+      ],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.6233,
+      "is_4of4": false,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.6233,
+        "center": [
+          1436.5,
+          2562.96
+        ]
+      }
+    },
+    {
+      "seed": 2024,
+      "weight": "best",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9896,
+          "center": [
+            1086.9,
+            954.22
+          ],
+          "ellipse_width": 615.53,
+          "ellipse_height": 674.46,
+          "ellipse_angle_deg": 146.7,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9463,
+          "center": [
+            1074.53,
+            1726.6
+          ],
+          "ellipse_width": 634.89,
+          "ellipse_height": 661.74,
+          "ellipse_angle_deg": 153.79,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.8743,
+          "center": [
+            1063.5,
+            2496.43
+          ],
+          "ellipse_width": 646.91,
+          "ellipse_height": 661.56,
+          "ellipse_angle_deg": 26.95,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9268,
+          "center": [
+            1052.87,
+            3268.73
+          ],
+          "ellipse_width": 636.16,
+          "ellipse_height": 679.16,
+          "ellipse_angle_deg": 36.58,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.8743,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 2024,
+      "weight": "last",
+      "image": "测试1.jpg",
+      "n_main": 4,
+      "n_low": 5,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9862,
+          "center": [
+            1318.72,
+            1096.97
+          ],
+          "ellipse_width": 403.86,
+          "ellipse_height": 522.89,
+          "ellipse_angle_deg": 63.24,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9291,
+          "center": [
+            1238.91,
+            1632.39
+          ],
+          "ellipse_width": 462.21,
+          "ellipse_height": 554.36,
+          "ellipse_angle_deg": 57.4,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9579,
+          "center": [
+            1152.3,
+            2243.92
+          ],
+          "ellipse_width": 525.3,
+          "ellipse_height": 599.8,
+          "ellipse_angle_deg": 49.36,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9739,
+          "center": [
+            1047.22,
+            2948.07
+          ],
+          "ellipse_width": 594.53,
+          "ellipse_height": 663.93,
+          "ellipse_angle_deg": 28.66,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.9291,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 2024,
+      "weight": "last",
+      "image": "测试2.jpg",
+      "n_main": 4,
+      "n_low": 6,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9806,
+          "center": [
+            990.1,
+            1227.72
+          ],
+          "ellipse_width": 388.45,
+          "ellipse_height": 484.18,
+          "ellipse_angle_deg": 100.03,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9839,
+          "center": [
+            985.85,
+            1718.04
+          ],
+          "ellipse_width": 439.72,
+          "ellipse_height": 512.93,
+          "ellipse_angle_deg": 100.28,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.9663,
+          "center": [
+            977.73,
+            2276.17
+          ],
+          "ellipse_width": 504.25,
+          "ellipse_height": 547.0,
+          "ellipse_angle_deg": 97.38,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9725,
+          "center": [
+            965.77,
+            2919.33
+          ],
+          "ellipse_width": 587.88,
+          "ellipse_height": 592.09,
+          "ellipse_angle_deg": 23.41,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 2,
+      "min_conf": 0.9663,
+      "is_4of4": true,
+      "reflective": null
+    },
+    {
+      "seed": 2024,
+      "weight": "last",
+      "image": "测试3.jpg",
+      "n_main": 3,
+      "n_low": 6,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9943,
+          "center": [
+            1568.46,
+            1100.22
+          ],
+          "ellipse_width": 594.12,
+          "ellipse_height": 623.03,
+          "ellipse_angle_deg": 62.73,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.8425,
+          "center": [
+            1510.12,
+            1817.47
+          ],
+          "ellipse_width": 614.03,
+          "ellipse_height": 633.76,
+          "ellipse_angle_deg": 67.03,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.6821,
+          "center": [
+            1434.0,
+            2558.01
+          ],
+          "ellipse_width": 612.63,
+          "ellipse_height": 634.74,
+          "ellipse_angle_deg": 136.59,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": false,
+          "confidence": null,
+          "center": [
+            1396.9,
+            3345.7
+          ],
+          "ellipse_width": null,
+          "ellipse_height": null,
+          "ellipse_angle_deg": null,
+          "match_dist": null
+        }
+      ],
+      "missed": [
+        "Hole4"
+      ],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 1,
+      "min_conf": 0.6821,
+      "is_4of4": false,
+      "reflective": {
+        "hole_id": "Hole3",
+        "confidence": 0.6821,
+        "center": [
+          1434.0,
+          2558.01
+        ]
+      }
+    },
+    {
+      "seed": 2024,
+      "weight": "last",
+      "image": "测试4.jpg",
+      "n_main": 4,
+      "n_low": 4,
+      "holes": [
+        {
+          "hole_id": "Hole1",
+          "detected": true,
+          "confidence": 0.9972,
+          "center": [
+            1089.0,
+            952.8
+          ],
+          "ellipse_width": 617.98,
+          "ellipse_height": 676.64,
+          "ellipse_angle_deg": 141.94,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole2",
+          "detected": true,
+          "confidence": 0.9695,
+          "center": [
+            1077.36,
+            1724.22
+          ],
+          "ellipse_width": 634.52,
+          "ellipse_height": 662.62,
+          "ellipse_angle_deg": 152.38,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole3",
+          "detected": true,
+          "confidence": 0.8938,
+          "center": [
+            1066.45,
+            2494.02
+          ],
+          "ellipse_width": 644.58,
+          "ellipse_height": 667.08,
+          "ellipse_angle_deg": 14.02,
+          "match_dist": 0.0
+        },
+        {
+          "hole_id": "Hole4",
+          "detected": true,
+          "confidence": 0.9431,
+          "center": [
+            1054.6,
+            3269.23
+          ],
+          "ellipse_width": 634.37,
+          "ellipse_height": 681.06,
+          "ellipse_angle_deg": 28.52,
+          "match_dist": 0.0
+        }
+      ],
+      "missed": [],
+      "spurious": [],
+      "n_spurious": 0,
+      "extra_low_005": 0,
+      "min_conf": 0.8938,
+      "is_4of4": true,
+      "reflective": null
+    }
+  ],
+  "records": [
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9661,
+      "center": [
+        1316.64,
+        1098.05
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.963,
+      "center": [
+        1237.84,
+        1634.03
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9947,
+      "center": [
+        1148.99,
+        2244.51
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9976,
+      "center": [
+        1045.25,
+        2950.01
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9603,
+      "center": [
+        991.69,
+        1228.09
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9862,
+      "center": [
+        984.05,
+        1717.93
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9955,
+      "center": [
+        974.19,
+        2277.99
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9966,
+      "center": [
+        963.52,
+        2920.23
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9958,
+      "center": [
+        1566.64,
+        1100.89
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9858,
+      "center": [
+        1506.77,
+        1821.14
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.7932,
+      "center": [
+        1433.52,
+        2562.88
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.975,
+      "center": [
+        1387.53,
+        3345.58
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9958,
+      "center": [
+        1089.11,
+        954.25
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9893,
+      "center": [
+        1078.08,
+        1726.58
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9958,
+      "center": [
+        1066.78,
+        2497.4
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9977,
+      "center": [
+        1054.23,
+        3271.45
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9709,
+      "center": [
+        1319.78,
+        1095.94
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9429,
+      "center": [
+        1237.34,
+        1633.01
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9886,
+      "center": [
+        1148.15,
+        2244.57
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9943,
+      "center": [
+        1044.92,
+        2950.3
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9574,
+      "center": [
+        991.0,
+        1227.86
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9779,
+      "center": [
+        983.58,
+        1717.23
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9922,
+      "center": [
+        973.64,
+        2277.73
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9927,
+      "center": [
+        962.8,
+        2920.2
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9913,
+      "center": [
+        1566.43,
+        1100.73
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9782,
+      "center": [
+        1506.21,
+        1819.1
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.6427,
+      "center": [
+        1432.34,
+        2561.34
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9325,
+      "center": [
+        1386.63,
+        3345.36
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9915,
+      "center": [
+        1088.28,
+        953.82
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9819,
+      "center": [
+        1076.94,
+        1725.42
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9914,
+      "center": [
+        1066.0,
+        2497.16
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 0,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9949,
+      "center": [
+        1053.59,
+        3270.6
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9864,
+      "center": [
+        1317.58,
+        1096.64
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9943,
+      "center": [
+        1235.7,
+        1632.99
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.977,
+      "center": [
+        1147.6,
+        2242.77
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.983,
+      "center": [
+        1046.47,
+        2948.39
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9977,
+      "center": [
+        991.86,
+        1228.6
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9966,
+      "center": [
+        984.92,
+        1718.38
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9923,
+      "center": [
+        973.42,
+        2276.29
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9199,
+      "center": [
+        962.57,
+        2919.08
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9707,
+      "center": [
+        1565.66,
+        1099.78
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9661,
+      "center": [
+        1508.72,
+        1821.55
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.8011,
+      "center": [
+        1436.72,
+        2560.97
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.8873,
+      "center": [
+        1386.99,
+        3347.85
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9879,
+      "center": [
+        1087.88,
+        954.16
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9855,
+      "center": [
+        1076.4,
+        1725.41
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9675,
+      "center": [
+        1066.35,
+        2497.59
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9664,
+      "center": [
+        1056.05,
+        3270.92
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9742,
+      "center": [
+        1319.58,
+        1096.58
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9936,
+      "center": [
+        1238.33,
+        1633.08
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9396,
+      "center": [
+        1151.19,
+        2245.86
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9912,
+      "center": [
+        1046.31,
+        2949.92
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.997,
+      "center": [
+        992.58,
+        1227.8
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9965,
+      "center": [
+        986.48,
+        1718.0
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.982,
+      "center": [
+        975.72,
+        2276.27
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9363,
+      "center": [
+        962.04,
+        2921.13
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9818,
+      "center": [
+        1565.14,
+        1101.17
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9816,
+      "center": [
+        1508.5,
+        1822.13
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.799,
+      "center": [
+        1434.19,
+        2561.43
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.886,
+      "center": [
+        1386.63,
+        3348.25
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9886,
+      "center": [
+        1087.71,
+        956.1
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9802,
+      "center": [
+        1077.44,
+        1726.46
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9708,
+      "center": [
+        1067.65,
+        2497.44
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 42,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9726,
+      "center": [
+        1054.68,
+        3270.22
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9775,
+      "center": [
+        1318.21,
+        1095.63
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9825,
+      "center": [
+        1238.87,
+        1631.29
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9537,
+      "center": [
+        1150.66,
+        2241.25
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9728,
+      "center": [
+        1046.22,
+        2946.21
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9944,
+      "center": [
+        993.14,
+        1227.61
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9768,
+      "center": [
+        985.65,
+        1715.65
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9717,
+      "center": [
+        976.05,
+        2275.42
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9858,
+      "center": [
+        963.67,
+        2917.41
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9875,
+      "center": [
+        1567.05,
+        1099.0
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9045,
+      "center": [
+        1508.25,
+        1814.73
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.6337,
+      "center": [
+        1434.34,
+        2562.22
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9054,
+      "center": [
+        1388.76,
+        3345.73
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9847,
+      "center": [
+        1090.13,
+        953.2
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9734,
+      "center": [
+        1079.66,
+        1723.43
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9598,
+      "center": [
+        1066.23,
+        2493.91
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9628,
+      "center": [
+        1056.38,
+        3269.69
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9775,
+      "center": [
+        1318.21,
+        1095.63
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9825,
+      "center": [
+        1238.87,
+        1631.29
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9537,
+      "center": [
+        1150.66,
+        2241.25
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9728,
+      "center": [
+        1046.22,
+        2946.21
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9944,
+      "center": [
+        993.14,
+        1227.61
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9768,
+      "center": [
+        985.65,
+        1715.65
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9717,
+      "center": [
+        976.05,
+        2275.42
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9858,
+      "center": [
+        963.67,
+        2917.41
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9875,
+      "center": [
+        1567.05,
+        1099.0
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9045,
+      "center": [
+        1508.25,
+        1814.73
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.6337,
+      "center": [
+        1434.34,
+        2562.22
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9054,
+      "center": [
+        1388.76,
+        3345.73
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9847,
+      "center": [
+        1090.13,
+        953.2
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9734,
+      "center": [
+        1079.66,
+        1723.43
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9598,
+      "center": [
+        1066.23,
+        2493.91
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 123,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9628,
+      "center": [
+        1056.38,
+        3269.69
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.992,
+      "center": [
+        1317.67,
+        1097.74
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9787,
+      "center": [
+        1239.13,
+        1634.65
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9862,
+      "center": [
+        1151.09,
+        2244.56
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9693,
+      "center": [
+        1046.77,
+        2949.51
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9868,
+      "center": [
+        993.86,
+        1229.51
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9925,
+      "center": [
+        985.94,
+        1717.93
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9914,
+      "center": [
+        976.37,
+        2277.27
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9851,
+      "center": [
+        965.09,
+        2921.9
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9881,
+      "center": [
+        1566.31,
+        1100.45
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9734,
+      "center": [
+        1508.53,
+        1824.31
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.682,
+      "center": [
+        1437.94,
+        2560.75
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9397,
+      "center": [
+        1389.53,
+        3345.67
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9834,
+      "center": [
+        1089.14,
+        953.86
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9674,
+      "center": [
+        1077.26,
+        1727.26
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9684,
+      "center": [
+        1066.14,
+        2497.96
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9751,
+      "center": [
+        1056.06,
+        3269.95
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9892,
+      "center": [
+        1317.53,
+        1099.18
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9813,
+      "center": [
+        1239.83,
+        1635.25
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9732,
+      "center": [
+        1150.22,
+        2246.05
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9593,
+      "center": [
+        1046.74,
+        2950.33
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.985,
+      "center": [
+        993.18,
+        1229.72
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9878,
+      "center": [
+        986.64,
+        1719.35
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9805,
+      "center": [
+        976.85,
+        2277.96
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9774,
+      "center": [
+        964.82,
+        2922.1
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9838,
+      "center": [
+        1565.69,
+        1101.0
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9565,
+      "center": [
+        1509.0,
+        1823.54
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.6641,
+      "center": [
+        1436.47,
+        2561.42
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9448,
+      "center": [
+        1390.03,
+        3345.84
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9763,
+      "center": [
+        1089.04,
+        954.64
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9565,
+      "center": [
+        1078.41,
+        1726.87
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9593,
+      "center": [
+        1066.76,
+        2497.98
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 7,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9718,
+      "center": [
+        1056.23,
+        3270.49
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9869,
+      "center": [
+        1317.16,
+        1096.46
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9624,
+      "center": [
+        1235.26,
+        1632.94
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9313,
+      "center": [
+        1149.34,
+        2243.4
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.964,
+      "center": [
+        1044.81,
+        2948.66
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9849,
+      "center": [
+        989.43,
+        1227.13
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9852,
+      "center": [
+        983.3,
+        1717.71
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9791,
+      "center": [
+        974.61,
+        2275.46
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.8822,
+      "center": [
+        966.61,
+        2921.26
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9852,
+      "center": [
+        1569.39,
+        1100.94
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.7724,
+      "center": [
+        1508.47,
+        1816.11
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.6233,
+      "center": [
+        1436.5,
+        2562.96
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": false,
+      "confidence": null,
+      "center": [
+        1394.7,
+        3348.02
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9896,
+      "center": [
+        1086.9,
+        954.22
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9463,
+      "center": [
+        1074.53,
+        1726.6
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.8743,
+      "center": [
+        1063.5,
+        2496.43
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "best",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9268,
+      "center": [
+        1052.87,
+        3268.73
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9862,
+      "center": [
+        1318.72,
+        1096.97
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9291,
+      "center": [
+        1238.91,
+        1632.39
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9579,
+      "center": [
+        1152.3,
+        2243.92
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试1.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9739,
+      "center": [
+        1047.22,
+        2948.07
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9806,
+      "center": [
+        990.1,
+        1227.72
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9839,
+      "center": [
+        985.85,
+        1718.04
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.9663,
+      "center": [
+        977.73,
+        2276.17
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试2.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9725,
+      "center": [
+        965.77,
+        2919.33
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9943,
+      "center": [
+        1568.46,
+        1100.22
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.8425,
+      "center": [
+        1510.12,
+        1817.47
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.6821,
+      "center": [
+        1434.0,
+        2558.01
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试3.jpg",
+      "hole_id": "Hole4",
+      "detected": false,
+      "confidence": null,
+      "center": [
+        1396.9,
+        3345.7
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole1",
+      "detected": true,
+      "confidence": 0.9972,
+      "center": [
+        1089.0,
+        952.8
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole2",
+      "detected": true,
+      "confidence": 0.9695,
+      "center": [
+        1077.36,
+        1724.22
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole3",
+      "detected": true,
+      "confidence": 0.8938,
+      "center": [
+        1066.45,
+        2494.02
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    },
+    {
+      "seed": 2024,
+      "weight_type": "last",
+      "image": "测试4.jpg",
+      "hole_id": "Hole4",
+      "detected": true,
+      "confidence": 0.9431,
+      "center": [
+        1054.6,
+        3269.23
+      ],
+      "class": "cylinder_bore",
+      "threshold": 0.5
+    }
+  ]
+}

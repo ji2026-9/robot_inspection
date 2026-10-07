@@ -1,0 +1,372 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='utf-8'>
+<title>正式实验汇总 v2（5 seeds）</title><style>
+    :root{--bg:#f5f7fa;--card:#fff;--line:#e2e8f0;--txt:#1f2937;--muted:#6b7280;
+          --blue:#2563eb;--green:#16a34a;--amber:#d97706;--red:#dc2626;}
+    *{box-sizing:border-box}
+    body{margin:0;padding:28px;background:var(--bg);color:var(--txt);
+         font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;line-height:1.6}
+    h1{font-size:26px;margin:0 0 6px}
+    h2{font-size:19px;margin:34px 0 14px;padding-left:10px;border-left:5px solid var(--blue)}
+    h3{font-size:15px}
+    .sub{color:var(--muted);font-size:13px;margin-bottom:20px;word-break:break-all}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;
+           padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    table{border-collapse:collapse;width:100%;font-size:13px}
+    th,td{border:1px solid var(--line);padding:7px 9px;text-align:center;vertical-align:middle}
+    th{background:#eef2f7;font-weight:600;white-space:nowrap}
+    td.l,th.l{text-align:left}
+    td.num{font-variant-numeric:tabular-nums}
+    .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+    .kpi div{background:#eef6ff;border:1px solid #dbeafe;border-radius:10px;padding:12px 14px}
+    .kpi b{display:block;font-size:20px;color:var(--blue);font-variant-numeric:tabular-nums}
+    .kpi span{font-size:12px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .card-title{font-size:13px;font-weight:600;margin-bottom:8px;color:#374151}
+    .card img{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);display:block}
+    .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700}
+    .ok{background:#dcfce7;color:#166534}
+    .low{background:#fef3c7;color:#92400e}
+    .bad{background:#fee2e2;color:#991b1b}
+    .verdict{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:16px 18px;
+             font-size:15px;color:#065f46}
+    .warn{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;
+          font-size:13px;color:#92400e;margin-bottom:16px}
+    .mono{font-family:Consolas,monospace;font-size:12px}
+    .refl{background:#fff7ed;font-weight:700;color:#9a3412}
+    </style></head><body>
+<h1>正式训练对照实验汇总 v2 —— 5 个随机种子</h1>
+<div class='sub'>生成时间：2026-10-06 17:19:53<br>数据集：dataset_17_5_3（17 train / 5 val / 3 test，原始 3 张 test 保持不变）<br>统一配置：yolo11n-seg.pt ｜ imgsz=640 ｜ batch=8 ｜ epochs=100 ｜ patience=0 ｜ device=0 ｜ workers=2 ｜ deterministic=True<br><b>正式统计阈值 conf >= 0.50</b>（conf=0.05 仅用于单独的误检分析，两者严格分开）<br>组合数：5 seeds × 2 checkpoints × 4 images = <b>40</b> 组</div>
+<h2>一、训练指标</h2><div class='panel'><table>
+<tr><th>seed</th><th>轮数</th><th>best epoch</th><th>Precision</th><th>Recall</th><th>mAP50</th><th>mAP50-95</th><th>耗时</th></tr>
+<tr><td>0</td>
+<td class='num'>100</td><td class='num'>100</td><td class='num'>0.9975</td><td class='num'>1.0000</td><td class='num'>0.9950</td><td class='num'>0.9681</td><td class='num'>124.3s</td></tr>
+<tr><td>42</td>
+<td class='num'>100</td><td class='num'>74</td><td class='num'>0.9969</td><td class='num'>1.0000</td><td class='num'>0.9950</td><td class='num'>0.9847</td><td class='num'>121.0s</td></tr>
+<tr><td>123</td>
+<td class='num'>100</td><td class='num'>100</td><td class='num'>0.9970</td><td class='num'>1.0000</td><td class='num'>0.9950</td><td class='num'>0.9845</td><td class='num'>121.6s</td></tr>
+<tr><td>7</td>
+<td class='num'>100</td><td class='num'>93</td><td class='num'>0.9972</td><td class='num'>1.0000</td><td class='num'>0.9950</td><td class='num'>0.9719</td><td class='num'>119.9s</td></tr>
+<tr><td>2024</td>
+<td class='num'>100</td><td class='num'>83</td><td class='num'>0.9976</td><td class='num'>1.0000</td><td class='num'>0.9950</td><td class='num'>0.9842</td><td class='num'>122.6s</td></tr>
+</table></div>
+<h2>二、40 组组合结果（正式阈值 conf>=0.5）</h2><div class='panel' style='overflow-x:auto'><table>
+<tr><th class='l'>seed</th><th>weight</th>
+<th>测试1<br><span class='mono'>检出/4</span></th>
+<th>测试2<br><span class='mono'>检出/4</span></th>
+<th>测试3<br><span class='mono'>检出/4</span></th>
+<th>测试4<br><span class='mono'>检出/4</span></th>
+<th>反光孔 conf</th><th>最低目标孔 conf</th><th>漏检</th><th>conf>=0.5 误检</th></tr>
+<tr><td class='l'>0</td><td>best</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.7932</td><td class='num'>0.7932</td><td>无</td><td>无</td></tr>
+<tr><td class='l'>0</td><td>last</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.6427</td><td class='num'>0.6427</td><td>无</td><td>无</td></tr>
+<tr><td class='l'>42</td><td>best</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.8011</td><td class='num'>0.8011</td><td>无</td><td>无</td></tr>
+<tr><td class='l'>42</td><td>last</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.7990</td><td class='num'>0.7990</td><td>无</td><td>无</td></tr>
+<tr><td class='l'>123</td><td>best</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.6337</td><td class='num'>0.6337</td><td>无</td><td>无</td></tr>
+<tr><td class='l'>123</td><td>last</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.6337</td><td class='num'>0.6337</td><td>无</td><td>无</td></tr>
+<tr><td class='l'>7</td><td>best</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.6820</td><td class='num'>0.6820</td><td>无</td><td>无</td></tr>
+<tr><td class='l'>7</td><td>last</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.6641</td><td class='num'>0.6641</td><td>无</td><td>无</td></tr>
+<tr><td class='l'>2024</td><td>best</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag bad'>3/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.6233</td><td class='num'>0.6233</td><td>1</td><td>无</td></tr>
+<tr><td class='l'>2024</td><td>last</td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td><span class='tag bad'>3/4</span></td>
+<td><span class='tag ok'>4/4</span></td>
+<td class='num refl'>0.6821</td><td class='num'>0.6821</td><td>1</td><td>无</td></tr>
+</table><p class='mono' style='color:#6b7280;margin-top:8px'>反光孔 = 测试3 中从上往下第 3 个孔（中心 y≈2559）。</p></div>
+<h2>三、逐孔 confidence 明细（4 张图 × 4 孔）</h2><div class='panel' style='overflow-x:auto'><table>
+<tr><th class='l'>seed</th><th>weight</th>
+<th>测试1_01</th>
+<th>测试1_02</th>
+<th>测试1_03</th>
+<th>测试1_04</th>
+<th>测试2_01</th>
+<th>测试2_02</th>
+<th>测试2_03</th>
+<th>测试2_04</th>
+<th>测试3_01</th>
+<th>测试3_02</th>
+<th>测试3_03</th>
+<th>测试3_04</th>
+<th>测试4_01</th>
+<th>测试4_02</th>
+<th>测试4_03</th>
+<th>测试4_04</th>
+</tr>
+<tr><td class='l'>0</td><td>best</td>
+<td class='num'>0.9661</td>
+<td class='num'>0.9630</td>
+<td class='num'>0.9947</td>
+<td class='num'>0.9976</td>
+<td class='num'>0.9603</td>
+<td class='num'>0.9862</td>
+<td class='num'>0.9955</td>
+<td class='num'>0.9966</td>
+<td class='num'>0.9958</td>
+<td class='num'>0.9858</td>
+<td class='num refl'>0.7932</td>
+<td class='num'>0.9750</td>
+<td class='num'>0.9958</td>
+<td class='num'>0.9893</td>
+<td class='num'>0.9958</td>
+<td class='num'>0.9977</td>
+</tr>
+<tr><td class='l'>0</td><td>last</td>
+<td class='num'>0.9709</td>
+<td class='num'>0.9429</td>
+<td class='num'>0.9886</td>
+<td class='num'>0.9943</td>
+<td class='num'>0.9574</td>
+<td class='num'>0.9779</td>
+<td class='num'>0.9922</td>
+<td class='num'>0.9927</td>
+<td class='num'>0.9913</td>
+<td class='num'>0.9782</td>
+<td class='num refl'>0.6427</td>
+<td class='num'>0.9325</td>
+<td class='num'>0.9915</td>
+<td class='num'>0.9819</td>
+<td class='num'>0.9914</td>
+<td class='num'>0.9949</td>
+</tr>
+<tr><td class='l'>42</td><td>best</td>
+<td class='num'>0.9864</td>
+<td class='num'>0.9943</td>
+<td class='num'>0.9770</td>
+<td class='num'>0.9830</td>
+<td class='num'>0.9977</td>
+<td class='num'>0.9966</td>
+<td class='num'>0.9923</td>
+<td class='num'>0.9199</td>
+<td class='num'>0.9707</td>
+<td class='num'>0.9661</td>
+<td class='num refl'>0.8011</td>
+<td class='num'>0.8873</td>
+<td class='num'>0.9879</td>
+<td class='num'>0.9855</td>
+<td class='num'>0.9675</td>
+<td class='num'>0.9664</td>
+</tr>
+<tr><td class='l'>42</td><td>last</td>
+<td class='num'>0.9742</td>
+<td class='num'>0.9936</td>
+<td class='num'>0.9396</td>
+<td class='num'>0.9912</td>
+<td class='num'>0.9970</td>
+<td class='num'>0.9965</td>
+<td class='num'>0.9820</td>
+<td class='num'>0.9363</td>
+<td class='num'>0.9818</td>
+<td class='num'>0.9816</td>
+<td class='num refl'>0.7990</td>
+<td class='num'>0.8860</td>
+<td class='num'>0.9886</td>
+<td class='num'>0.9802</td>
+<td class='num'>0.9708</td>
+<td class='num'>0.9726</td>
+</tr>
+<tr><td class='l'>123</td><td>best</td>
+<td class='num'>0.9775</td>
+<td class='num'>0.9825</td>
+<td class='num'>0.9537</td>
+<td class='num'>0.9728</td>
+<td class='num'>0.9944</td>
+<td class='num'>0.9768</td>
+<td class='num'>0.9717</td>
+<td class='num'>0.9858</td>
+<td class='num'>0.9875</td>
+<td class='num'>0.9045</td>
+<td class='num refl'>0.6337</td>
+<td class='num'>0.9054</td>
+<td class='num'>0.9847</td>
+<td class='num'>0.9734</td>
+<td class='num'>0.9598</td>
+<td class='num'>0.9628</td>
+</tr>
+<tr><td class='l'>123</td><td>last</td>
+<td class='num'>0.9775</td>
+<td class='num'>0.9825</td>
+<td class='num'>0.9537</td>
+<td class='num'>0.9728</td>
+<td class='num'>0.9944</td>
+<td class='num'>0.9768</td>
+<td class='num'>0.9717</td>
+<td class='num'>0.9858</td>
+<td class='num'>0.9875</td>
+<td class='num'>0.9045</td>
+<td class='num refl'>0.6337</td>
+<td class='num'>0.9054</td>
+<td class='num'>0.9847</td>
+<td class='num'>0.9734</td>
+<td class='num'>0.9598</td>
+<td class='num'>0.9628</td>
+</tr>
+<tr><td class='l'>7</td><td>best</td>
+<td class='num'>0.9920</td>
+<td class='num'>0.9787</td>
+<td class='num'>0.9862</td>
+<td class='num'>0.9693</td>
+<td class='num'>0.9868</td>
+<td class='num'>0.9925</td>
+<td class='num'>0.9914</td>
+<td class='num'>0.9851</td>
+<td class='num'>0.9881</td>
+<td class='num'>0.9734</td>
+<td class='num refl'>0.6820</td>
+<td class='num'>0.9397</td>
+<td class='num'>0.9834</td>
+<td class='num'>0.9674</td>
+<td class='num'>0.9684</td>
+<td class='num'>0.9751</td>
+</tr>
+<tr><td class='l'>7</td><td>last</td>
+<td class='num'>0.9892</td>
+<td class='num'>0.9813</td>
+<td class='num'>0.9732</td>
+<td class='num'>0.9593</td>
+<td class='num'>0.9850</td>
+<td class='num'>0.9878</td>
+<td class='num'>0.9805</td>
+<td class='num'>0.9774</td>
+<td class='num'>0.9838</td>
+<td class='num'>0.9565</td>
+<td class='num refl'>0.6641</td>
+<td class='num'>0.9448</td>
+<td class='num'>0.9763</td>
+<td class='num'>0.9565</td>
+<td class='num'>0.9593</td>
+<td class='num'>0.9718</td>
+</tr>
+<tr><td class='l'>2024</td><td>best</td>
+<td class='num'>0.9869</td>
+<td class='num'>0.9624</td>
+<td class='num'>0.9313</td>
+<td class='num'>0.9640</td>
+<td class='num'>0.9849</td>
+<td class='num'>0.9852</td>
+<td class='num'>0.9791</td>
+<td class='num'>0.8822</td>
+<td class='num'>0.9852</td>
+<td class='num'>0.7724</td>
+<td class='num refl'>0.6233</td>
+<td><span class='tag bad'>漏检</span></td>
+<td class='num'>0.9896</td>
+<td class='num'>0.9463</td>
+<td class='num'>0.8743</td>
+<td class='num'>0.9268</td>
+</tr>
+<tr><td class='l'>2024</td><td>last</td>
+<td class='num'>0.9862</td>
+<td class='num'>0.9291</td>
+<td class='num'>0.9579</td>
+<td class='num'>0.9739</td>
+<td class='num'>0.9806</td>
+<td class='num'>0.9839</td>
+<td class='num'>0.9663</td>
+<td class='num'>0.9725</td>
+<td class='num'>0.9943</td>
+<td class='num'>0.8425</td>
+<td class='num refl'>0.6821</td>
+<td><span class='tag bad'>漏检</span></td>
+<td class='num'>0.9972</td>
+<td class='num'>0.9695</td>
+<td class='num'>0.8938</td>
+<td class='num'>0.9431</td>
+</tr>
+</table></div>
+<h2>四、统计量（A–I）</h2><div class='panel'><div class='kpi'>
+<div><b>38/40</b><span>A. 4/4 检测率 = 95.0%</span></div>
+<div><b>0.6233</b><span>B. 目标孔 confidence 最小值</span></div>
+<div><b>0.9518</b><span>C. 目标孔 confidence 平均值</span></div>
+<div><b>0.6955</b><span>D. 反光孔 confidence 平均（40 组中 10 组）</span></div>
+<div><b>0</b><span>G. 目标孔 confidence &lt; 0.5 的数量</span></div>
+<div><b>2</b><span>H. 目标孔漏检数量</span></div>
+<div><b>0</b><span>I. conf>=0.5 明显误检数量</span></div>
+</div><table style='margin-top:16px'>
+<tr><th class='l'>统计项</th><th>值</th></tr>
+<tr><td class='l'>seed=0 反光孔（best / last）</td><td>0.7932 / 0.6427</td></tr>
+<tr><td class='l'>seed=42 反光孔（best / last）</td><td>0.8011 / 0.7990</td></tr>
+<tr><td class='l'>seed=123 反光孔（best / last）</td><td>0.6337 / 0.6337</td></tr>
+<tr><td class='l'>seed=7 反光孔（best / last）</td><td>0.6820 / 0.6641</td></tr>
+<tr><td class='l'>seed=2024 反光孔（best / last）</td><td>0.6233 / 0.6821</td></tr>
+<tr><td class='l'>E. 各 seed 反光孔均值 → 均值 / 标准差 / 最小 / 最大</td><td>0.6955 / 0.0593 / 0.6337 / 0.8001</td></tr>
+<tr><td class='l'>F. best 反光孔平均 / last 反光孔平均 / 差值</td><td>0.7067 / 0.6843 / +0.0223</td></tr>
+</table>
+<div class='warn' style='margin-top:12px'><b>H. 存在漏检：</b>seed=2024 best 测试3.jpg 漏 ['Hole4']；seed=2024 last 测试3.jpg 漏 ['Hole4']</div>
+<p>I. conf>=0.5 下没有出现未匹配到目标孔的检测。</p>
+</div>
+<h2>五、最终判断</h2><div class='panel'>
+<div class='verdict'><b>未满足全部稳定性条件：存在目标孔漏检 2 处。需按实际数据进一步分析。</b></div>
+<p style='margin-top:12px'>随机种子对结果存在一定波动（5 个 seed 的反光孔平均 confidence 标准差 0.0593），但没有改变目标孔 4/4 检测的总体结论。</p>
+<p class='mono' style='color:#6b7280;margin-top:12px'>本判断按预设四项条件自动生成：① 5 个 seed 目标孔均无漏检；② 4/4 比例 ≥95%；③ 目标孔 confidence 均 ≥0.5；④ conf≥0.5 下无未匹配检测。未人为挑选最优结果。不因某个 seed 表现最好就选择该 seed 作为最终模型。</p></div>
+<h2>六、新增实验（seed=7 / seed=2024）预测可视化</h2>
+<h3 style='margin:18px 0 8px;color:#374151'>seed = 7 , weight = best</h3><div class='grid'>
+<div class='card'><div class='card-title'>测试1</div><a href='formal_seed7/results/测试1_best_result.jpg' target='_blank'><img src='formal_seed7/results/测试1_best_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试2</div><a href='formal_seed7/results/测试2_best_result.jpg' target='_blank'><img src='formal_seed7/results/测试2_best_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试3</div><a href='formal_seed7/results/测试3_best_result.jpg' target='_blank'><img src='formal_seed7/results/测试3_best_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试4</div><a href='formal_seed7/results/测试4_best_result.jpg' target='_blank'><img src='formal_seed7/results/测试4_best_result.jpg'></a></div>
+</div>
+<h3 style='margin:18px 0 8px;color:#374151'>seed = 7 , weight = last</h3><div class='grid'>
+<div class='card'><div class='card-title'>测试1</div><a href='formal_seed7/results/测试1_last_result.jpg' target='_blank'><img src='formal_seed7/results/测试1_last_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试2</div><a href='formal_seed7/results/测试2_last_result.jpg' target='_blank'><img src='formal_seed7/results/测试2_last_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试3</div><a href='formal_seed7/results/测试3_last_result.jpg' target='_blank'><img src='formal_seed7/results/测试3_last_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试4</div><a href='formal_seed7/results/测试4_last_result.jpg' target='_blank'><img src='formal_seed7/results/测试4_last_result.jpg'></a></div>
+</div>
+<h3 style='margin:18px 0 8px;color:#374151'>seed = 2024 , weight = best</h3><div class='grid'>
+<div class='card'><div class='card-title'>测试1</div><a href='formal_seed2024/results/测试1_best_result.jpg' target='_blank'><img src='formal_seed2024/results/测试1_best_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试2</div><a href='formal_seed2024/results/测试2_best_result.jpg' target='_blank'><img src='formal_seed2024/results/测试2_best_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试3</div><a href='formal_seed2024/results/测试3_best_result.jpg' target='_blank'><img src='formal_seed2024/results/测试3_best_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试4</div><a href='formal_seed2024/results/测试4_best_result.jpg' target='_blank'><img src='formal_seed2024/results/测试4_best_result.jpg'></a></div>
+</div>
+<h3 style='margin:18px 0 8px;color:#374151'>seed = 2024 , weight = last</h3><div class='grid'>
+<div class='card'><div class='card-title'>测试1</div><a href='formal_seed2024/results/测试1_last_result.jpg' target='_blank'><img src='formal_seed2024/results/测试1_last_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试2</div><a href='formal_seed2024/results/测试2_last_result.jpg' target='_blank'><img src='formal_seed2024/results/测试2_last_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试3</div><a href='formal_seed2024/results/测试3_last_result.jpg' target='_blank'><img src='formal_seed2024/results/测试3_last_result.jpg'></a></div>
+<div class='card'><div class='card-title'>测试4</div><a href='formal_seed2024/results/测试4_last_result.jpg' target='_blank'><img src='formal_seed2024/results/测试4_last_result.jpg'></a></div>
+</div>
+<p class='sub' style='margin-top:24px'>绿框椭圆 = conf>=0.5；橙框 = conf&lt;0.5；红点 = 椭圆中心；彩色区域 = mask。本报告只做客观展示。</p>
+</body></html>

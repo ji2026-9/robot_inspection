@@ -1,0 +1,50 @@
+{
+  "tag": "seed42_last",
+  "weights": "E:\\robot_inspection\\experiments\\seed42\\weights\\last.pt",
+  "conf_floor": 0.05,
+  "images": [
+    {
+      "image": "测试1.jpg",
+      "n_detections": 5,
+      "confidences": [
+        0.9928,
+        0.9909,
+        0.9825,
+        0.9805,
+        0.0701
+      ]
+    },
+    {
+      "image": "测试2.jpg",
+      "n_detections": 6,
+      "confidences": [
+        0.9981,
+        0.9926,
+        0.9901,
+        0.981,
+        0.1721,
+        0.0541
+      ]
+    },
+    {
+      "image": "测试3.jpg",
+      "n_detections": 4,
+      "confidences": [
+        0.99,
+        0.9546,
+        0.9129,
+        0.501
+      ]
+    },
+    {
+      "image": "测试4.jpg",
+      "n_detections": 4,
+      "confidences": [
+        0.9935,
+        0.9909,
+        0.9734,
+        0.9533
+      ]
+    }
+  ]
+}
