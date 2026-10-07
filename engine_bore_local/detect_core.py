@@ -367,7 +367,7 @@ class EngineDetector:
                   'part_model': str(self.part_model_path) if self.part_model is not None else None,
                   'device': self.device_name, 'image_size': [width,height], 'part_max_confidence': part_score,
                   'bore_raw_count': len(bores), 'bore_selected_count': len(selected), 'part_constraint_applied': constraint,
-                  'selected_bores': [{'hole_id': number, 'confidence': round(bore['confidence'],4)}
+                  'selected_bores': [{'hole_id': number, 'confidence': round(bore['confidence'],4), 'box_xyxy': bore['box_xyxy']}
                                      for number, bore in enumerate(selected, 1)],
                   'centers': centers, 'warnings': warnings, 'proposals': proposals,
                   'prediction_speed_ms': result.speed, 'result_image': str(image_dest), 'result_csv': str(csv_dest),

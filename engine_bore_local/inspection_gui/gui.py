@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from experiment_records import ExperimentRecords
+from .review_view import HoleReviewDialog, review_summary
 from .devices_view import show_devices
 from .records_view import RecordsDialog
 from .training_bridge import TrainingBridge
@@ -216,6 +217,9 @@ class MainWindow(QMainWindow):
         status_layout.addWidget(self.lbl_centers, 1, 1)
         status_layout.addWidget(self.lbl_avg, 2, 0)
         status_layout.addWidget(self.lbl_constraint, 3, 0, 1, 2)
+        self.review_warning = QLabel("待检测")
+        self.review_warning.setWordWrap(True)
+        status_layout.addWidget(self.review_warning, 4, 0, 1, 2)
         self.batch_progress = QProgressBar()
         self.batch_progress.setRange(0, 1)
         self.batch_progress.setValue(0)
@@ -242,6 +246,8 @@ class MainWindow(QMainWindow):
         for column, width in enumerate((60, 80, 160, 110, 100)):
             self.table.setColumnWidth(column, width)
         self.table.setMinimumHeight(190)
+        self.table.cellClicked.connect(self.review_hole)
+        self.table.setToolTip("点击已有孔的一行，打开局部放大复核。孔号仅按图像位置排序。")
         task_layout.addWidget(self.table, 1)
         self.coordinate_note = QLabel('当前圆心为图像像素坐标；三维定位与测量机械臂坐标待标定。')
         self.coordinate_note.setWordWrap(True)
@@ -394,8 +400,8 @@ class MainWindow(QMainWindow):
         result = self.current_result or {}
         detected = result.get('detected_holes', [])
         by_id = {hole['id']: hole for hole in detected}
-        self.table.setRowCount(4)
-        for row in range(4):
+        self.table.setRowCount(max(4, len(detected)))
+        for row in range(max(4, len(detected))):
             hid = f'H{row + 1:02d}'
             hole = by_id.get(hid)
             if hole:
@@ -409,6 +415,9 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(value)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, column, item)
+        message, needs_review = review_summary(result)
+        self.review_warning.setText(message)
+        self.review_warning.setStyleSheet('color:#b45309;font-weight:600;' if needs_review else 'color:#15803d;')
         self.lbl_detected.setText(f"已识别：{result.get('detections', '—')} / 4")
         fitted = result.get('center_count')
         self.lbl_centers.setText(f"圆心：{fitted if fitted is not None else '—'}")
@@ -430,6 +439,20 @@ class MainWindow(QMainWindow):
                 self.set_status('当前照片需要复核', '#a86613')
             elif result:
                 self.set_status('当前照片检测完成')
+
+    def review_hole(self, row, column=0):
+        result = self.current_result or {}
+        hid = self.table.item(row, 0).text() if self.table.item(row, 0) else ''
+        hole = next((h for h in result.get('fitted_holes', []) + result.get('detected_holes', []) if h['id'] == hid), None)
+        if hole is None:
+            self.review_warning.setText('该行暂无检测结果，不能推定漏检孔的实际位置。请复核整张原图。')
+            return
+        original = imread_unicode(result.get('image_path') or self.paths[self.current_index])
+        if original is None:
+            QMessageBox.warning(self, '照片无法读取', '请重新选择原始照片后复核。')
+            return
+        self.hole_review_dialog = HoleReviewDialog(original, hole, self)
+        self.hole_review_dialog.show()
 
     def render_view(self, *_):
         self.lbl_zoom.setText(f'{self.sld_zoom.value()}%')
@@ -605,10 +628,13 @@ class MainWindow(QMainWindow):
 
     def device_status_changed(self, device, connected, note):
         self.device_states[device] = connected
+        if not hasattr(self, 'device_notes'):
+            self.device_notes = {}
+        self.device_notes[device] = note
         names = {'camera':'工业相机', 'robot_a':'拍照机械臂 A', 'robot_b':'测量机械臂 B'}
         self.connection_line.setText('　｜　'.join(
             names[key]+('：只读反馈已连接' if key == 'robot_b' and self.device_states.get(key)
-                        else '：已连接' if self.device_states.get(key) else '：未连接')
+                        else '：已连接' if self.device_states.get(key) else '：反馈过期／已断开' if '过期' in self.device_notes.get(key, '') else '：未连接')
             for key in names))
         self.log(names[device]+'：'+note)
 

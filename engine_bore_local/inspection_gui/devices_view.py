@@ -341,7 +341,7 @@ class DevicePage(QWidget):
             self.telemetry_label.setText('反馈已中断，旧坐标不再有效。\n' + reason)
             self.live_robot_status.setText('实时状态：反馈已中断，使能、运行、报警和速度数据已失效。')
             self.robot_evidence_label.setText('设备资料：反馈已中断，不能确认当前连接设备。')
-            self._set_status(False, '只读反馈已中断，请重新连接。')
+            self._set_status(False, '反馈数据已过期，旧状态不可用，请重新连接。')
             return
         data = backend.latest
         import datetime
@@ -365,12 +365,14 @@ class DevicePage(QWidget):
         else:
             self.robot_evidence_label.setText('实际反馈连接地址：'+str(backend.address)+':30004\n正在读取型号和版本…')
         updated = datetime.datetime.fromtimestamp(data['received_at']).strftime('%H:%M:%S')
+        import time
+        age = max(0, time.time() - data['received_at'])
         self.live_robot_status.setText(
             f"实时反馈：已连接　使能：{'已使能' if data['enabled'] else '未使能'}"
             f"　运行：{'运行中' if data['running'] else '未运行'}\n"
             f"报警：{'有报警' if data['error'] else '无报警'}"
             f"　速度比例：{data.get('speed_percent', 0)}%　模式代码：{data['mode']}\n"
-            f"最近接收时间（电脑）：{updated}")
+            f"最近接收时间（电脑）：{updated}　数据年龄：{age:.1f} 秒（2 秒过期）")
         joints = '　'.join(f'J{i+1} {v:.2f}°' for i,v in enumerate(data['joints']))
         pose = '　'.join(f'{axis} {value:.2f}' for axis,value in zip(['X','Y','Z','Rx','Ry','Rz'],data['pose']))
         self.telemetry_label.setText(

@@ -124,6 +124,7 @@ display, never for automatic task creation.
             "hole_id": number,
             "confidence": confidence,
             "class_name": "bore",
+            "box_xyxy": item.get("box_xyxy"),
             "center_px": None,
             "center_3d": None,
             "coordinate_frame": "image_pixel",
