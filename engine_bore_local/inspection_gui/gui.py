@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import hashlib
 import json
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from experiment_records import ExperimentRecords
+from .vision_workspace import ClickablePhoto, CameraPreviewWorker, pick_hole, selected_targets
 from .review_view import HoleReviewDialog, review_summary
 from .devices_view import show_devices
 from .records_view import RecordsDialog
@@ -99,6 +101,9 @@ class MainWindow(QMainWindow):
         self.paths, self.results = [], []
         self.current_index = 0
         self.current_result = None
+        self.camera_worker = None
+        self.photo_mapping = None
+        self.hole_selections = {}
         self.display_photo = None
         self.display_crop = None
         self.thread = None
@@ -161,12 +166,47 @@ class MainWindow(QMainWindow):
         root.addWidget(split, 1)
         visual = QGroupBox('视觉检测区')
         visual_layout = QVBoxLayout(visual)
-        self.image_label = QLabel('请选择一组测试照片')
+        self.image_label = ClickablePhoto('拍摄照片或选择离线照片后检测')
+        self.image_label.clicked.connect(self.photo_hole_clicked)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setMinimumSize(420, 260)
         self.image_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.image_label.setStyleSheet('background:#152438;color:#acbad0;border-radius:6px;')
-        visual_layout.addWidget(self.image_label, 1)
+        frames = QSplitter(Qt.Orientation.Horizontal)
+        live_box = QGroupBox('实时工业相机画面')
+        live_layout = QVBoxLayout(live_box)
+        self.live_label = QLabel('尚未接入工业相机驱动，实时画面不可用')
+        self.live_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.live_label.setWordWrap(True)
+        self.live_label.setMinimumSize(200, 220)
+        self.live_label.setStyleSheet('background:#152438;color:#acbad0;')
+        live_layout.addWidget(self.live_label, 1)
+        self.live_note = QLabel('实时画面不会替换右侧已拍摄图片')
+        self.live_note.setWordWrap(True)
+        live_layout.addWidget(self.live_note)
+        camera_actions = QHBoxLayout()
+        self.btn_live = QPushButton('开始实时采集')
+        self.btn_live_stop = QPushButton('停止采集')
+        self.btn_capture = QPushButton('拍摄当前位置')
+        self.btn_live.clicked.connect(self.start_camera_preview)
+        self.btn_live_stop.clicked.connect(self.stop_camera_preview)
+        self.btn_capture.clicked.connect(self.capture_camera_photo)
+        for button in (self.btn_live, self.btn_live_stop, self.btn_capture): camera_actions.addWidget(button)
+        live_layout.addLayout(camera_actions)
+        self.btn_capture.setEnabled(False)
+        self.btn_live_stop.setEnabled(False)
+        frames.addWidget(live_box)
+        frozen_box = QGroupBox('本次拍摄图片 · 点击孔选择')
+        frozen_layout = QVBoxLayout(frozen_box)
+        self.image_label.setMinimumSize(200, 220)
+        frozen_layout.addWidget(self.image_label, 1)
+        frames.addWidget(frozen_box)
+        frames.setSizes([450, 450])
+        visual_layout.addWidget(frames, 1)
+        self.camera_timer = QTimer(self)
+        self.camera_timer.setInterval(100)
+        self.camera_timer.timeout.connect(self.refresh_camera_preview)
+        self.camera_timer.start()
         image_tools = QHBoxLayout()
         self.chk_fit = QCheckBox('适应孔区域')
         self.chk_fit.setChecked(True)
@@ -233,6 +273,27 @@ class MainWindow(QMainWindow):
         self.task_note.setWordWrap(True)
         self.task_note.setStyleSheet('color:#8c5c18;font-size:11px;')
         task_layout.addWidget(self.task_note)
+        self.measure_mode = QComboBox()
+        self.measure_mode.addItems(['自动全检（四个孔）', '手动选择测孔'])
+        self.measure_mode.currentIndexChanged.connect(self.sync_hole_selection)
+        task_layout.addWidget(self.measure_mode)
+        choices = QHBoxLayout()
+        self.hole_choices = {}
+        for number in range(1, 5):
+            hid = f'H{number:02d}'
+            checkbox = QCheckBox(hid)
+            checkbox.setEnabled(False)
+            checkbox.toggled.connect(lambda checked, identity=hid: self.hole_choice_changed(identity, checked))
+            self.hole_choices[hid] = checkbox
+            choices.addWidget(checkbox)
+        task_layout.addLayout(choices)
+        self.selection_note = QLabel('先识别本次图片，再按图上同名编号选择孔。')
+        self.selection_note.setWordWrap(True)
+        task_layout.addWidget(self.selection_note)
+        self.btn_confirm_holes = QPushButton('确认本次测孔并保存清单')
+        self.btn_confirm_holes.clicked.connect(self.confirm_hole_selection)
+        self.btn_confirm_holes.setEnabled(False)
+        task_layout.addWidget(self.btn_confirm_holes)
         self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels(['孔号', '置信度', '图像圆心 px', '定位状态', '三维坐标'])
         self.table.setShowGrid(True)
@@ -395,6 +456,7 @@ class MainWindow(QMainWindow):
         self.refresh_current_summary()
         self.render_view()
         self.set_controls()
+        self.sync_hole_selection()
 
     def refresh_current_summary(self):
         result = self.current_result or {}
@@ -440,6 +502,146 @@ class MainWindow(QMainWindow):
             elif result:
                 self.set_status('当前照片检测完成')
 
+    def current_selected_ids(self):
+        result = self.current_result or {}
+        reliable = {h['id'] for h in result.get('fitted_holes', []) if h.get('reliable_center')}
+        if not hasattr(self, 'measure_mode') or self.measure_mode.currentIndex() == 0:
+            return reliable
+        return set(self.hole_selections.get(result.get('image_path'), set())) & reliable
+
+    def sync_hole_selection(self, *_):
+        if not hasattr(self, 'hole_choices'):
+            return
+        result = self.current_result or {}
+        reliable = {h['id'] for h in result.get('fitted_holes', []) if h.get('reliable_center')}
+        selected = self.current_selected_ids()
+        manual = self.measure_mode.currentIndex() == 1
+        for hid, checkbox in self.hole_choices.items():
+            checkbox.blockSignals(True)
+            checkbox.setChecked(hid in selected)
+            checkbox.setEnabled(manual and hid in reliable and not self.batch_running)
+            checkbox.setToolTip('与本次图片中的同名孔对应' if hid in reliable else '本次没有该编号的可靠圆心，不能选择')
+            checkbox.blockSignals(False)
+        self.selection_note.setText(('自动全检：' if not manual else '手动测孔：') +
+            ('、'.join(sorted(selected)) if selected else '尚未选择') +
+            '\n孔号只对应当前图片。漏检时不能用编号推断具体物理孔。')
+        ready = bool(selected) and (manual or (len(reliable) == 4 and result.get('detections') == 4))
+        self.btn_confirm_holes.setEnabled(ready and not self.batch_running and not self.bridge.busy)
+        self.render_view()
+
+    def hole_choice_changed(self, hid, checked):
+        if self.measure_mode.currentIndex() != 1:
+            return
+        result = self.current_result or {}
+        key = result.get('image_path')
+        selected = self.hole_selections.setdefault(key, set())
+        if checked:
+            selected.add(hid)
+        else:
+            selected.discard(hid)
+        self.sync_hole_selection()
+
+    def photo_hole_clicked(self, x, y):
+        if self.batch_running:
+            return
+        if self.measure_mode.currentIndex() != 1:
+            self.selection_note.setText('当前为自动全检。切换“手动选择测孔”后，可点击图片上的孔进行选择。')
+            return
+        result = self.current_result or {}
+        hid = pick_hole(x, y, self.photo_mapping, result.get('fitted_holes', []))
+        if hid and hid in self.hole_choices and self.hole_choices[hid].isEnabled():
+            self.hole_choices[hid].toggle()
+        elif hid:
+            self.selection_note.setText(hid + ' 圆心不可靠，请点击孔位表放大复核。')
+
+    def confirm_hole_selection(self):
+        result = self.current_result or {}
+        try:
+            targets = selected_targets(result, self.current_selected_ids(), self.measure_mode.currentIndex() == 0)
+            photo = Path(result['image_path'])
+            photo_hash = hashlib.sha256(photo.read_bytes()).hexdigest()
+            destination = BASE / 'results' / 'selected_tasks'
+            destination.mkdir(parents=True, exist_ok=True)
+            task = {'image': str(photo), 'image_sha256': photo_hash,
+                    'created_at': datetime.now().isoformat(),
+                    'selection_mode': 'automatic' if self.measure_mode.currentIndex() == 0 else 'manual',
+                    'model': result.get('model_path'), 'coordinate_frame': 'image_pixel',
+                    'robot_ready': False, 'measurement_executed': False,
+                    'note': '本次图片的测孔清单，像素圆心尚未转换成机械臂坐标。',
+                    'targets': [{'id': h['id'], 'confidence': h['confidence'], 'center_px': h['center_px'],
+                                 'ellipse': h.get('ellipse')} for h in targets]}
+            output = destination / (datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
+            output.write_text(json.dumps(task, ensure_ascii=False, indent=2), encoding='utf-8')
+            self.selection_note.setText('已确认测孔：' + '、'.join(h['id'] for h in targets) + '\n清单已保存，尚未发送机械臂或执行测量。')
+            self.log('测孔清单：' + str(output))
+        except (ValueError, KeyError, OSError) as error:
+            QMessageBox.warning(self, '选孔未完成', str(error))
+
+    def start_camera_preview(self):
+        if self.camera_worker and self.camera_worker.isRunning():
+            return
+        from .devices_view import _registered_backends
+        backend = _registered_backends.get('camera')
+        if backend is None or not backend.is_connected():
+            QMessageBox.information(self, '相机尚未接入', '请先在设备连接中接入相机驱动并连接设备。需要相机品牌、型号与厂家SDK，当前不会用模拟画面冒充实时画面。')
+            return
+        if not all(callable(getattr(backend, name, None)) for name in ('start', 'stop', 'get_frame')):
+            QMessageBox.warning(self, '相机驱动不完整', '驱动需提供 start、stop、get_frame 三个采集方法。')
+            return
+        self.camera_worker = CameraPreviewWorker(backend, self)
+        self.camera_worker.failed.connect(lambda error: self.live_note.setText('采集异常：' + error))
+        self.camera_worker.start()
+        self.btn_live.setEnabled(False)
+        self.btn_live_stop.setEnabled(True)
+        self.live_note.setText('正在等待相机图像…')
+
+    def stop_camera_preview(self):
+        if self.camera_worker:
+            self.camera_worker.stop()
+        self.btn_capture.setEnabled(False)
+        self.live_note.setText('正在停止采集…')
+
+    def refresh_camera_preview(self):
+        worker = self.camera_worker
+        if not worker:
+            return
+        if not worker.isRunning():
+            self.btn_live.setEnabled(True)
+            self.btn_live_stop.setEnabled(False)
+            self.btn_capture.setEnabled(False)
+            self.live_label.clear()
+            self.live_label.setText('采集已停止，实时画面不可用')
+            return
+        frame = worker.snapshot()
+        self.btn_capture.setEnabled(frame is not None and not self.batch_running and not self.bridge.busy)
+        if frame is None:
+            self.live_label.clear()
+            self.live_label.setText('等待新图像，超过2秒的旧帧不可拍摄')
+            return
+        size = self.live_label.size()
+        canvas, _ = compose(frame, (size.width(), size.height()))
+        self.live_label.setPixmap(bgr_to_pixmap(canvas))
+        self.live_note.setText('实时采集正常。右侧图片独立冻结，拍摄暂未绑定机械臂位姿。')
+
+    def capture_camera_photo(self):
+        if self.batch_running or self.bridge.busy:
+            return
+        frame = self.camera_worker.snapshot() if self.camera_worker and self.camera_worker.isRunning() else None
+        if frame is None:
+            QMessageBox.warning(self, '没有有效图像', '请先启动实时采集，确认相机正在提供新图像。')
+            return
+        from .vision import imwrite_unicode
+        folder = BASE / 'data' / 'camera_captures'
+        folder.mkdir(parents=True, exist_ok=True)
+        photo = folder / (datetime.now().strftime('capture_%Y%m%d_%H%M%S_%f') + '.png')
+        if not imwrite_unicode(photo, frame):
+            QMessageBox.warning(self, '拍摄保存失败', '图像未保存，请检查磁盘空间。')
+            return
+        self.set_images([str(photo)])
+        self.measure_mode.setCurrentIndex(0)
+        self.selection_note.setText('已冻结本次相机照片。点击“开始检测”，再按图上编号选择要测的孔。')
+        self.log('相机拍摄图片：' + str(photo))
+
     def review_hole(self, row, column=0):
         result = self.current_result or {}
         hid = self.table.item(row, 0).text() if self.table.item(row, 0) else ''
@@ -457,6 +659,7 @@ class MainWindow(QMainWindow):
     def render_view(self, *_):
         self.lbl_zoom.setText(f'{self.sld_zoom.value()}%')
         if self.display_photo is None:
+            self.photo_mapping = None
             self.image_label.clear()
             self.image_label.setText('照片未能读取，请重新选择本机照片。' if self.paths else '请选择一组测试照片')
             return
@@ -473,7 +676,8 @@ class MainWindow(QMainWindow):
         if mapping:
             for hole in display_result.get('fitted_holes', []):
                 cx, cy = _map_pts([hole['center_px']], mapping)[0]
-                text = f"{hole['id']}  {hole['confidence']:.2f}"
+                selected = hole['id'] in self.current_selected_ids()
+                text = f"{hole['id']} {'SELECT' if selected else 'SKIP'} {hole['confidence']:.2f}"
                 fs = 0.62
                 (width, height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, fs, 1)
                 if not (mapping['ox'] <= cx <= mapping['ox'] + mapping['tw'] and mapping['oy'] <= cy <= mapping['oy'] + mapping['th']):
@@ -481,8 +685,9 @@ class MainWindow(QMainWindow):
                 tx = int(np.clip(cx + 10, mapping['ox'] + 3, max(mapping['ox'] + 3, mapping['ox'] + mapping['tw'] - width - 8)))
                 ty = int(np.clip(cy - 14, mapping['oy'] + height + 5, mapping['oy'] + mapping['th'] - 5))
                 cv2.rectangle(canvas, (tx - 4, ty - height - 4), (tx + width + 4, ty + baseline + 4), (20, 35, 56), -1)
-                color = (170, 235, 255) if hole.get('reliable_center') else (50, 160, 255)
+                color = ((130, 255, 150) if selected else (185, 185, 185)) if hole.get('reliable_center') else (50, 160, 255)
                 cv2.putText(canvas, text, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, fs, color, 1, cv2.LINE_AA)
+        self.photo_mapping = mapping
         self.image_label.setPixmap(bgr_to_pixmap(canvas))
 
     def resizeEvent(self, event):
@@ -500,6 +705,7 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, '实验记录未能保存', str(error))
             return
+        self.hole_selections.clear()
         self.batch_running = True
         self.completed_count = 0
         self.record_error = False
@@ -657,6 +863,11 @@ class MainWindow(QMainWindow):
             return
         if self.bridge.busy:
             self.log('训练数据管理窗口仍在运行，请先在任务栏返回并关闭管理窗口，再退出软件。')
+            event.ignore()
+            return
+        if self.camera_worker and self.camera_worker.isRunning():
+            self.camera_worker.stop()
+            self.log('正在停止相机采集，采集结束后可关闭。')
             event.ignore()
             return
         self.bridge.detach()
