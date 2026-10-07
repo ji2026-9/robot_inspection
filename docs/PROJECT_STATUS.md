@@ -28,7 +28,7 @@
 | 关键库 | torch 2.5.1+cu121、ultralytics 8.4.173、opencv 5.0.0、numpy 2.4.6、PySide6 6.11.2 |
 | 启动软件 | 双击桌面「机械臂智能视觉检测系统」（= `.venv\Scripts\pythonw.exe app\main.py`） |
 | 排查用 | 双击桌面「机械臂智能视觉检测系统(调试)」（带控制台，报错看得见） |
-| 另一套软件 | 朋友的「双机械臂孔检测系统」→ 桌面「双机械臂孔检测系统（朋友版）」，装在 `E:\robot_project\friend_engine_local` |
+| 另一套软件 | 朋友的「双机械臂孔检测系统」→ 桌面「双机械臂孔检测系统（朋友版）」，装在 `E:\robot_project\inspection_app` |
 
 ---
 
@@ -188,35 +188,31 @@ copy /Y E:\robot_project\robot_inspection\weights\best_backup_20261007_before_fu
 
 ---
 
-## 十一、现在电脑上有两套软件（并行保留）
+## 十一、软件只有一个版本（2026-10-07 融合完成）
 
-| | 我方「机械臂智能视觉检测系统」 | 朋友的「双机械臂孔检测系统」 |
-| --- | --- | --- |
-| 桌面快捷方式 | 机械臂智能视觉检测系统 | **双机械臂孔检测系统（朋友版）** |
-| 代码位置 | `E:\robot_project\robot_inspection\app\` | `E:\robot_project\friend_engine_local\` |
-| 入口 | `app\main.py` | `app.py` |
-| 用哪个模型 | `weights\best.pt`（fusion_v1，4 张图 16/16） | `models\bore_best.pt` + `models\part_best.pt`（他的 28 张训练） |
-| 界面特点 | 简单的检测→任务→模拟执行流程，带 73 项自测 | 设备连接窗口、3D 模拟、实验记录、**模型与数据管理**（标注 + 增量训练） |
-| 运行环境 | `E:\robot_project\robot_inspection\.venv` | 同一个环境（用目录链接 `.venv` 复用，不额外占空间） |
-| 已知缺口 | 没有 part 约束、没有设备连接、没有数据管理 | 无（Labelme 标注环境已于 2026-10-07 装好，`.labelme_env`） |
-| 拟合策略 | 总是尝试边缘精修 | **已打补丁：同样总是尝试**（`scripts\patch_friend_engine.py`） |
-| 4 张测试图结果 | 16/16 | 16/16（16 个孔全部走边缘精修） |
+**最终版**：`E:\robot_project\inspection_app\`，桌面快捷方式「机械臂孔检测系统」。
 
-对比测量与取舍记录见 `docs\COMPARE_FIT_AND_MODEL.md`；
-界面优化建议见 `docs\UI_OPTIMIZATION_NOTES.md`。
+他是"我方原界面"和"朋友版界面"融合后的唯一版本，取了两边的长处：
 
-> 两套软件**不互相影响**：各自读自己的模型、各写自己的结果目录。
-> 想比较两套的结果，用同一批照片分别跑一遍即可。
+| 来自 | 内容 |
+| --- | --- |
+| 朋友版（主体） | 完整界面框架、设备连接窗口、实验记录、模型与数据管理、part 工件约束、旋转/多尺度补检、3D 模拟、his bore+part 模型 |
+| 我方 | **椭圆拟合策略**（总是尝试孔口边缘精修，实测边缘贴合度提升 6.6 倍）、`_archive` 保留的 73 项自测与诊断脚本、中文路径安全读写 |
 
-**以后更新他的软件**（他在 `feature/fusion` 分支上改了代码之后）：
+对比测量与取舍依据见 `docs\COMPARE_FIT_AND_MODEL.md`。
+我方早期界面已归档到 `_archive\gui_v1_pyside6\`（只作参考，不再使用）。
+
+**软件更新时**（拿到新代码后）：
 
 ```bat
 cd /d E:\robot_project\robot_inspection
 git fetch origin
-git archive origin/feature/fusion engine_bore_local | tar -x -C E:\robot_project\friend_engine_local --strip-components=1
+git archive origin/feature/fusion engine_bore_local | tar -x -C E:\robot_project\inspection_app --strip-components=1
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe scripts\patch_friend_engine.py
 ```
 
-> 这条命令只更新代码；`models\`、`data\`、`results\` 不在 Git 里，不会被覆盖。
+> 第二行是**必须的**——他覆盖代码后要把我们的拟合策略重新打回去；
+> `models\`、`data\`、`results\` 不在 Git 里，不会被覆盖。
 
 ---
 
@@ -240,7 +236,7 @@ E:\robot_project\                     ← 项目所有东西都在这一个文�
 │   ├── dataset\ test_images\         ← 数据
 │   ├── results\ runs\ experiments\   ← 结果与训练输出
 │   └── .venv\                        ← 唯一的 Python 环境（5.3 GB）
-├── friend_engine_local\              ← 朋友的软件（可直接运行）
+├── inspection_app\              ← 朋友的软件（可直接运行）
 │   ├── app.py                        ← 入口
 │   ├── models\                       ← 他的 bore/part 模型（+ 我们的 fusion_v1 副本）
 │   ├── data\database_seed\           ← 28 张标注图

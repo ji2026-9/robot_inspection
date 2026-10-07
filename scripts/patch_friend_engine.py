@@ -22,7 +22,7 @@ The script is IDEMPOTENT and always backs up before editing. Re-run it after any
 
 Usage:
     E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\patch_friend_engine.py
-    ... --engine "E:\\robot_project\\friend_engine_local"
+    ... --engine "E:\\robot_project\\inspection_app"
 """
 
 import argparse
@@ -37,7 +37,7 @@ except Exception:
     pass
 
 PROJ = Path(__file__).resolve().parents[1]
-DEFAULT_ENGINE = Path("E:/robot_project/friend_engine_local")
+DEFAULT_ENGINE = Path("E:/robot_project/inspection_app")
 OUR_MODEL = PROJ / "weights" / "best.pt"
 DEPLOYED_NAME = "fusion_v1_best.pt"
 

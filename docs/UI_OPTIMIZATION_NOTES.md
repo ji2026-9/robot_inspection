@@ -1,7 +1,7 @@
 # 朋友版界面优化建议（附我方界面的取舍）
 
 日期：2026-10-07
-对象：朋友的「双机械臂孔检测系统」（`E:\robot_project\friend_engine_local`）
+对象：朋友的「双机械臂孔检测系统」（`E:\robot_project\inspection_app`）
 
 ---
 
