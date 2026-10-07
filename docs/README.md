@@ -13,6 +13,7 @@
 | [`TEAM_WORKFLOW.md`](../TEAM_WORKFLOW.md) | 两个人怎么用 Git 协作（分支、提交、冲突处理） |
 | [`DATA_AND_MODEL_MANAGEMENT.md`](../DATA_AND_MODEL_MANAGEMENT.md) | 模型和数据怎么管理 / 怎么共享 |
 | [`BRANCH_PLAN.md`](../BRANCH_PLAN.md) | 分支规划与各自负责范围 |
+| [`PROJECT_FILES.md`](PROJECT_FILES.md) | **文件分类与共享说明**（Git / Release 附件 / 不上传 三类） |
 | [`app\README.md`](../app/README.md) | GUI 软件说明（界面、分层结构、已知限制） |
 | [`configs\README.md`](../configs/README.md) | 配置文件放哪里 |
 

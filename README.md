@@ -54,6 +54,7 @@ SHA256 `7E33DF6223CC25463683131FD5098713100E8552F782111D848737BA9503BDFE`，
 | `TEAM_WORKFLOW.md` | 两个人怎么用 Git（分支 / 提交 / 冲突处理） |
 | `DATA_AND_MODEL_MANAGEMENT.md` | 模型和数据怎么管、怎么共享 |
 | `BRANCH_PLAN.md` | 分支规划和各自负责范围 |
+| `docs\PROJECT_FILES.md` | **文件分类与共享说明（哪些进 Git、哪些做成 Release 附件、朋友怎么拿）** |
 | `docs\README.md` | 文档索引 |
 | `configs\README.md` | 配置文件放哪里 |
 

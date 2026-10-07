@@ -71,6 +71,9 @@ results/
 # 压缩包（数据集包、模型交付包等，体积大，用云盘传）
 *.zip
 
+# Release 附件生成目录（大文件，走 GitHub Releases 上传，不进 Git）
+release_assets/
+
 # 实验目录：只保留代码与轻量记录（.py/.md/.json/.csv/.yaml/.html/.txt）
 #            模型与图片不入 Git
 experiments/dataset_17_5_3/
