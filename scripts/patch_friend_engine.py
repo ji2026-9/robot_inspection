@@ -884,6 +884,12 @@ def patch_dialog_layouts(engine: Path) -> str:
              "        self.fields.setFixedHeight(246)   # [local patch] 6 rows + header\n"
              "        self.fields.verticalHeader().setDefaultSectionSize(33)   # [local patch]\n"
              "        self.fields.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)"),
+            ("        self.fields.setFixedHeight(246)   # [local patch] 6 rows + header\n"
+             "        self.fields.verticalHeader().setDefaultSectionSize(33)   # [local patch]\n"
+             "        self.fields.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)",
+             "        self.fields.setFixedHeight(292)   # [local patch] 6 rows + header\n"
+             "        self.fields.verticalHeader().setDefaultSectionSize(33)   # [local patch]\n"
+             "        self.fields.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)"),
             ("    QComboBox,\n    QDialog,\n    QGroupBox,",
              "    QComboBox,\n    QDialog,\n    QFrame,\n    QGroupBox,"),
             ("        _height = min(820, _screen.availableGeometry().height() - 70) if _screen else 780\n"
@@ -959,6 +965,70 @@ def patch_dialog_layouts(engine: Path) -> str:
     return "；".join(out) or "无需修改"
 
 
+def patch_light_frame(engine: Path) -> str:
+    """The app is light but Windows is in dark mode, so every window kept a black
+    title bar / frame - jarring against the light content. Force Qt's LIGHT colour
+    scheme (Qt 6.8+ maps this to a light immersive title bar) and soften the few
+    remaining dark borders."""
+    edits = [
+        (engine / "inspection_gui" / "main.py", [
+            ("    application.setApplicationName('Engine Bore Inspection')\n",
+             "    application.setApplicationName('Engine Bore Inspection')\n"
+             "    # [local patch] force the LIGHT colour scheme so the Windows title bar\n"
+             "    # and frame match the light UI instead of staying dark-mode black\n"
+             "    try:\n"
+             "        from PySide6.QtCore import Qt as _Qt\n"
+             "        application.styleHints().setColorScheme(_Qt.ColorScheme.Light)\n"
+             "    except Exception:\n"
+             "        try:\n"
+             "            application.setStyle('Fusion')\n"
+             "        except Exception:\n"
+             "            pass\n"),
+        ]),
+        (engine / "inspection_gui" / "records_view.py", [
+            ("QTableWidget { background: white; color: #172b4d; gridline-color: #b8c2cf; "
+             "alternate-background-color: #f3f6fa; }",
+             "QTableWidget { background: white; color: #172b4d; gridline-color: #e2e8f0; "
+             "alternate-background-color: #f5f8fc; }"),
+            ("QHeaderView::section { padding: 6px; background: #e9eef5; \"\n"
+             "            \"border: 1px solid #b8c2cf; font-weight: 600; }",
+             "QHeaderView::section { padding: 7px; background: #eef3fa; \"\n"
+             "            \"border: none; border-bottom: 1px solid #dbe4ee; font-weight: 600; }"),
+        ]),
+        (engine / "inspection_gui" / "devices_view.py", [
+            ("                background: white; color: #234369; gridline-color: #d5deea; border: 1px solid #d5deea;",
+             "                background: white; color: #234369; gridline-color: #e2e8f0; border: 1px solid #dbe4ee;"),
+        ]),
+    ]
+    applied, skipped, missing = [], [], []
+    for path, pairs in edits:
+        if not path.is_file():
+            missing.append(path.name)
+            continue
+        text = path.read_text(encoding="utf-8")
+        original = text
+        for old, new in pairs:
+            if new in text:
+                skipped.append(path.name)
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+            else:
+                missing.append("{}:{}".format(path.name, old.strip()[:26]))
+        if text != original:
+            shutil.copy2(path, path.with_suffix(".py.bak"))
+            path.write_text(text, encoding="utf-8")
+            applied.append(path.name)
+    out = []
+    if applied:
+        out.append("已改: " + ", ".join(sorted(set(applied))))
+    if skipped:
+        out.append("已是最新: " + ", ".join(sorted(set(skipped))))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:3]))
+    return "；".join(out) or "无需修改"
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -1012,6 +1082,7 @@ def main() -> int:
     print("9) 界面重排 :", patch_ui_redesign(engine))
     print("9b) 画布配色:", patch_canvas_theme(engine))
     print("9c) 弹窗布局:", patch_dialog_layouts(engine))
+    print("9d) 浅色外框:", patch_light_frame(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
