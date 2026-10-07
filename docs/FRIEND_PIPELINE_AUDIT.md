@@ -2,6 +2,11 @@
 
 日期：2026-10-07
 对象：`feature/fusion` @ `d32f575` 的 `engine_bore_local/` + Release `v1.0-fusion-data` 的 `models.zip`
+
+> **后续变更**：本文写于 `fusion_v1` 训练之前。之后我方已用 28 张数据重训，
+> `weights\best.pt` 现在是 `fusion_v1`（`EAEDA05109C1F696…`），4 张测试图 16/16；
+> 本文表格里的 `7E33DF6223CC2546…` 是**当时的**旧 baseline。
+> 详见 `docs\FUSION_V1_TRAINING.md`。
 数据：**本项目自带 `test_images` 4 张**（两边模型都没训练过的干净图）
 方式：把他的代码导出到 `E:\friend_engine_test\`（**不在项目内**），用他的 `EngineDetector` 直接跑，
 输出全部写到该临时目录；**没有修改本项目的任何文件**。

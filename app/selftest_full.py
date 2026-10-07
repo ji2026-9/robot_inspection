@@ -82,11 +82,21 @@ def main() -> int:
     check("A4 device resolved", r1["device_used"] in ("0", "cpu"), r1["device_used"])
 
     r3 = det.detect(IMG3)
-    check("A5 detect 测试3 -> 3 holes, incomplete",
-          r3["detections"] == 3 and not r3["complete"],
+    # NOTE: how many holes 测试3 yields depends on the model. With fusion_v1 it is
+    # 4/4; with the previous best.pt it was 3/4. Assert consistency, not a number.
+    check("A5 detect 测试3 -> count/flags consistent",
+          (r3["detections"] == 4 and r3["complete"]) or
+          (r3["detections"] == 3 and not r3["complete"]),
           "det=%s complete=%s" % (r3["detections"], r3["complete"]))
-    check("A6 incomplete raises warning, no fake hole",
-          any("检测不完整" in w for w in r3["warnings"]) and len(r3["holes"]) == 3)
+    if r3["complete"]:
+        check("A6 complete result: 4 holes, no 'incomplete' warning",
+              len(r3["holes"]) == 4 and
+              not any("检测不完整" in w for w in r3["warnings"]),
+              r3["warnings"])
+    else:
+        check("A6 incomplete raises warning, no fake hole",
+              any("检测不完整" in w for w in r3["warnings"]) and len(r3["holes"]) == 3,
+              r3["warnings"])
 
     bad = det.detect(Path(TMP) / "nope.jpg")
     check("A7 missing file -> error, no exception", bool(bad["errors"]) and bad["detections"] == 0,
@@ -104,23 +114,44 @@ def main() -> int:
     ann = vision.draw_result(cv2.imread(str(IMG1)), r1)
     check("A10 draw_result output shape", ann.shape[:2] == (4608, 2592), ann.shape)
 
-    # regression: ellipse axis/angle pairing must match the mask contour
-    worst = 0.0
+    # regression: the reported ellipse triple must draw the fitted ellipse and the
+    # reported fields must agree with each other.
+    # NOTE: with ELLIPSE_FIT_MODE="robust_edge" the ellipse deliberately follows the
+    # image aperture edge instead of the YOLO mask contour, so its residual against
+    # the contour is larger than it used to be (measured worst 6.86%). The threshold
+    # below therefore only catches a grossly wrong drawing - the historical bug was
+    # swapping major/minor without rotating the angle (that measured 24% on 测试1 H04).
+    worst_paired = worst_swapped = worst_field = 0.0
+    modes_seen = set()
+
+    def _draw_rms(e, pts, w, hgt, ang):
+        t = np.linspace(0, 2 * np.pi, 720)
+        a, b = w / 2.0, hgt / 2.0
+        th = np.deg2rad(ang)
+        px = e["center"][0] + a * np.cos(t) * np.cos(th) - b * np.sin(t) * np.sin(th)
+        py = e["center"][1] + a * np.cos(t) * np.sin(th) + b * np.sin(t) * np.cos(th)
+        poly = np.stack([px, py], axis=1)
+        d = np.array([np.min(np.linalg.norm(poly - p, axis=1)) for p in pts])
+        return float(np.sqrt((d ** 2).mean()) / max(1.0, min(a, b)) * 100)
+
     for img in sorted(Path(TEST_IMAGE_DIR).glob("*.jpg")):
         rr = det.detect(img)
         for h in rr["holes"]:
             e = h["ellipse"]
             pts = h["_contour"].reshape(-1, 2).astype(np.float64)
-            t = np.linspace(0, 2 * np.pi, 720)
-            a, b = e["width"] / 2.0, e["height"] / 2.0
-            th = np.deg2rad(e["angle"])
-            px = e["center"][0] + a * np.cos(t) * np.cos(th) - b * np.sin(t) * np.sin(th)
-            py = e["center"][1] + a * np.cos(t) * np.sin(th) + b * np.sin(t) * np.cos(th)
-            poly = np.stack([px, py], axis=1)
-            d = np.array([np.min(np.linalg.norm(poly - p, axis=1)) for p in pts])
-            rmin = max(1.0, min(a, b))
-            worst = max(worst, float(np.sqrt((d ** 2).mean()) / rmin * 100))
-    check("A11 ellipse pairing regression (RMS < 5%)", worst < 5.0, "worst=%.2f%%" % worst)
+            modes_seen.add((h.get("ellipse_fit") or {}).get("used", "current"))
+            worst_paired = max(worst_paired, _draw_rms(e, pts, e["width"], e["height"], e["angle"]))
+            worst_swapped = max(worst_swapped, _draw_rms(e, pts, e["height"], e["width"], e["angle"]))
+            lo, hi = min(e["width"], e["height"]), max(e["width"], e["height"])
+            worst_field = max(worst_field,
+                              abs(e["major"] - hi), abs(e["minor"] - lo),
+                              abs(e["aspect"] - lo / hi),
+                              abs(e["center"][0] - h["center_px"][0]),
+                              abs(e["center"][1] - h["center_px"][1]))
+    check("A11 ellipse geometry regression (draw RMS < 10%, fields consistent)",
+          worst_paired < 10.0 and worst_field < 0.02,
+          "paired=%.2f%% swapped=%.2f%% field_err=%.4f mode=%s" % (
+              worst_paired, worst_swapped, worst_field, sorted(modes_seen)))
 
     # ------------------------------------------------------------------ B) camera
     section("B) camera layer")
@@ -162,13 +193,17 @@ def main() -> int:
     check("D1 auto tasks (complete) -> 4 pending",
           a["ok"] and len(T.tasks) == 4 and all(t["status"] == "pending" for t in T.tasks))
     b = T.create_auto_tasks(r3)
-    check("D2 auto tasks (incomplete) refused", b["ok"] is False and T.tasks == [], b["message"])
+    if r3["complete"]:
+        check("D2 auto tasks (测试3 complete) -> 4 pending",
+              b["ok"] and len(T.tasks) == 4, b["message"])
+    else:
+        check("D2 auto tasks (incomplete) refused", b["ok"] is False and T.tasks == [], b["message"])
     c = T.create_auto_tasks(None)
     check("D3 auto tasks (no result) refused", c["ok"] is False)
     T.create_auto_tasks(r1)
     d = T.create_manual_task(r1, "H03")
     check("D4 manual H03 found", d["ok"] and T.tasks[0]["target_id"] == "H03", d["message"])
-    e = T.create_manual_task(r3, "H04")
+    e = T.create_manual_task(r3, "H04" if not r3["complete"] else "H99")
     check("D5 manual missing target refused", e["ok"] is False and T.tasks == [], e["message"])
     f = T.create_manual_task(None, "H01")
     check("D6 manual without detection refused", f["ok"] is False)
@@ -267,9 +302,18 @@ def main() -> int:
     win.rb_auto.setChecked(True)
     win.on_detect()
     app.processEvents()
-    check("E16 测试3 -> 3 holes, incomplete", win.current_result["detections"] == 3)
-    check("E17 no tasks for incomplete", win.table.rowCount() == 0 and win.tasks.tasks == [])
-    check("E18 status shows incomplete", "不完整" in win.lbl_system.text(), win.lbl_system.text())
+    n3 = win.current_result["detections"]
+    check("E16 测试3 -> hole count matches completeness flag",
+          (n3 == 4) == bool(win.current_result["complete"]), "det=%s" % n3)
+    if n3 == 4:
+        check("E17 auto mode -> 4 tasks",
+              win.table.rowCount() == 4 and len(win.tasks.tasks) == 4,
+              "rows=%s tasks=%s" % (win.table.rowCount(), len(win.tasks.tasks)))
+        check("E18 status shows complete",
+              "不完整" not in win.lbl_system.text(), win.lbl_system.text())
+    else:
+        check("E17 no tasks for incomplete", win.table.rowCount() == 0 and win.tasks.tasks == [])
+        check("E18 status shows incomplete", "不完整" in win.lbl_system.text(), win.lbl_system.text())
     check("E18b previous run status cleared on new image",
           "等待机器人连接" in win.lbl_exec.text() and win.prog_exec.value() == 0,
           "exec=%s prog=%s" % (win.lbl_exec.text(), win.prog_exec.value()))
@@ -279,7 +323,11 @@ def main() -> int:
     win.on_mode_changed()
     win.cmb_target.setCurrentText("H04")
     win.on_create_tasks()
-    check("E19 manual missing H04 -> empty", win.table.rowCount() == 0)
+    if n3 == 4:
+        check("E19 manual existing H04 -> 1 row",
+              win.table.rowCount() == 1 and win.tasks.tasks[0]["target_id"] == "H04")
+    else:
+        check("E19 manual missing H04 -> empty", win.table.rowCount() == 0)
 
     win.chk_fit.setChecked(False)
     win.chk_fit.setChecked(True)

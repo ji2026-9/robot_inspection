@@ -57,6 +57,11 @@ https://github.com/ji2026-9/robot_inspection/releases/tag/v1.0-data
 标签 `v1.0-data`，8 个附件全部上传成功并逐个校验过（大小与 SHA256 一致）。
 仓库为**私有（Private）**，只有你和被邀请的协作者能下载。
 
+> ⚠️ **注意（2026-10-07 更新）**：该 Release 里的 `04_weights_best.pt` 和
+> `01_gui_app_full_package.zip` 内带的模型，是**旧 baseline**（`7E33DF62…`，测试3 只检出 3/4）。
+> 新的 `fusion_v1` 模型（4 张测试图 16/16）在 `weights\best.pt` 和 `weights\fusion_v1_best.pt`，
+> 需要单独发给朋友。是否再发一个 Release 见 `docs\FUSION_V1_TRAINING.md`。
+
 ### 3.1 全部附件（01–08，共 1,227 MB）—— 建议全部上传
 
 | # | 文件名 | 大小 | 里面是什么 | 谁需要 |
@@ -64,7 +69,7 @@ https://github.com/ji2026-9/robot_inspection/releases/tag/v1.0-data
 | 01 | `01_gui_app_full_package.zip` | 157.0 MB | **完整 GUI 软件包**：源码 + `best.pt` + 测试图 + 数据集 + `setup_env.bat` + `run_gui.bat` | ★★ 朋友最需要，下载这一个就能跑 |
 | 02 | `02_model_package.zip` | 169.4 MB | 模型 + 数据集 + 推理脚本（早期交付版本） | 保留备用 |
 | 03 | `03_dataset_box_yolo.zip` | 77.6 MB | 原始数据集压缩包（train 20 / val 2 / test 3） | 要重新训练时 |
-| 04 | `04_weights_best.pt` | 5.7 MB | 当前 baseline 模型单独一份（YOLO11n-Seg） | 只想替换模型时 |
+| 04 | `04_weights_best.pt` | 5.7 MB | **旧** baseline 模型单独一份（SHA256 `7E33DF62…BDFE`）| 只想替换模型时 |
 | 05 | `05_test_images.zip` | 13.1 MB | 测试1~4.jpg 四张手机照片 | 复现测试结果 |
 | 06 | `06_experiments_full.zip` | 452.6 MB | 5 个 seed 的完整正式实验（含 24 个 `.pt` 和结果图） | 做模型比较 |
 | 07 | `07_results_and_runs.zip` | 347.9 MB | 检测可视化结果 + YOLO 训练输出 | 看训练曲线/混淆矩阵 |

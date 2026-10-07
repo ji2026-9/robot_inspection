@@ -29,9 +29,13 @@
 
 **当前类别**：`cylinder_bore`（单类别）
 
-**当前模型**：YOLO11n-Seg（权重 `weights\best.pt`，**不进 Git**，
-SHA256 `7E33DF6223CC25463683131FD5098713100E8552F782111D848737BA9503BDFE`，
-通过模型交付包 / 云盘共享）
+**当前模型**：YOLO11n-Seg **`fusion_v1`**（权重 `weights\best.pt`，**不进 Git**，
+SHA256 `EAEDA05109C1F696…`，通过模型交付包 / 云盘共享）
+
+> 版本沿革：原 baseline `7E33DF62…` 在测试3 只检出 3/4；2026-10-07 用 28 张数据
+> （25 张自有 + 朋友新增 3 张）重训出 `fusion_v1`，4 张测试图 **16/16**。
+> 旧模型完整保留在 `weights\best_backup_20261007_before_fusion.pt`。
+> 详见 `docs\FUSION_V1_TRAINING.md`。
 
 **关于 H01~H04（重要）**：当前编号是**当前图像内的检测编号** ——
 由 4 个孔中心做 PCA 主轴排序得到，**不是已经解决的永久物理身份**

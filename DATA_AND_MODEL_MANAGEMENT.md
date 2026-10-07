@@ -39,10 +39,19 @@
 | --- | --- |
 | 路径 | `weights\best.pt` |
 | 类型 | YOLO11n-Seg，单类别 `cylinder_bore` |
-| SHA256 | `7E33DF6223CC25463683131FD5098713100E8552F782111D848737BA9503BDFE` |
-| 大小 | 5,989,021 字节 |
+| 版本 | **`fusion_v1`**（2026-10-07 用 28 张数据重训，4 张测试图 16/16） |
+| SHA256 | `EAEDA05109C1F696…`（完整值见 `docs\FUSION_V1_TRAINING.md`） |
+| 大小 | 5,990,237 字节 |
 
-**这个文件是当前正式 baseline，不要覆盖。**
+**这是当前正式 baseline。**
+
+历史版本（都保留着，可随时回退）：
+
+| 文件 | 说明 |
+| --- | --- |
+| `weights\fusion_v1_best.pt` | 与当前 baseline 完全相同的一份副本（命名留档） |
+| `weights\best_backup_20261007_before_fusion.pt` | 原 baseline，SHA256 `7E33DF62…BDFE`，5,989,021 字节 |
+| `experiments\fusion_v1\runs\fusion_v1_seed42\weights\best.pt` | 该次训练的原始输出 |
 
 共享方式（按方便程度任选）：
 
