@@ -63,6 +63,7 @@ SHA256 `EAEDA05109C1F696…`，通过模型交付包 / 云盘共享）
 | `docs\FRIEND_REVIEW_AND_MERGE_PLAN.md` | **朋友分支审核报告 + 合并方案** |
 | `docs\ELLIPSE_FIT_COMPARISON.md` | **椭圆拟合对比与采纳记录**（现默认 稳健+边缘精修） |
 | `docs\FRIEND_PIPELINE_AUDIT.md` | **朋友管线复现审核**（差距来自模型/训练数据量，不是管线） |
+| `docs\PROJECT_STATUS.md` | **项目进度与后续计划**（先看这个） |
 | `docs\README.md` | 文档索引 |
 | `configs\README.md` | 配置文件放哪里 |
 
