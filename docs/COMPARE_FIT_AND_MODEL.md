@@ -79,7 +79,12 @@ E:\robot_project\robot_inspection\.venv\Scripts\python.exe ^
   E:\robot_project\robot_inspection\scripts\patch_friend_engine.py
 ```
 
+补丁做三件事：
+
+1. **拟合触发条件**：改成"总是尝试边缘精修"，失败时的警告只在 mask 本身不稳时才提示；
+2. **部署模型**：把 `weights\best.pt` 复制成 `models\fusion_v1_best.pt` 备用（**不设为默认**）；
+3. **应用图标**：把 `app_icon.ico` 放到软件目录，并给窗口/任务栏套上（python.exe 默认图标太丑）。
+
 - **幂等**：已经打过就跳过
-- **安全**：每次修改前把原文件备份成 `detect_core.py.bak`
-- 只改两件事：拟合触发条件；失败时的警告只在 mask 本身不稳时才提示
+- **安全**：每次修改前把原文件备份成 `*.py.bak`
 - 加 `--swap-model` 可以把 bore 模型换成我们的（**实测在他的管线里会变差，不建议**）

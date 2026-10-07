@@ -42,6 +42,8 @@ OUR_MODEL = PROJ / "weights" / "best.pt"
 DEPLOYED_NAME = "fusion_v1_best.pt"
 
 MARK = "# [local patch] always try the aperture-edge refinement"
+ICON_MARK = "# [local patch] application icon"
+ICON_NAME = "app_icon.ico"
 
 
 def patch_detect_core(engine: Path) -> str:
@@ -85,6 +87,35 @@ def deploy_model(engine: Path) -> str:
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(OUR_MODEL, dst)
     return "已复制 {} -> models/{}".format(OUR_MODEL.name, DEPLOYED_NAME)
+
+
+def patch_app_icon(engine: Path) -> str:
+    """Give the window/taskbar a real application icon (python.exe's icon is ugly)."""
+    src = PROJ.parent / ICON_NAME
+    if not src.is_file():
+        src = PROJ / ICON_NAME
+    dst = engine / ICON_NAME
+    if src.is_file() and (not dst.is_file() or dst.stat().st_size != src.stat().st_size):
+        shutil.copy2(src, dst)
+
+    f = engine / "inspection_gui" / "main.py"
+    if not f.is_file():
+        return "找不到 inspection_gui/main.py"
+    text = f.read_text(encoding="utf-8")
+    if ICON_MARK in text:
+        return "已打过补丁（跳过）"
+    anchor = "    application.setApplicationName('Engine Bore Inspection')\n"
+    if anchor not in text:
+        return "找不到 setApplicationName 那一行，请人工检查"
+    block = anchor + (
+        "    # [local patch] application icon\n"
+        "    _icon_file = Path(__file__).resolve().parents[1] / '{}'\n"
+        "    if _icon_file.is_file():\n"
+        "        from PySide6.QtGui import QIcon\n"
+        "        application.setWindowIcon(QIcon(str(_icon_file)))\n").format(ICON_NAME)
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text.replace(anchor, block, 1), encoding="utf-8")
+    return "已加入应用图标（原文件备份为 main.py.bak）"
 
 
 def point_registry(engine: Path) -> str:
@@ -131,10 +162,11 @@ def main() -> int:
     print("engine :", engine)
     print("1) 拟合策略 :", patch_detect_core(engine))
     print("2) 部署模型 :", deploy_model(engine))
+    print("3) 应用图标 :", patch_app_icon(engine))
     if args.swap_model:
-        print("3) 模型注册 :", point_registry(engine))
+        print("4) 模型注册 :", point_registry(engine))
     else:
-        print("3) 模型注册 :", restore_registry(engine))
+        print("4) 模型注册 :", restore_registry(engine))
 
     reg = engine / "active_models.json"
     if reg.is_file():
