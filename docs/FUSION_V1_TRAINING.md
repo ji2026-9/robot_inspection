@@ -77,6 +77,21 @@ seed=42     deterministic=True     device=0 (RTX 3050 Ti)
 
 命名遵循 `DATA_AND_MODEL_MANAGEMENT.md`：**新模型用新名字，不覆盖 `best.pt`**。
 
+### 已发布给协作者的 Release
+
+```
+https://github.com/ji2026-9/robot_inspection/releases/tag/v1.1-model
+```
+
+| 附件 | 大小 | 说明 |
+| --- | ---: | --- |
+| `01_fusion_v1_best.pt` | 5.71 MB | 模型本体（SHA256 `EAEDA05109C1F69647CAA4F38BD7347848169F045A8304F16856AC48869EC5B4`） |
+| `02_README_how_to_use.md` | — | 怎么装、怎么校验、注意事项 |
+| `03_SHA256.txt` | — | 校验值 |
+
+发布后做过端到端验证：**从 GitHub 下载回来，5,990,237 字节，SHA256 与本地逐一比对一致**。
+旧的 `v1.0-data` 原样保留（里面的模型是旧 baseline，已在页面上注明）。
+
 ---
 
 ## 五、下一步（待你决定）

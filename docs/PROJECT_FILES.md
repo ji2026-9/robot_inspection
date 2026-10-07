@@ -59,8 +59,15 @@ https://github.com/ji2026-9/robot_inspection/releases/tag/v1.0-data
 
 > ⚠️ **注意（2026-10-07 更新）**：该 Release 里的 `04_weights_best.pt` 和
 > `01_gui_app_full_package.zip` 内带的模型，是**旧 baseline**（`7E33DF62…`，测试3 只检出 3/4）。
-> 新的 `fusion_v1` 模型（4 张测试图 16/16）在 `weights\best.pt` 和 `weights\fusion_v1_best.pt`，
-> 需要单独发给朋友。是否再发一个 Release 见 `docs\FUSION_V1_TRAINING.md`。
+> **新的 `fusion_v1` 模型（4 张测试图 16/16）已单独发布：**
+>
+> ```
+> https://github.com/ji2026-9/robot_inspection/releases/tag/v1.1-model
+> ```
+>
+> 该 Release 有 3 个附件：`01_fusion_v1_best.pt`（模型本体，5.71 MB）、
+> `02_README_how_to_use.md`（怎么装）、`03_SHA256.txt`（校验值）。
+> 朋友只要覆盖到自己项目的 `weights\best.pt` 即可，不用改代码。
 
 ### 3.1 全部附件（01–08，共 1,227 MB）—— 建议全部上传
 
