@@ -56,6 +56,7 @@ SHA256 `7E33DF6223CC25463683131FD5098713100E8552F782111D848737BA9503BDFE`，
 | `BRANCH_PLAN.md` | 分支规划和各自负责范围 |
 | `docs\PROJECT_FILES.md` | **文件分类与共享说明（哪些进 Git、哪些做成 Release 附件、朋友怎么拿）** |
 | `docs\FRIEND_UPLOAD_PROMPT.md` | **给朋友的提示词**（让他把项目上传到自己的分支，不污染 main） |
+| `docs\FRIEND_REVIEW_AND_MERGE_PLAN.md` | **朋友分支审核报告 + 合并方案** |
 | `docs\README.md` | 文档索引 |
 | `configs\README.md` | 配置文件放哪里 |
 

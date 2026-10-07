@@ -15,6 +15,7 @@
 | [`BRANCH_PLAN.md`](../BRANCH_PLAN.md) | 分支规划与各自负责范围 |
 | [`PROJECT_FILES.md`](PROJECT_FILES.md) | **文件分类与共享说明**（Git / Release 附件 / 不上传 三类） |
 | [`FRIEND_UPLOAD_PROMPT.md`](FRIEND_UPLOAD_PROMPT.md) | **给朋友的提示词**：让他把自己的项目安全上传到独立分支 |
+| [`FRIEND_REVIEW_AND_MERGE_PLAN.md`](FRIEND_REVIEW_AND_MERGE_PLAN.md) | **朋友分支审核报告 + 合并方案**（哪些值得合并、哪些别合并） |
 | [`app\README.md`](../app/README.md) | GUI 软件说明（界面、分层结构、已知限制） |
 | [`configs\README.md`](../configs/README.md) | 配置文件放哪里 |
 
