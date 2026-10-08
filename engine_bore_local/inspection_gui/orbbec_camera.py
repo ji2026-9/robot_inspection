@@ -8,8 +8,8 @@
 
 边界（与 `CAMERA_DRIVER_CONTRACT.md` 一致）：
 
-* 只取彩色图，用于孔检测；**不连接、不使能、不发送任何机械臂运动**；
-* 连接成功**只代表能取到图像**，不代表完成相机内参标定或手眼标定；
+* 取得彩色与原始深度图，用于孔检测及相机坐标估计；**不连接、不使能、不发送任何机械臂运动**；
+* 连接成功仅代表打开设备；有效深度和工厂内参仍需检查，机械臂坐标需另行标定；
 * 设备地址等参数由「设备连接 → 工业相机」保存，本模块不写任何配置文件。
 
 SDK 位置查找顺序：环境变量 ``ORBBEC_SDK_BIN`` → 已安装的默认路径。
@@ -23,6 +23,7 @@ import time
 import ipaddress
 from ctypes import POINTER, byref, c_char_p, c_int32, c_uint8, c_uint16, c_uint32, c_void_p
 from pathlib import Path
+from .rgbd_geometry import CameraParam, camera_param_dict
 
 import numpy as np
 
@@ -85,6 +86,9 @@ class OrbbecCamera:
         self._dll_directory = None
         self._last_frame_at = 0
         self._stream_started_at = 0
+        self.calibration = None
+        self.depth_enabled = False
+        self._capture_packet = None
 
     # ---------------------------------------------------------------- SDK 装载
     def _ensure_library(self) -> bool:
@@ -101,6 +105,10 @@ class OrbbecCamera:
             self.last_error = f"OrbbecSDK.dll 加载失败：{error}"
             return False
         lib = self._lib
+        lib.ob_pipeline_get_camera_param.restype, lib.ob_pipeline_get_camera_param.argtypes = CameraParam, [c_void_p, POINTER(c_void_p)]
+        lib.ob_frameset_get_depth_frame.restype, lib.ob_frameset_get_depth_frame.argtypes = c_void_p, [c_void_p, POINTER(c_void_p)]
+        lib.ob_depth_frame_get_value_scale.restype, lib.ob_depth_frame_get_value_scale.argtypes = ctypes.c_float, [c_void_p, POINTER(c_void_p)]
+        lib.ob_frame_get_timestamp_us.restype, lib.ob_frame_get_timestamp_us.argtypes = ctypes.c_uint64, [c_void_p, POINTER(c_void_p)]
         lib.ob_create_net_device.restype, lib.ob_create_net_device.argtypes = c_void_p, [c_void_p, c_char_p, c_uint16, POINTER(c_void_p)]
         lib.ob_device_list_get_device_serial_number.restype, lib.ob_device_list_get_device_serial_number.argtypes = c_char_p, [c_void_p, c_uint32, POINTER(c_void_p)]
         lib.ob_create_context.restype, lib.ob_create_context.argtypes = c_void_p, [POINTER(c_void_p)]
@@ -335,6 +343,16 @@ class OrbbecCamera:
                     last = message
                     self._lib.ob_delete_config(config, byref(error))
                     continue
+                error = c_void_p(None)
+                self._lib.ob_config_enable_video_stream(config, 3, 640, 400, fps, 8, byref(error))
+                message = self._message(error.value)
+                self.depth_enabled = not bool(message)
+                if not self.depth_enabled:
+                    error = c_void_p(None)
+                    self._lib.ob_config_enable_stream(config, 3, byref(error))
+                    message = self._message(error.value)
+                    self.depth_enabled = not bool(message)
+                error = c_void_p(None)
                 self._lib.ob_pipeline_start_with_config(self._pipeline, config, byref(error))
                 message = self._message(error.value)
                 if message:
@@ -346,6 +364,13 @@ class OrbbecCamera:
                 self._last_frame_at = 0
                 self._stream_started_at = time.monotonic()
                 self.profile = f"{width}x{height}@{fps} 格式{pixel_format}"
+                self.calibration = None
+                if self.depth_enabled:
+                    error = c_void_p(None)
+                    param = self._lib.ob_pipeline_get_camera_param(self._pipeline, byref(error))
+                    message = self._message(error.value)
+                    if not message:
+                        self.calibration = camera_param_dict(param)
                 self.last_error = ""
                 return True
             self.last_error = last or "相机没有可用的彩色流配置。"
@@ -365,6 +390,7 @@ class OrbbecCamera:
                 self._message(error.value)
             self._config = None
             self._started = False
+            self._capture_packet = None
 
     def get_frame(self):
         """取一帧彩色图；超时返回 None。返回的数组是 BGR（uint8，三通道）。
@@ -377,6 +403,13 @@ class OrbbecCamera:
         with self._lock:
             return self._grab_frame()
 
+    def get_capture_packet(self):
+        if not self._started:
+            return None
+        with self._lock:
+            image = self._grab_frame()
+            return self._capture_packet if image is not None else None
+
     def _grab_frame(self):
         error = c_void_p(None)
         frameset = self._lib.ob_pipeline_wait_for_frameset(self._pipeline, 500, byref(error))
@@ -387,6 +420,8 @@ class OrbbecCamera:
         if not frameset:
             return None
         frame = None
+        depth_frame = None
+        self._capture_packet = None
         try:
             frame = self._lib.ob_frameset_get_color_frame(frameset, byref(error))
             message = self._message(error.value)
@@ -406,9 +441,34 @@ class OrbbecCamera:
             image = self._to_bgr(buffer, width, height, pixel_format)
             if image is not None:
                 self._last_frame_at = time.monotonic()
+                packet = {'frame': image, 'calibration': self.calibration, 'depth_raw': None, 'depth_note': '未取得深度帧'}
+                if self.depth_enabled and self.calibration:
+                    error = c_void_p(None)
+                    depth_frame = self._lib.ob_frameset_get_depth_frame(frameset, byref(error))
+                    self._raise_if_error(error, '读取深度帧失败')
+                    if depth_frame:
+                        dw = self._lib.ob_video_frame_get_width(depth_frame, byref(error))
+                        dh = self._lib.ob_video_frame_get_height(depth_frame, byref(error))
+                        fmt = self._lib.ob_frame_get_format(depth_frame, byref(error))
+                        dsize = self._lib.ob_frame_get_data_size(depth_frame, byref(error))
+                        dp = self._lib.ob_frame_get_data(depth_frame, byref(error))
+                        scale = self._lib.ob_depth_frame_get_value_scale(depth_frame, byref(error))
+                        ct = self._lib.ob_frame_get_timestamp_us(frame, byref(error))
+                        dt = self._lib.ob_frame_get_timestamp_us(depth_frame, byref(error))
+                        self._raise_if_error(error, '读取深度参数失败')
+                        packet.update(color_timestamp_us=int(ct), depth_timestamp_us=int(dt), timestamp_delta_ms=abs(int(ct)-int(dt))/1000)
+                        if fmt == 8 and dsize == dw*dh*2 and dp and scale > 0 and ct > 0 and dt > 0 and abs(int(ct)-int(dt)) <= 50000:
+                            packet.update(depth_raw=np.frombuffer(ctypes.string_at(dp,dsize), dtype='<u2').reshape(dh,dw).copy(), depth_scale_mm=float(scale),depth_note='已取得时间差不超过50ms的彩色与深度帧')
+                        else:
+                            packet['depth_note'] = '深度格式、时间差或深度单位检查未通过'
+                self._capture_packet = packet
             return image
         finally:
             error = c_void_p(None)
+            if depth_frame:
+                self._lib.ob_delete_frame(depth_frame, byref(error))
+                self._message(error.value)
+                error = c_void_p(None)
             if frame:
                 self._lib.ob_delete_frame(frame, byref(error))
                 self._message(error.value)

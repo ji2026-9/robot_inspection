@@ -308,7 +308,7 @@ class MainWindow(QMainWindow):
         self.btn_confirm_holes.setEnabled(False)
         task_layout.addWidget(self.btn_confirm_holes)
         self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(['孔号', '置信度', '图像圆心 px', '定位状态', '三维坐标'])
+        self.table.setHorizontalHeaderLabels(['孔号', '置信度', '图像圆心 px', '定位状态', '相机 XYZ mm（估计）'])
         self.table.setShowGrid(True)
         self.table.setGridStyle(Qt.PenStyle.SolidLine)
         self.table.setAlternatingRowColors(True)
@@ -317,7 +317,7 @@ class MainWindow(QMainWindow):
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
-        for column, width in enumerate((60, 80, 160, 110, 100)):
+        for column, width in enumerate((60, 80, 150, 100, 210)):
             self.table.setColumnWidth(column, width)
         self.table.setMinimumHeight(190)
         self.table.cellClicked.connect(self.review_hole)
@@ -491,13 +491,19 @@ class MainWindow(QMainWindow):
                 center = hole.get('center_px')
                 point = f'{center[0]:.2f}, {center[1]:.2f}' if center is not None else '—'
                 state = '图像已定位' if hole.get('reliable_center') else ('圆心待复核' if center else '未拟合出圆心')
-                values = [hid, f"{hole['confidence']:.4f}", point, state, '待标定']
+                geometry=hole.get('camera_3d')
+                xyz=', '.join(f'{v:.2f}' for v in geometry['center_camera_mm']) if geometry else '深度未就绪'
+                values = [hid, f"{hole['confidence']:.4f}", point, state, xyz]
             else:
                 values = [hid, '—', '—', '未识别' if result else '待检测', '—']
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, column, item)
+                if column==4 and hole:
+                    geometry=hole.get('camera_3d')
+                    item.setToolTip((f"相机坐标估计，需复核；平面残差 {geometry['plane_rmse_mm']:.2f} mm；圆拟合残差 {geometry['circle_rmse_mm']:.2f} mm；深度覆盖 {geometry['depth_coverage']:.0%}。不是机械臂坐标。" if geometry else '；'.join(result.get('camera_3d_notes',[])) or '该照片没有对应的有效深度图。'))
+        self.coordinate_note.setText('相机坐标估计：X 向右、Y 向下、Z 向前，单位 mm；需复核。机械臂坐标转换仍待标定。')
         message, needs_review = review_summary(result)
         self.review_warning.setText(message)
         self.review_warning.setStyleSheet('color:#b45309;font-weight:600;' if needs_review else 'color:#15803d;')
@@ -590,7 +596,7 @@ class MainWindow(QMainWindow):
                     'robot_ready': False, 'measurement_executed': False,
                     'note': '本次图片的测孔清单，像素圆心尚未转换成机械臂坐标。',
                     'targets': [{'id': h['id'], 'confidence': h['confidence'], 'center_px': h['center_px'],
-                                 'ellipse': h.get('ellipse')} for h in targets]}
+                                 'ellipse': h.get('ellipse'), 'camera_3d':h.get('camera_3d')} for h in targets]}
             output = destination / (datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
             output.write_text(json.dumps(task, ensure_ascii=False, indent=2), encoding='utf-8')
             self.selection_note.setText('已确认测孔：' + '、'.join(h['id'] for h in targets) + '\n清单已保存，尚未发送机械臂或执行测量。')
@@ -647,7 +653,8 @@ class MainWindow(QMainWindow):
         size = self.live_label.size()
         canvas, _ = compose(frame, (size.width(), size.height()))
         self.live_label.setPixmap(bgr_to_pixmap(canvas))
-        self.live_note.setText('实时采集正常。右侧图片独立冻结，拍摄暂未绑定机械臂位姿。')
+        packet=worker.snapshot_packet() or {}
+        self.live_note.setText('实时采集正常。'+('深度帧已取得，拍摄将一并留样。' if packet.get('depth_raw') is not None else '深度未就绪：'+packet.get('depth_note','未取得深度帧')))
 
     def capture_camera_photo(self):
         if self.batch_running or self.bridge.busy:
@@ -674,7 +681,7 @@ class MainWindow(QMainWindow):
             metadata['robot_a_pose'] = {k: latest.get(k) for k in ('pose','joints','received_at','user_index','tool_index')}
             metadata['robot_a_pose_note'] = '附近时刻的机械臂反馈，不是硬件同步曝光位姿。'
         try:
-            photo, sidecar, info = save_capture(BASE / 'data' / 'camera_captures', packet['frame'], metadata)
+            photo, sidecar, info = save_capture(BASE / 'data' / 'camera_captures', packet['frame'], metadata,rgbd_packet=packet)
         except (OSError, ValueError, TypeError, cv2.error) as error:
             QMessageBox.warning(self, '留样未完成，暂停检测', str(error))
             return

@@ -15,6 +15,7 @@ class CameraPreviewWorker(QThread):
     def __init__(self,backend,parent=None,settings=None):
         super().__init__(parent);self.backend=backend;self.stop_event=threading.Event();self.lock=threading.Lock();self.latest=None;self.received_at=0;self.received_wall=None;self.parameter_readback=None
         self.settings=settings
+        self.capture_extra={}
     def run(self):
         try:
             if getattr(self.backend,'_inspection_parameter_busy',False):raise RuntimeError('相机参数操作尚未结束')
@@ -29,18 +30,21 @@ class CameraPreviewWorker(QThread):
                 except Exception as error:self.parameter_readback={'unavailable_reason':str(error)}
             while not self.stop_event.is_set():
                 if not self.backend.is_connected():raise RuntimeError('相机连接已中断')
-                frame=self.backend.get_frame()
+                packet=self.backend.get_capture_packet() if callable(getattr(self.backend,'get_capture_packet',None)) else None
+                frame=packet.get('frame') if packet is not None else (None if callable(getattr(self.backend,'get_capture_packet',None)) else self.backend.get_frame())
                 if frame is not None:
                     image=np.asarray(frame)
                     if image.ndim!=3 or image.shape[2]!=3 or image.dtype!=np.uint8:raise ValueError('相机驱动必须提供 uint8 BGR 三通道图像')
-                    with self.lock:self.latest=image.copy();self.received_at=time.monotonic();self.received_wall=time.time()
+                    with self.lock:
+                        self.latest=image.copy();self.received_at=time.monotonic();self.received_wall=time.time()
+                        self.capture_extra={k:(v.copy() if isinstance(v,np.ndarray) else v) for k,v in (packet or {}).items() if k!='frame'}
                 self.stop_event.wait(.03)
         except Exception as error:self.failed.emit(str(error))
         finally:
             try:self.backend.stop()
             except Exception as error:self.failed.emit('相机停止失败：'+str(error))
             self.backend._inspection_acquiring=False
-            with self.lock:self.latest=None;self.received_at=0
+            with self.lock:self.latest=None;self.received_at=0;self.capture_extra={}
     def snapshot(self):
         with self.lock:
             if self.latest is None or time.monotonic()-self.received_at>2:return None
@@ -48,7 +52,7 @@ class CameraPreviewWorker(QThread):
     def snapshot_packet(self):
         with self.lock:
             if self.latest is None or time.monotonic()-self.received_at>2:return None
-            return {'frame':self.latest.copy(),'frame_received_at':self.received_wall,
+            return {**{k:(v.copy() if isinstance(v,np.ndarray) else v) for k,v in self.capture_extra.items()},'frame':self.latest.copy(),'frame_received_at':self.received_wall,
                     'camera_parameters_actual':self.parameter_readback}
     def stop(self):self.stop_event.set()
 

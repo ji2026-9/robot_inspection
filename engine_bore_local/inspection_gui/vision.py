@@ -205,6 +205,9 @@ display, never for automatic task creation.
     if not result["complete"]:
         result["warnings"].append("已识别 {} 个孔，拟合 {} 个圆心，其中 {} 个可用；完整任务需要 4 个可靠圆心。".format(
             result["detections"], result["center_count"], result["reliable_center_count"]))
+    from .camera_3d import restore_camera_3d
+    restore_camera_3d(result,report.get('camera_3d',[]))
+    result['camera_3d_notes']=list(report.get('camera_3d_notes',[]))
     return result
 
 
@@ -281,6 +284,8 @@ class HoleDetector:
                     result["warnings"].append("输入尺寸使用当前检测核心设置。")
                 if self._detector.device == "cpu":
                     result["warnings"].append("当前使用 CPU 检测，处理速度会较慢。")
+            from .camera_3d import add_camera_3d
+            add_camera_3d(result,path)
         except Exception as exc:
             result["errors"].append("检测失败：{}".format(exc))
             result["complete"] = False
