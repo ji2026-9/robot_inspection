@@ -1332,6 +1332,54 @@ def patch_batch_history(engine: Path) -> str:
     return "；".join(out) or "无需修改"
 
 
+def patch_diagnostics_style(engine: Path) -> str:
+    """The diagnostics area used a dark navy log box inside the light UI. Give it the
+    same light card style as the rest of the window."""
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    text = f.read_text(encoding="utf-8")
+    if "#diagPanel" in text:
+        return "已打过补丁（跳过）"
+    edits = [
+        ("QPlainTextEdit#log { background: #0f2438; color: #d7e6f7; border-radius: 8px;\n"
+         "                     padding: 5px; font-size: 11px; }",
+         "#diagPanel { background: #ffffff; border: 1px solid #dde5ee; border-radius: 10px; }\n"
+         "QLabel#diagTitle { color: #17457f; font-weight: 600; }\n"
+         "QPlainTextEdit#log { background: #f8fafd; color: #33415a;\n"
+         "                     border: 1px solid #e4eaf2; border-radius: 8px;\n"
+         "                     padding: 8px; font-size: 11px;\n"
+         "                     font-family: 'Consolas', 'Microsoft YaHei UI'; }"),
+        ("        self.diagnostics = QWidget()\n"
+         "        diagnostics_layout = QVBoxLayout(self.diagnostics)\n"
+         "        diagnostics_layout.setContentsMargins(0, 0, 0, 0)\n"
+         "        details = QHBoxLayout()",
+         "        self.diagnostics = QWidget()\n"
+         "        self.diagnostics.setObjectName('diagPanel')   # [local patch] light card\n"
+         "        diagnostics_layout = QVBoxLayout(self.diagnostics)\n"
+         "        diagnostics_layout.setContentsMargins(12, 10, 12, 10)\n"
+         "        diagnostics_layout.setSpacing(6)\n"
+         "        diag_title = QLabel('运行日志与诊断')\n"
+         "        diag_title.setObjectName('diagTitle')\n"
+         "        diagnostics_layout.addWidget(diag_title)\n"
+         "        details = QHBoxLayout()"),
+    ]
+    applied = 0
+    for old, new in edits:
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied += 1
+        else:
+            return "没找到目标代码段，请人工检查"
+    if not applied:
+        return "已是最新"
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "诊断信息已改为浅色卡片（原文件备份为 gui.py.bak）"
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -1389,6 +1437,7 @@ def main() -> int:
     print("9d) 浅色外框:", patch_light_frame(engine))
     print("9e) 空白启动:", patch_fresh_start(engine))
     print("9f) 批次历史:", patch_batch_history(engine))
+    print("9g) 诊断样式:", patch_diagnostics_style(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
