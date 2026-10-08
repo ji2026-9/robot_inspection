@@ -108,20 +108,24 @@
 
 ### 6.1 图形界面（推荐）
 
-日常使用的界面统一在**融合版软件** `E:\robot_project\inspection_app`
-（朋友的双机械臂孔检测系统 + 本仓库的补丁），桌面快捷方式「机械臂孔检测系统」就是启动它：
+界面源码就在本仓库：**[`fused_app/`](fused_app/README.md)**（我们这套「双机械臂孔检测系统」的完整源码，
+所有本地补丁已应用）。本机运行/交付的那一份在 `E:\robot_project\inspection_app`，
+桌面快捷方式「机械臂孔检测系统」就是启动它：
 
 ```bat
-:: 直接启动（本机路径）
+:: 把源码铺到交付位置（模型见 §6.4）
+xcopy /E /I E:\robot_project\robot_inspection\fused_app E:\robot_project\inspection_app
+:: 启动
 E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\inspection_app\app.py
 ```
 
 界面提供：**相机实时画面 + 抓拍／离线检测（可一次选多张）／点孔选择本次要测的孔／设备连接／
 实验记录（载入工作区·看图·看检测报告·删除整批）／模型与数据管理（标注 + 增量训练）**。
 
-> 本仓库的 `app/` 只是**视觉核心库**（推理 / 拟合 / 编号），里面没有界面代码；
-> 更早的我方 PySide6 界面已归档到 `_archive/gui_v1_pyside6/`，只作参考。
-> 从本仓库重新生成这份融合版软件见 [§6.4](#64-融合版软件inspection_app怎么生成)。
+> 本仓库的 `app/` 只是**视觉核心库**（推理 / 拟合 / 编号），没有界面代码；
+> 更早的我方 PySide6 界面已归档到 `_archive/gui_v1_pyside6/`。
+> **界面以 `fused_app/` 为准**（朋友上传的 `engine_bore_local/` 只作引擎侧参考，不覆盖这套界面）；
+> 交付、引擎更新与自检流程见 [§6.4](#64-软件怎么交付--引擎怎么更新--怎么自检)。
 
 ### 6.2 命令行推理
 
@@ -144,24 +148,37 @@ E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\ins
 默认参数针对 4 GB 显存：`imgsz=640`、`batch=2`、`workers=2`、`patience=20`、`device=0`。
 **显存不足时会自动降级重试**（batch 2→1、imgsz 640→512→416），不需要人工排查。
 
-### 6.4 融合版软件（inspection_app）怎么生成
+### 6.4 软件怎么交付 / 引擎怎么更新 / 怎么自检
 
-`inspection_app` 是**交付/使用目录，不在本仓库里**，它由本仓库的三部分拼出来：
+**① 交付（推荐）：界面以本仓库的 [`fused_app/`](fused_app/README.md) 为准**
+
+`fused_app/` 就是我们这套「双机械臂孔检测系统」的**完整源码**（所有本地补丁已应用，实测可跑通全流程）。
+交付/使用时把它铺到运行目录，再把模型放进去即可：
+
+```bat
+xcopy /E /I E:\robot_project\robot_inspection\fused_app E:\robot_project\inspection_app
+:: 模型不进 Git：把 bore_best.pt / part_best.pt / fusion_v1_best.pt 放到 inspection_app\models\
+::   （GitHub Release `v1.1-model`、朋友模型包，或本机 weights\best.pt 复制改名）
+E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\inspection_app\app.py
+```
+
+**② 朋友更新了引擎源码时：只取引擎，不换界面**
 
 | 来源 | 作用 |
 | --- | --- |
-| `engine_bore_local/` | 朋友的「箱体孔检测系统」源码快照（融合版软件的基底） |
+| `engine_bore_local/` | 他上传的源码快照，**只作引擎侧参考**；他自带的那套「实时采集 / 测量模式」界面**不覆盖我们的界面** |
+| `scripts/patch_friend_engine.py` | 当初生成 `fused_app/` 的补丁脚本（幂等，每步打印 已改/已是最新/未匹配），用来比对他改了什么 |
 | `scripts/app_addons/` | 我方新增模块（Orbbec 相机驱动 `orbbec_camera.py`、实时预览窗口 `camera_preview.py`） |
-| `scripts/patch_friend_engine.py` | 我方补丁脚本：拟合策略、相机接入、界面整合、实验记录工具、设备参数不落盘……（**幂等**，可反复跑） |
 
 ```bat
-:: 1) 把朋友的源码铺到交付目录（他更新版本时重做这一步）
-git archive origin/feature/fusion engine_bore_local | tar -x -C E:\robot_project\inspection_app --strip-components=1
+:: 把他的新源码铺到临时目录 → 跑补丁 → 与 fused_app\ 逐文件比对，只挑引擎（detect_core/拟合/训练）改动
+git archive origin/feature/fusion engine_bore_local | tar -x -C E:\robot_project\_engine_sync --strip-components=1
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\patch_friend_engine.py --engine E:\robot_project\_engine_sync
+```
 
-:: 2) 跑补丁（每一步打印 已改 / 已是最新 / 未匹配）
-E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\patch_friend_engine.py
+**③ 自检（改完界面或补丁必须跑）**
 
-:: 3) 端到端自检：离屏跑真实检测器 + 真实界面对象，不碰真实实验记录
+```bat
 set CODEX_APP_DIR=E:\robot_project\inspection_app
 set CODEX_E2E_DIR=%TEMP%\inspection_e2e
 E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_inspection_app.py
@@ -177,9 +194,9 @@ E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robo
 - **设备参数不落盘**：设备信息只在本次运行有效（相机插上自动识别型号与序列号；机械臂按当前电脑实际 IP 填写），
   换一台电脑不需要清理本机配置。
 
-> ⚠️ 已知：`engine_bore_local/` 是朋友**较新**的一版源码，与本仓库的补丁有若干处对不上（跑补丁时会打印「未匹配」）。
-> 交付目录 `inspection_app` 本身完整可用；若要基于他的新源码重新生成，需要先做一轮界面补丁同步
-> （他的新版自带「实时采集 / 测量模式」那套界面，要和我们的整合方案做个取舍）。
+> 口径说明：**界面以 `fused_app/` 为准**。`engine_bore_local/` 是朋友较新的一版源码，
+> 里面是他自己的「实时采集 / 测量模式」界面，与本仓库的补丁有若干处对不上（跑补丁会打印「未匹配」）——
+> 这不影响交付版；要吸收他的引擎改进时按上面 ② 的流程做，界面不跟着换。
 
 ---
 
@@ -201,6 +218,7 @@ E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robo
 ```
 <项目根目录>/
 ├── app/                     视觉核心库（推理 → 掩膜 → 椭圆 → 编号）
+├── fused_app/               **我们这套界面的权威源码**（融合版软件，交付直接用它）
 ├── scripts/                 训练 / 推理 / 评估 / 数据与实验工具
 │   ├── patch_friend_engine.py   融合版软件的补丁脚本（幂等）
 │   ├── check_inspection_app.py  融合版软件的端到端自检
