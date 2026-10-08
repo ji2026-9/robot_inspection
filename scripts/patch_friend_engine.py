@@ -1097,9 +1097,11 @@ def patch_fresh_start(engine: Path) -> str:
              "        for _button in (self.btn_devices, self.btn_records, self.btn_models,\n"
              "                        self.btn_simulation, self.btn_last_batch, self.btn_results):\n"
              "            others_layout.addWidget(_button)"),
-            ("        self.btn_simulation.clicked.connect(self.show_simulation)\n",
-             "        self.btn_simulation.clicked.connect(self.show_simulation)\n"
-             "        self.btn_last_batch.clicked.connect(self.open_last_batch)   # [local patch]\n"),
+             # [audit 2026-10-08] 这一行以前插入的是 open_last_batch，导致每次运行脚本
+             # 都会再插一条连接（点一次「打开历史批次」弹出两个窗口）。直接插入最终形式。
+             ("        self.btn_simulation.clicked.connect(self.show_simulation)\n",
+              "        self.btn_simulation.clicked.connect(self.show_simulation)\n"
+              "        self.btn_last_batch.clicked.connect(self.open_batch_history)   # [local patch]\n"),
             ("    def restore_last_batch(self):\n",
              "    @Slot()\n"
              "    def open_last_batch(self):\n"
@@ -1182,8 +1184,6 @@ def patch_batch_history(engine: Path) -> str:
              "        self.btn_last_batch.setToolTip('只在你点击时才载入上一次的检测结果，启动时不会自动载入。')",
              "        self.btn_last_batch = QPushButton('打开历史批次')   # [local patch]\n"
              "        self.btn_last_batch.setToolTip('列出以前检测过的每一批，自己选一批重新载入；启动时不会自动载入。')"),
-            ("        self.btn_last_batch.clicked.connect(self.open_last_batch)   # [local patch]",
-             "        self.btn_last_batch.clicked.connect(self.open_batch_history)   # [local patch]"),
             # 3) replace the simple loader with a picker + a shared loader
             ("    @Slot()\n"
              "    def open_last_batch(self):\n"
@@ -1380,6 +1380,300 @@ def patch_diagnostics_style(engine: Path) -> str:
     return "诊断信息已改为浅色卡片（原文件备份为 gui.py.bak）"
 
 
+def patch_left_column(engine: Path) -> str:
+    """[audit 2026-10-08] Two real defects found while driving the GUI:
+
+    1) expanding 诊断信息 squashed the left column, so 「其他功能」 collapsed into
+       a single clipped strip (everything below it was cut off);
+    2) 「打开历史批次」 was wired to two slots, so one click opened two dialogs.
+
+    Make the left column compact (two-column 其他功能, slimmer navigation),
+    give every card a real minimum height so the column scrolls instead of
+    squashing, and drop the duplicated connection.
+    """
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    text = f.read_text(encoding="utf-8")
+    if "[compact-left]" in text:
+        return "已打过补丁（跳过）"
+
+    mark = "   # [compact-left]"
+    edits = [
+        # 1) 本组照片：导航按钮/下拉框/进度条都收紧
+        ("        photos = QGroupBox('本组照片')\n"
+         "        photos_layout = QVBoxLayout(photos)\n"
+         "        photos_layout.setSpacing(6)\n",
+         "        photos = QGroupBox('本组照片')\n"
+         "        photos_layout = QVBoxLayout(photos)\n"
+         "        photos_layout.setSpacing(5)\n"
+         "        photos_layout.setContentsMargins(10, 6, 10, 8)" + mark + "\n"),
+        ("        self.selector = QComboBox()\n"
+         "        navigation = QHBoxLayout()\n"
+         "        self.previous_button = QPushButton('上一张')\n"
+         "        self.next_button = QPushButton('下一张')\n"
+         "        navigation.addWidget(self.previous_button)\n",
+         "        self.selector = QComboBox()\n"
+         "        self.selector.setMinimumHeight(28)\n"
+         "        navigation = QHBoxLayout()\n"
+         "        navigation.setSpacing(5)\n"
+         "        self.previous_button = QPushButton('上一张')\n"
+         "        self.next_button = QPushButton('下一张')\n"
+         "        for _nav_button in (self.previous_button, self.next_button):\n"
+         "            _nav_button.setFixedHeight(30)\n"
+         "        navigation.addWidget(self.previous_button)\n"),
+        ("        self.batch_progress.setFormat('本组进度 %v/%m')\n",
+         "        self.batch_progress.setFormat('本组进度 %v/%m')\n"
+         "        self.batch_progress.setMaximumHeight(22)" + mark + "\n"),
+        # 2) 其他功能：改成两列，省下约一半高度
+        ("        others = QGroupBox('其他功能')\n"
+         "        others_layout = QVBoxLayout(others)\n"
+         "        others_layout.setSpacing(6)\n",
+         "        others = QGroupBox('其他功能')\n"
+         "        others_layout = QGridLayout(others)          # 两列" + mark + "\n"
+         "        others_layout.setSpacing(6)\n"
+         "        others_layout.setContentsMargins(10, 6, 10, 8)" + mark + "\n"),
+        ("        for _button in (self.btn_devices, self.btn_records, self.btn_models,\n"
+         "                        self.btn_simulation, self.btn_last_batch, self.btn_results):\n"
+         "            others_layout.addWidget(_button)\n"
+         "        left_layout.addWidget(others)\n"
+         "        left_layout.addStretch(1)\n",
+         "        for _index, _button in enumerate((self.btn_devices, self.btn_records,\n"
+         "                                          self.btn_models, self.btn_simulation,\n"
+         "                                          self.btn_last_batch, self.btn_results)):\n"
+         "            _button.setMinimumHeight(32)\n"
+         "            others_layout.addWidget(_button, _index // 2, _index % 2)\n"
+         "        left_layout.addWidget(others)\n"
+         "        # 每张卡片给一个真实最小高度：诊断信息展开时左栏改为滚动，\n"
+         "        # 而不是把卡片压成一条看不清的细缝。" + mark + "\n"
+         "        actions.setMinimumHeight(176)\n"
+         "        photos.setMinimumHeight(158)\n"
+         "        others.setMinimumHeight(146)\n"
+         "        left_layout.addStretch(1)\n"),
+        # 3) 左栏略加宽，容纳两列按钮
+        ("        left.setFixedWidth(252)", "        left.setFixedWidth(266)" + mark),
+        # 4) 去掉重复的信号连接（点一次「打开历史批次」会连开两个对话框）
+        ("        self.btn_last_batch.clicked.connect(self.open_last_batch)   # [local patch]\n"
+         "        self.btn_last_batch.clicked.connect(self.open_batch_history)   # [local patch]\n",
+         "        # 以前这里连接了两次，点一下会连开两个对话框" + mark + "\n"
+         "        self.btn_last_batch.clicked.connect(self.open_batch_history)\n"),
+        # 5) 诊断日志框矮一点，展开时少挤占画面
+        ("        self.logbox.setMaximumHeight(110)\n",
+         "        self.logbox.setMaximumHeight(96)" + mark + "\n"),
+    ]
+    applied, skipped, missing = [], [], []
+    for old, new in edits:
+        if new in text:
+            skipped.append(old.strip().splitlines()[0][:28])
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:28])
+        else:
+            missing.append(old.strip().splitlines()[0][:28])
+    if not applied:
+        return "未匹配: " + "; ".join(missing[:4])
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    out = ["已改 {} 处（左栏紧凑化 + 去重信号）".format(len(applied))]
+    if skipped:
+        out.append("已是最新: {}".format(len(skipped)))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def patch_diagnostics_compact(engine: Path) -> str:
+    """[audit 2026-10-08] The 诊断信息 panel was a tall vertical stack (title +
+    details + 110px log), so expanding it stole ~200px from the work area and
+    pushed the left column out of view. Lay it out sideways instead: a narrow
+    info block on the left, the log on the right, total height about half."""
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    text = f.read_text(encoding="utf-8")
+    if "[compact-diag]" in text:
+        return "已打过补丁（跳过）"
+
+    old = (
+        "        self.diagnostics = QWidget()\n"
+        "        self.diagnostics.setObjectName('diagPanel')   # [local patch] light card\n"
+        "        diagnostics_layout = QVBoxLayout(self.diagnostics)\n"
+        "        diagnostics_layout.setContentsMargins(12, 10, 12, 10)\n"
+        "        diagnostics_layout.setSpacing(6)\n"
+        "        diag_title = QLabel('运行日志与诊断')\n"
+        "        diag_title.setObjectName('diagTitle')\n"
+        "        diagnostics_layout.addWidget(diag_title)\n"
+        "        details = QHBoxLayout()\n"
+        "        details.addWidget(self.lbl_part)\n"
+        "        details.addWidget(self.lbl_engine, 1)\n"
+        "        diagnostics_layout.addLayout(details)\n"
+        "        self.logbox = QPlainTextEdit()\n"
+        "        self.logbox.setObjectName('log')\n"
+        "        self.logbox.setReadOnly(True)\n")
+    new = (
+        "        self.diagnostics = QWidget()\n"
+        "        self.diagnostics.setObjectName('diagPanel')   # [local patch] light card\n"
+        "        # 横向紧凑布局：左边是标题与运行信息，右边是日志。" + "   # [compact-diag]\n"
+        "        diagnostics_layout = QHBoxLayout(self.diagnostics)\n"
+        "        diagnostics_layout.setContentsMargins(12, 8, 12, 8)\n"
+        "        diagnostics_layout.setSpacing(14)\n"
+        "        diag_side = QWidget()\n"
+        "        diag_side.setObjectName('diagSide')\n"
+        "        diag_side.setFixedWidth(268)\n"
+        "        side_layout = QVBoxLayout(diag_side)\n"
+        "        side_layout.setContentsMargins(0, 0, 0, 0)\n"
+        "        side_layout.setSpacing(4)\n"
+        "        diag_title = QLabel('运行日志与诊断')\n"
+        "        diag_title.setObjectName('diagTitle')\n"
+        "        self.lbl_part.setWordWrap(True)\n"
+        "        self.lbl_engine.setWordWrap(True)\n"
+        "        side_layout.addWidget(diag_title)\n"
+        "        side_layout.addWidget(self.lbl_part)\n"
+        "        side_layout.addWidget(self.lbl_engine)\n"
+        "        side_layout.addStretch(1)\n"
+        "        diagnostics_layout.addWidget(diag_side)\n"
+        "        self.logbox = QPlainTextEdit()\n"
+        "        self.logbox.setObjectName('log')\n"
+        "        self.logbox.setReadOnly(True)\n"
+        "        self.logbox.setFixedHeight(92)" + "   # [compact-diag]\n")
+    if old not in text:
+        return "未匹配：诊断面板结构与预期不同（可能已改过）"
+    text = text.replace(old, new, 1)
+    text = text.replace("        diagnostics_layout.addWidget(self.logbox)\n",
+                        "        diagnostics_layout.addWidget(self.logbox, 1)\n", 1)
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "诊断面板已改为横向紧凑布局"
+
+
+def patch_tidy_signals(engine: Path) -> str:
+    """[audit 2026-10-08] Final tidy-up, safe to run on every pass:
+
+    * keep exactly ONE ``btn_last_batch -> open_batch_history`` connection.
+      Earlier revisions of the patch set could stack two, so a single click
+      opened two dialogs on top of each other;
+    * drop the leftover ``setMaximumHeight(96)`` on the log box, which the
+      left-column patch left behind after the diagnostics panel was redesigned.
+    """
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    original = f.read_text(encoding="utf-8")
+    canonical = ("        self.btn_last_batch.clicked.connect("
+                 "self.open_batch_history)   # [local patch]\n")
+    kept, seen, dropped = [], False, 0
+    for line in original.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped.startswith("self.btn_last_batch.clicked.connect("):
+            if seen:
+                dropped += 1
+                continue
+            kept.append(canonical)
+            seen = True
+            continue
+        if "以前这里连接了两次" in line:
+            dropped += 1
+            continue
+        if stripped.startswith("self.logbox.setMaximumHeight(96)"):
+            dropped += 1
+            continue
+        kept.append(line)
+    text = "".join(kept)
+    if text == original:
+        return "无需修改（已经是干净状态）"
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "已清理 {} 行冗余（重复信号 / 多余设置）".format(dropped)
+
+
+def patch_device_page_compact(engine: Path) -> str:
+    """[audit 2026-10-08] On the 工业相机 tab the action buttons (连接设备 /
+    断开连接) were half cut off at the bottom of the tab pane, so the user had to
+    scroll inside the page to even see them. Tighten the page so the whole form
+    plus its buttons fit in one screen."""
+    f = engine / "inspection_gui" / "devices_view.py"
+    if not f.is_file():
+        return "找不到 devices_view.py"
+    text = f.read_text(encoding="utf-8")
+    if "[compact-device]" in text:
+        return "已打过补丁（跳过）"
+    mark = "   # [compact-device]"
+    edits = [
+        ("        outer.setContentsMargins(18, 20, 18, 18)\n"
+         "        outer.setSpacing(16)",
+         "        outer.setContentsMargins(16, 12, 16, 12)" + mark + "\n"
+         "        outer.setSpacing(10)" + mark),
+        ("        layout.setContentsMargins(20, 18, 20, 18)",
+         "        layout.setContentsMargins(16, 12, 16, 12)" + mark),
+        ('        heading.setStyleSheet("font-size: 22px; font-weight: 700; color: #183b65;")',
+         '        heading.setStyleSheet("font-size: 20px; font-weight: 700; color: #183b65;")'),
+        ("            self.fields.setRowHeight(row, 40)",
+         "            self.fields.setRowHeight(row, 36)"),
+        ("        self.fields.setFixedHeight(292)   # [local patch] 6 rows + header",
+         "        self.fields.setFixedHeight(256)" + mark + " 6 行 x 36 + 表头"),
+        ("        self.fields.verticalHeader().setDefaultSectionSize(33)   # [local patch]",
+         "        self.fields.verticalHeader().setDefaultSectionSize(36)"),
+    ]
+    applied, skipped, missing = [], [], []
+    for old, new in edits:
+        if new in text:
+            skipped.append(old.strip()[:26])
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip()[:26])
+        else:
+            missing.append(old.strip()[:26])
+    if not applied:
+        return "未匹配: " + "; ".join(missing[:4])
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    out = ["已改 {} 处（设备窗口一屏显示）".format(len(applied))]
+    if skipped:
+        out.append("已是最新: {}".format(len(skipped)))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def patch_batch_dialog_details(engine: Path) -> str:
+    """[audit 2026-10-08] Two小问题 in the 打开历史批次 dialog: the last column was
+    labelled 结果目录 but actually shows the archive folder, and only the first
+    three photo names were stored/listed even for a four-photo batch."""
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    text = f.read_text(encoding="utf-8")
+    if "[tidy-history]" in text:
+        return "已打过补丁（跳过）"
+    mk = "   # [tidy-history]"
+    edits = [
+        ("table.setHorizontalHeaderLabels(['检测时间', '张数', '照片', '结果目录'])",
+         "table.setHorizontalHeaderLabels(['检测时间', '张数', '照片', '归档目录'])" + mk),
+        ("'photos': [Path(r.get('image', '')).name for r in reports][:3],",
+         "'photos': [Path(r.get('image', '')).name for r in reports]," + mk),
+        ("'photos': [Path(r.get('image', '')).name\n"
+         "                                       for r in reports if isinstance(r, dict)][:3],",
+         "'photos': [Path(r.get('image', '')).name\n"
+         "                                       for r in reports if isinstance(r, dict)]," + mk),
+    ]
+    applied, missing = [], []
+    for old, new in edits:
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip()[:26])
+        else:
+            missing.append(old.strip()[:26])
+    if not applied:
+        return "未匹配: " + "; ".join(missing[:3])
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "已改 {} 处（批次弹窗列名与照片列表）".format(len(applied))
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -1438,6 +1732,11 @@ def main() -> int:
     print("9e) 空白启动:", patch_fresh_start(engine))
     print("9f) 批次历史:", patch_batch_history(engine))
     print("9g) 诊断样式:", patch_diagnostics_style(engine))
+    print("9h) 左栏紧凑:", patch_left_column(engine))
+    print("9i) 诊断紧凑:", patch_diagnostics_compact(engine))
+    print("9j) 收尾清理:", patch_tidy_signals(engine))
+    print("9k) 设备页紧凑:", patch_device_page_compact(engine))
+    print("9l) 批次弹窗:", patch_batch_dialog_details(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
