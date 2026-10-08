@@ -11,7 +11,7 @@
   6. 只复制，绝不修改/删除原始 dataset\\box_yolo 目录。
 
 输出目录：
-  E:\\robot_inspection\\experiments\\dataset_17_5_3\\
+  E:\\robot_project\\robot_inspection\\experiments\\dataset_17_5_3\\
 
 用法：
   python scripts\\make_split_17_5_3.py
@@ -21,8 +21,8 @@ import shutil
 import sys
 from pathlib import Path
 
-SRC = Path(r"E:\robot_inspection\dataset\box_yolo")
-DST = Path(r"E:\robot_inspection\experiments\dataset_17_5_3")
+SRC = Path(r"E:\robot_project\robot_inspection\dataset\box_yolo")
+DST = Path(r"E:\robot_project\robot_inspection\experiments\dataset_17_5_3")
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 
 # 从原 train 里挑 3 张补进 val：按文件名排序后取第 1、9、17 张（分布较均匀，可复现）
@@ -94,7 +94,7 @@ def main() -> int:
             missing.append(("test", p.name))
 
     yaml_text = (
-        "path: E:/robot_inspection/experiments/dataset_17_5_3\n"
+        "path: E:/robot_project/robot_inspection/experiments/dataset_17_5_3\n"
         "train: images/train\n"
         "val: images/val\n"
         "test: images/test\n"

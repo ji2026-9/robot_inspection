@@ -31,7 +31,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 EXP_DIR = PROJ / "experiments"
 TEST_DIR = PROJ / "test_images"
 SEEDS = [0, 42, 123]

@@ -21,7 +21,7 @@ def _resolve_project_root() -> Path:
         return candidate
     if (candidate / "test_images").is_dir():
         return candidate
-    return Path(r"E:\robot_inspection")
+    return Path(r"E:\robot_project\robot_inspection")
 
 
 # ---------- project paths ----------
@@ -39,6 +39,15 @@ IMGSZ = 640
 CONF = 0.50
 IOU = 0.70
 DEVICE_PREFERENCE = ["0", "cpu"]
+
+# ---------- ellipse fitting ----------
+# "current"      : cv2.fitEllipse on the mask contour (original behaviour)
+# "robust"       : RANSAC + inlier refinement on the mask contour
+# "robust_edge"  : robust + sub-pixel aperture-edge refinement
+#                  (adopted from feature/fusion; on the project's own 4 test images
+#                   it put the ellipse on the real aperture rim: edge-gradient p25
+#                   13.3 vs 1.9 for cv2.fitEllipse, and centre drift 0.06-0.32 px)
+ELLIPSE_FIT_MODE = "robust_edge"
 
 # ---------- numbering ----------
 ORIENTATION_STATUS = "uncertain"

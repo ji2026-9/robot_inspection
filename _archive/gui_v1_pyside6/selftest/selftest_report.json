@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-10-06 21:12:22",
-  "model": "E:\\robot_inspection\\weights\\best.pt",
+  "model": "E:\\robot_project\\robot_inspection\\weights\\best.pt",
   "expected_holes": 4,
   "images": [
     {
@@ -53,7 +53,7 @@
         "H03",
         "H04"
       ],
-      "run_dir_after_detect": "E:\\robot_inspection\\results\\gui_runs\\20261006_211226",
+      "run_dir_after_detect": "E:\\robot_project\\robot_inspection\\results\\gui_runs\\20261006_211226",
       "manual_H03": {
         "tasks": [
           "H03"
@@ -81,8 +81,8 @@
       "simulation_ticks": 15,
       "exec_label": "执行状态：模拟执行完成 4/4（未连接真实机器人）",
       "robot_label": "机器人：未连接",
-      "run_dir_after_simulate": "E:\\robot_inspection\\results\\gui_runs\\20261006_211227",
-      "screenshot": "E:\\robot_inspection\\app\\selftest\\gui_测试1.png"
+      "run_dir_after_simulate": "E:\\robot_project\\robot_inspection\\results\\gui_runs\\20261006_211227",
+      "screenshot": "E:\\robot_project\\robot_inspection\\app\\selftest\\gui_测试1.png"
     },
     {
       "image": "测试2.jpg",
@@ -134,7 +134,7 @@
         "H03",
         "H04"
       ],
-      "run_dir_after_detect": "E:\\robot_inspection\\results\\gui_runs\\20261006_211228",
+      "run_dir_after_detect": "E:\\robot_project\\robot_inspection\\results\\gui_runs\\20261006_211228",
       "manual_H03": {
         "tasks": [
           "H03"
@@ -162,8 +162,8 @@
       "simulation_ticks": 15,
       "exec_label": "执行状态：模拟执行完成 4/4（未连接真实机器人）",
       "robot_label": "机器人：未连接",
-      "run_dir_after_simulate": "E:\\robot_inspection\\results\\gui_runs\\20261006_211228_01",
-      "screenshot": "E:\\robot_inspection\\app\\selftest\\gui_测试2.png"
+      "run_dir_after_simulate": "E:\\robot_project\\robot_inspection\\results\\gui_runs\\20261006_211228_01",
+      "screenshot": "E:\\robot_project\\robot_inspection\\app\\selftest\\gui_测试2.png"
     },
     {
       "image": "测试3.jpg",
@@ -204,7 +204,7 @@
       ],
       "errors": [],
       "tasks_created": [],
-      "run_dir_after_detect": "E:\\robot_inspection\\results\\gui_runs\\20261006_211229",
+      "run_dir_after_detect": "E:\\robot_project\\robot_inspection\\results\\gui_runs\\20261006_211229",
       "manual_H03": {
         "tasks": [
           "H03"
@@ -219,8 +219,8 @@
       "simulation_ticks": 0,
       "exec_label": "执行状态：等待机器人连接",
       "robot_label": "机器人：未连接",
-      "run_dir_after_simulate": "E:\\robot_inspection\\results\\gui_runs\\20261006_211229",
-      "screenshot": "E:\\robot_inspection\\app\\selftest\\gui_测试3.png"
+      "run_dir_after_simulate": "E:\\robot_project\\robot_inspection\\results\\gui_runs\\20261006_211229",
+      "screenshot": "E:\\robot_project\\robot_inspection\\app\\selftest\\gui_测试3.png"
     },
     {
       "image": "测试4.jpg",
@@ -272,7 +272,7 @@
         "H03",
         "H04"
       ],
-      "run_dir_after_detect": "E:\\robot_inspection\\results\\gui_runs\\20261006_211229_01",
+      "run_dir_after_detect": "E:\\robot_project\\robot_inspection\\results\\gui_runs\\20261006_211229_01",
       "manual_H03": {
         "tasks": [
           "H03"
@@ -300,8 +300,8 @@
       "simulation_ticks": 15,
       "exec_label": "执行状态：模拟执行完成 4/4（未连接真实机器人）",
       "robot_label": "机器人：未连接",
-      "run_dir_after_simulate": "E:\\robot_inspection\\results\\gui_runs\\20261006_211230",
-      "screenshot": "E:\\robot_inspection\\app\\selftest\\gui_测试4.png"
+      "run_dir_after_simulate": "E:\\robot_project\\robot_inspection\\results\\gui_runs\\20261006_211230",
+      "screenshot": "E:\\robot_project\\robot_inspection\\app\\selftest\\gui_测试4.png"
     }
   ]
 }

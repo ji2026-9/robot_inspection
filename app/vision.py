@@ -20,21 +20,74 @@ import cv2
 import numpy as np
 
 from config import (CONF, DEVICE_PREFERENCE, EXPECTED_HOLES, IMGSZ, IOU,
-                    MODEL_PATH, ORIENTATION_METHOD, ORIENTATION_NOTE,
-                    ORIENTATION_STATUS)
+                    ELLIPSE_FIT_MODE, MODEL_PATH, ORIENTATION_METHOD,
+                    ORIENTATION_NOTE, ORIENTATION_STATUS)
 from imageio_util import imread_unicode, imwrite_unicode  # noqa: F401  (re-exported)
 
 
-def ellipse_from_mask(mask_bool):
-    """Largest external contour -> cv2.fitEllipse. Returns (ellipse, contour)."""
+def largest_contour(mask_bool):
+    """Largest external contour of a binary mask, or None."""
     m = (mask_bool.astype(np.uint8)) * 255
     contours, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if not contours:
-        return None, None
+        return None
     cnt = max(contours, key=cv2.contourArea)
-    if len(cnt) < 5:
-        return None, cnt
-    return cv2.fitEllipse(cnt), cnt
+    return cnt if len(cnt) >= 5 else None
+
+
+def fit_ellipse_ex(contour, image=None, mode=None):
+    """Fit an ellipse to one contour. Returns ``(ellipse, meta)``.
+
+    ``mode`` selects the strategy (see ``config.ELLIPSE_FIT_MODE``):
+
+    * ``current``     - plain ``cv2.fitEllipse`` on the mask contour.
+    * ``robust``      - RANSAC + inlier refinement (``robust_bore_ellipse``).
+    * ``robust_edge`` - the above, then a sub-pixel search for the real aperture
+      rim (``edge_bore_refinement.refine_multi_edge``). Needs ``image``.
+
+    Any failure quietly degrades to the next cheaper strategy: the function never
+    raises for a usable contour, and ``meta["used"]`` always says what was used.
+    Ellipse geometry keeps OpenCV's original ``((cx,cy),(axis1,axis2),angle)``
+    pairing - the angle belongs to ``axis1``.
+    """
+    mode = mode or ELLIPSE_FIT_MODE
+    meta = {"requested": mode, "used": "current"}
+    ellipse = cv2.fitEllipse(contour)          # always available as a fallback
+
+    if mode in ("robust", "robust_edge"):
+        try:
+            from robust_bore_ellipse import robust_bore_ellipse
+            ell, _samples, _inliers, med_res, support = robust_bore_ellipse(contour)
+            ellipse = ell
+            meta.update({"used": "robust",
+                         "median_residual_px": round(float(med_res), 3),
+                         "support": round(float(support), 3)})
+            if mode == "robust_edge" and image is not None:
+                from edge_bore_refinement import refine_multi_edge
+                ell2, info = refine_multi_edge(image, ellipse)
+                if info.get("used"):
+                    ellipse = ell2
+                    meta.update({"used": "robust_edge",
+                                 "center_shift_px": round(float(info.get("center_shift_px", 0.0)), 3),
+                                 "edge_support": round(float(info.get("support", 0.0)), 3),
+                                 "center_spread_px": round(float(info.get("center_spread_px", 0.0)), 3)})
+                else:
+                    meta["edge_rejected"] = info.get("reason")
+        except Exception as exc:
+            meta["fallback"] = "{}: {}".format(type(exc).__name__, exc)
+    return ellipse, meta
+
+
+def ellipse_from_mask(mask_bool, image=None, mode=None):
+    """Largest external contour -> ellipse. Returns ``(ellipse, contour)``.
+
+    Kept backwards compatible: old callers use ``ellipse_from_mask(mask)``.
+    """
+    cnt = largest_contour(mask_bool)
+    if cnt is None:
+        return None, None
+    ellipse, _meta = fit_ellipse_ex(cnt, image=image, mode=mode)
+    return ellipse, cnt
 
 
 class HoleDetector:
@@ -122,10 +175,11 @@ class HoleDetector:
             try:
                 mask = r.masks.data[i].cpu().numpy() > 0.5
                 conf_i = float(r.boxes.conf[i].cpu().numpy())
-                ell, cnt = ellipse_from_mask(mask)
-                if ell is None:
+                cnt = largest_contour(mask)
+                if cnt is None:
                     result["warnings"].append("第 {} 个目标的 mask 无法拟合椭圆，已跳过".format(i + 1))
                     continue
+                ell, fit_meta = fit_ellipse_ex(cnt, image=img, mode=ELLIPSE_FIT_MODE)
                 (cx, cy), (MA, ma), ang = ell
                 # IMPORTANT: OpenCV returns ((cx,cy), (axis1, axis2), angle) where
                 # `angle` belongs to axis1. Swapping the two axes without rotating
@@ -140,6 +194,7 @@ class HoleDetector:
                                         "minor": round(float(min(MA, ma)), 2),
                                         "aspect": round(float(min(MA, ma) / max(MA, ma)), 3)},
                             "contour": cnt, "mask": mask,
+                            "ellipse_fit": fit_meta,
                             "class_name": r.names.get(int(r.boxes.cls[i].cpu().numpy()), "?")})
             except Exception as exc:
                 result["warnings"].append("解析第 {} 个目标失败: {}".format(i + 1, exc))
@@ -182,6 +237,7 @@ class HoleDetector:
                           "center_px": [round(d["center"][0], 2), round(d["center"][1], 2)],
                           "confidence": round(float(d["confidence"]), 4),
                           "ellipse": d["ellipse"],
+                          "ellipse_fit": d.get("ellipse_fit"),
                           "orientation_status": ORIENTATION_STATUS,
                           "status": "detected",
                           "class_name": d.get("class_name", "cylinder_bore"),

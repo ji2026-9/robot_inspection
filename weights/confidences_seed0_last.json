@@ -1,6 +1,6 @@
 {
   "tag": "seed0_last",
-  "weights": "E:\\robot_inspection\\weights\\last.pt",
+  "weights": "E:\\robot_project\\robot_inspection\\weights\\last.pt",
   "conf_floor": 0.05,
   "images": [
     {

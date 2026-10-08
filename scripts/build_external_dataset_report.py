@@ -17,7 +17,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 EXT = PROJ / "external_datasets"
 REPORTS = EXT / "reports"
 META = EXT / "metadata"

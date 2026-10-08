@@ -2,7 +2,7 @@
 # 适用环境：Windows + Python 3.11 + RTX 3050 Ti (4GB VRAM)
 #
 # 安装方式：
-#   E:\robot_inspection\.venv\Scripts\python.exe -m pip install -r requirements.txt
+#   E:\robot_project\robot_inspection\.venv\Scripts\python.exe -m pip install -r requirements.txt
 #
 # 注意：torch / torchvision 必须用 CUDA 专用源单独安装，见 requirements-torch-cu121.txt
 

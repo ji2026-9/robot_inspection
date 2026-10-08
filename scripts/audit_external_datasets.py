@@ -26,7 +26,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 EXT = PROJ / "external_datasets"
 AUDIT = EXT / "audit"
 REPORTS = EXT / "reports"

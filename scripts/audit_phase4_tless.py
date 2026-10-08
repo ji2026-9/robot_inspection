@@ -34,7 +34,7 @@ import cv2
 import numpy as np
 import yaml
 
-EXT = Path(r"E:\robot_inspection\external_datasets")
+EXT = Path(r"E:\robot_project\robot_inspection\external_datasets")
 DL = EXT / "phase3_downloads"
 AU = EXT / "phase4_tless_audit"
 PR = EXT / "phase4_tless_pretrain"

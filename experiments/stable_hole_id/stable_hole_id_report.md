@@ -136,7 +136,7 @@ M3 none                    : 都不成立 → status=uncertain（仍输出排序
 ## 五、本阶段新增文件
 
 ```
-E:\robot_inspection\experiments\stable_hole_id\
+E:\robot_project\robot_inspection\experiments\stable_hole_id\
 ├── stable_hole_id.py                      稳定编号模块（方法链 M1/M2/M3）
 ├── stable_hole_id_report.md               ← 本报告
 ├── scripts\

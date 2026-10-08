@@ -1,4 +1,4 @@
-来源 run 目录: E:\robot_inspection\experiments\formal_seed42\runs\yolo11n_seg_seed42
+来源 run 目录: E:\robot_project\robot_inspection\experiments\formal_seed42\runs\yolo11n_seg_seed42
 seed: 42
 batch: 2
 imgsz: 640

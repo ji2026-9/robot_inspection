@@ -1,14 +1,14 @@
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
-cd /d E:\robot_inspection
+cd /d E:\robot_project\robot_inspection
 set "PYTHONIOENCODING=utf-8"
 
-set "VENV=E:\robot_inspection\.venv\Scripts\activate.bat"
-set "SCRIPT1=E:\robot_inspection\scripts\make_training_report.py"
-set "SCRIPT2=E:\robot_inspection\scripts\make_detection_report.py"
-set "TR=E:\robot_inspection\results\training_report.html"
-set "DE=E:\robot_inspection\results\detection_report.html"
+set "VENV=E:\robot_project\robot_inspection\.venv\Scripts\activate.bat"
+set "SCRIPT1=E:\robot_project\robot_inspection\scripts\make_training_report.py"
+set "SCRIPT2=E:\robot_project\robot_inspection\scripts\make_detection_report.py"
+set "TR=E:\robot_project\robot_inspection\results\training_report.html"
+set "DE=E:\robot_project\robot_inspection\results\detection_report.html"
 
 echo ============================================================
 echo   Generate visual reports  (NO training, NO model change)

@@ -194,7 +194,7 @@ git push -u origin feature/fusion
 ## 三、他上传完之后，你（本机主人）怎么按需合并
 
 ```bat
-cd /d E:\robot_inspection
+cd /d E:\robot_project\robot_inspection
 
 :: 1) 先把他的分支取回本地（不会改你的工作区）
 git fetch origin
@@ -218,8 +218,8 @@ git cherry-pick <commit-hash>
 建议：**先 diff 再合并**，一次只挑一两个文件，合并后立刻跑
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\app\selftest_full.py
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\check_git_safety.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\app\selftest_full.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_git_safety.py
 ```
 
 确认没问题再 `git commit`，然后 `git push`。

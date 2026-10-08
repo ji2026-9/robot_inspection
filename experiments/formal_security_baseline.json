@@ -1,12 +1,12 @@
 {
   "taken_at": "2026-10-06 17:13:55",
   "weights_best_pt": {
-    "path": "E:\\robot_inspection\\weights\\best.pt",
+    "path": "E:\\robot_project\\robot_inspection\\weights\\best.pt",
     "size": 5989021,
     "sha256": "7E33DF6223CC25463683131FD5098713100E8552F782111D848737BA9503BDFE"
   },
   "dataset_box_yolo": {
-    "path": "E:\\robot_inspection\\dataset\\box_yolo",
+    "path": "E:\\robot_project\\robot_inspection\\dataset\\box_yolo",
     "files": 54,
     "manifest_sha256": "B2D45C38C59AC5B0AA3108643459D92432406810912514A664EBE08937CF4805"
   },

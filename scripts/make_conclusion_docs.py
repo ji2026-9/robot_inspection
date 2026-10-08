@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
-EXP_DIR = Path(r"E:\robot_inspection\experiments")
+EXP_DIR = Path(r"E:\robot_project\robot_inspection\experiments")
 V1 = EXP_DIR / "formal_comparison.json"
 V2 = EXP_DIR / "formal_comparison_v2.json"
 
@@ -69,7 +69,7 @@ def main() -> int:
 
     A("# 正式训练对照实验结论文档")
     A("")
-    A("> 项目：`E:\\robot_inspection`（机械臂孔位检测 / YOLO-Seg 分割）")
+    A("> 项目：`E:\\robot_project\\robot_inspection`（机械臂孔位检测 / YOLO-Seg 分割）")
     A("> 生成时间：{}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     A("> 本文件由 `scripts\\make_conclusion_docs.py` 依据 `formal_comparison.json`"
       "（第一阶段）与 `formal_comparison_v2.json`（扩展阶段）自动生成，数据未做任何修饰。")
@@ -306,7 +306,7 @@ def main() -> int:
     B("<!DOCTYPE html><html lang='zh-CN'><head><meta charset='utf-8'>")
     B("<title>正式训练对照实验结论文档</title><style>{}</style></head><body><div class='wrap'>".format(css))
     B("<h1>正式训练对照实验结论文档</h1>")
-    B("<div class='meta'>项目：<code>E:\\robot_inspection</code>（机械臂孔位检测 / YOLO-Seg 分割）<br>"
+    B("<div class='meta'>项目：<code>E:\\robot_project\\robot_inspection</code>（机械臂孔位检测 / YOLO-Seg 分割）<br>"
       "生成时间：{}<br>"
       "由 <code>scripts\\make_conclusion_docs.py</code> 依据 formal_comparison.json 与 "
       "formal_comparison_v2.json 自动生成，数据未做修饰。</div>".format(

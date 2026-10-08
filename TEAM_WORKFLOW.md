@@ -2,7 +2,7 @@
 
 > 这份文件只讲一件事：**我和朋友两个人怎么用 Git 一起改这个项目。**
 > 每条命令都可以直接复制粘贴执行。
-> 项目路径（本机）：`E:\robot_inspection`
+> 项目路径（本机）：`E:\robot_project\robot_inspection`
 
 ---
 
@@ -34,7 +34,7 @@
 ### 开始工作前（每次都要做）
 
 ```bat
-cd /d E:\robot_inspection
+cd /d E:\robot_project\robot_inspection
 git checkout main
 git pull
 ```
@@ -114,7 +114,7 @@ external_datasets/      friend_transfer/
 这些已经被 `.gitignore` 忽略。想确认有没有漏网，跑：
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\check_git_safety.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_git_safety.py
 ```
 
 看到 6 行全部 `PASS` 才算安全。

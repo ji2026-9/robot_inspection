@@ -21,7 +21,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-EXT = Path(r"E:\robot_inspection\external_datasets")
+EXT = Path(r"E:\robot_project\robot_inspection\external_datasets")
 AU = EXT / "phase4_tless_audit"
 PR = EXT / "phase4_tless_pretrain"
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -180,7 +180,7 @@ def main() -> int:
         "",
         "```python",
         "import csv, cv2",
-        "rows = list(csv.DictReader(open(r'E:\\robot_inspection\\external_datasets\\"
+        "rows = list(csv.DictReader(open(r'E:\\robot_project\\robot_inspection\\external_datasets\\"
         "phase4_tless_pretrain\\TLESS-HOLE\\manifest.csv', encoding='utf-8-sig')))",
         "imgs = [cv2.imread(r['image_path']) for r in rows]   # 全部为无标签 RGB",
         "```",
@@ -222,14 +222,14 @@ def main() -> int:
         "",
         "## 3. 微调阶段（与现有实验保持完全一致）",
         "",
-        "- 数据：`E:\\robot_inspection\\experiments\\dataset_17_5_3`（17 train / 5 val / 3 test）",
+        "- 数据：`E:\\robot_project\\robot_inspection\\experiments\\dataset_17_5_3`（17 train / 5 val / 3 test）",
         "- 模型：`yolo11n-seg.pt`；imgsz=640；batch=8；epochs=100；patience=0；device=0；workers=2；"
         "deterministic=True",
         "- 每个实验建议至少跑 **seed = 0 / 42 / 123** 三个种子，便于与已有结果统计比较",
         "",
         "## 4. 评估协议（必须与现有评测完全一致）",
         "",
-        "- 测试图像：`E:\\robot_inspection\\test_images\\` 的 **测试1 ~ 测试4**（4 张，固定不变）",
+        "- 测试图像：`E:\\robot_project\\robot_inspection\\test_images\\` 的 **测试1 ~ 测试4**（4 张，固定不变）",
         "- **confidence threshold = 0.50**（正式统计阈值）",
         "- 后处理：YOLO-Seg mask → `cv2.fitEllipse` 椭圆拟合 → 椭圆中心",
         "- 编号：4 个孔中心做 **PCA 主轴** → 沿主轴排序 → **H01 ~ H04**",

@@ -32,10 +32,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-DL = Path(r"E:\robot_inspection\external_datasets\phase3_downloads")
-META = Path(r"E:\robot_inspection\external_datasets\metadata")
-TA = Path(r"E:\robot_inspection\external_datasets\phase3_tless_audit")
-WA = Path(r"E:\robot_inspection\external_datasets\phase3_workpieces_audit")
+DL = Path(r"E:\robot_project\robot_inspection\external_datasets\phase3_downloads")
+META = Path(r"E:\robot_project\robot_inspection\external_datasets\metadata")
+TA = Path(r"E:\robot_project\robot_inspection\external_datasets\phase3_tless_audit")
+WA = Path(r"E:\robot_project\robot_inspection\external_datasets\phase3_workpieces_audit")
 SEED = 0
 N_SAMPLE = 120
 

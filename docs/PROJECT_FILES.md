@@ -18,7 +18,7 @@
 
 1. GitHub 对**单个文件有 100 MB 硬上限**（超过直接拒绝整个 push），所以模型/数据集不能进 Git。
 2. Git 会**永久保留历史**，大文件一旦提交就删不掉、仓库会一直很重。
-3. `.venv` 里有写死的绝对路径（`E:\robot_inspection\.venv\...`），拷到别人电脑上**跑不起来**，
+3. `.venv` 里有写死的绝对路径（`E:\robot_project\robot_inspection\.venv\...`），拷到别人电脑上**跑不起来**，
    必须各人自己装；`_installers` 里的安装包官网随时能下。
 4. GitHub Release 附件**单个上限 2 GB、数量不限**，正好用来放大文件。
 
@@ -46,7 +46,7 @@ weights\      只有 best_source.txt 和两个置信度 json（**不含 .pt**）
 
 ## 三、B 类：Release 附件（8 个，共 1,227 MB）
 
-全部已生成在：**`E:\robot_inspection\release_assets\`**
+全部已生成在：**`E:\robot_project\robot_inspection\release_assets\`**
 
 **已经上传完成（2026-10-07）：**
 
@@ -57,6 +57,18 @@ https://github.com/ji2026-9/robot_inspection/releases/tag/v1.0-data
 标签 `v1.0-data`，8 个附件全部上传成功并逐个校验过（大小与 SHA256 一致）。
 仓库为**私有（Private）**，只有你和被邀请的协作者能下载。
 
+> ⚠️ **注意（2026-10-07 更新）**：该 Release 里的 `04_weights_best.pt` 和
+> `01_gui_app_full_package.zip` 内带的模型，是**旧 baseline**（`7E33DF62…`，测试3 只检出 3/4）。
+> **新的 `fusion_v1` 模型（4 张测试图 16/16）已单独发布：**
+>
+> ```
+> https://github.com/ji2026-9/robot_inspection/releases/tag/v1.1-model
+> ```
+>
+> 该 Release 有 3 个附件：`01_fusion_v1_best.pt`（模型本体，5.71 MB）、
+> `02_README_how_to_use.md`（怎么装）、`03_SHA256.txt`（校验值）。
+> 朋友只要覆盖到自己项目的 `weights\best.pt` 即可，不用改代码。
+
 ### 3.1 全部附件（01–08，共 1,227 MB）—— 建议全部上传
 
 | # | 文件名 | 大小 | 里面是什么 | 谁需要 |
@@ -64,7 +76,7 @@ https://github.com/ji2026-9/robot_inspection/releases/tag/v1.0-data
 | 01 | `01_gui_app_full_package.zip` | 157.0 MB | **完整 GUI 软件包**：源码 + `best.pt` + 测试图 + 数据集 + `setup_env.bat` + `run_gui.bat` | ★★ 朋友最需要，下载这一个就能跑 |
 | 02 | `02_model_package.zip` | 169.4 MB | 模型 + 数据集 + 推理脚本（早期交付版本） | 保留备用 |
 | 03 | `03_dataset_box_yolo.zip` | 77.6 MB | 原始数据集压缩包（train 20 / val 2 / test 3） | 要重新训练时 |
-| 04 | `04_weights_best.pt` | 5.7 MB | 当前 baseline 模型单独一份（YOLO11n-Seg） | 只想替换模型时 |
+| 04 | `04_weights_best.pt` | 5.7 MB | **旧** baseline 模型单独一份（SHA256 `7E33DF62…BDFE`）| 只想替换模型时 |
 | 05 | `05_test_images.zip` | 13.1 MB | 测试1~4.jpg 四张手机照片 | 复现测试结果 |
 | 06 | `06_experiments_full.zip` | 452.6 MB | 5 个 seed 的完整正式实验（含 24 个 `.pt` 和结果图） | 做模型比较 |
 | 07 | `07_results_and_runs.zip` | 347.9 MB | 检测可视化结果 + YOLO 训练输出 | 看训练曲线/混淆矩阵 |
@@ -75,11 +87,11 @@ https://github.com/ji2026-9/robot_inspection/releases/tag/v1.0-data
 `external_datasets\`（3,055 MB，3,843 个文件）是 Phase 2–4 的外部数据集探索，
 **和主线「4 个大孔检测」无关**，而且随时能重新下载，因此**本轮不生成、不上传**。
 
-原始数据仍然完整保留在本机 `E:\robot_inspection\external_datasets\`。
+原始数据仍然完整保留在本机 `E:\robot_project\robot_inspection\external_datasets\`。
 将来确实要做数据融合实验时，一条命令就能补生成（会拆成 3 个 <2 GB 的附件）：
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py --with-external
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\make_release_assets.py --with-external
 ```
 
 ### 3.3 每个附件的 SHA256
@@ -106,7 +118,7 @@ E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_re
    - **Choose a tag**：输入 `v1.0-data` → 点 **Create new tag**
    - **Target**：`main`
    - **Release title**：`数据与模型 v1.0（数据集 / 模型 / 实验结果）`
-3. 打开文件夹 **`E:\robot_inspection\release_assets\`**，把里面的文件**拖进页面下方的
+3. 打开文件夹 **`E:\robot_project\robot_inspection\release_assets\`**，把里面的文件**拖进页面下方的
    "Attach binaries by dropping them here"** 方框。
    - 一共 8 个文件（1.2 GB），可以按住 Ctrl 多选后一起拖。
    - 不要拖 `MANIFEST_文件清单.txt` / `SHA256_校验.txt` / `说明_项目文件分类.md`（留着自用即可）。
@@ -172,14 +184,14 @@ python scripts\check_dataset.py
 
 ```bat
 :: 默认：核心 8 个附件
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\make_release_assets.py
 
 :: 需要外部数据集时（额外生成 09~11，约 3 GB，1 分钟）
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\make_release_assets.py --with-external
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\make_release_assets.py --with-external
 ```
 
 脚本**只读取**项目文件，不会修改、移动或删除任何原始内容；
-输出固定到 `E:\robot_inspection\release_assets\`（该目录已被 `.gitignore` 忽略）。
+输出固定到 `E:\robot_project\robot_inspection\release_assets\`（该目录已被 `.gitignore` 忽略）。
 
 > 注意：GitHub Release 单个附件上限 **2 GiB**，所以外部数据集被拆成 09/10/11 三份，
 > 不要试图把 `external_datasets\` 整包压成一个文件。

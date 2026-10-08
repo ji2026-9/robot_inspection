@@ -23,7 +23,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-EXT = Path(r"E:\robot_inspection\external_datasets")
+EXT = Path(r"E:\robot_project\robot_inspection\external_datasets")
 META = EXT / "metadata"
 DL = EXT / "phase3_downloads"
 REPORTS = EXT / "reports"

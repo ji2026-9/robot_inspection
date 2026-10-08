@@ -1,0 +1,7 @@
+auto_save: true
+with_image_data: false
+keep_prev: false
+labels:
+  - part
+  - bore
+validate_label: exact

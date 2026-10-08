@@ -1,6 +1,6 @@
 # 正式训练对照实验结论文档
 
-> 项目：`E:\robot_inspection`（机械臂孔位检测 / YOLO-Seg 分割）
+> 项目：`E:\robot_project\robot_inspection`（机械臂孔位检测 / YOLO-Seg 分割）
 > 生成时间：2026-10-06 17:20:47
 > 本文件由 `scripts\make_conclusion_docs.py` 依据 `formal_comparison.json`（第一阶段）与 `formal_comparison_v2.json`（扩展阶段）自动生成，数据未做任何修饰。
 

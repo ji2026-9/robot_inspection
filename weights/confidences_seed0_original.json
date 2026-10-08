@@ -1,6 +1,6 @@
 {
   "tag": "seed0_original",
-  "weights": "E:\\robot_inspection\\weights\\best.pt",
+  "weights": "E:\\robot_project\\robot_inspection\\weights\\best.pt",
   "conf_floor": 0.05,
   "images": [
     {

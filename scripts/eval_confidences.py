@@ -5,7 +5,7 @@
 对指定权重在指定图片上跑推理，输出每张图片的所有检测置信度（低阈值，便于看清漏检/低分）。
 
 用法：
-    python scripts\\eval_confidences.py --weights E:\\robot_inspection\\weights\\best.pt
+    python scripts\\eval_confidences.py --weights E:\\robot_project\\robot_inspection\\weights\\best.pt
     python scripts\\eval_confidences.py --weights <对照模型> --tag seed42
 """
 
@@ -14,7 +14,7 @@ import json
 import sys
 from pathlib import Path
 
-DEFAULT_DIR = Path(r"E:\robot_inspection\test_images")
+DEFAULT_DIR = Path(r"E:\robot_project\robot_inspection\test_images")
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 
 

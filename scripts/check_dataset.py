@@ -9,7 +9,7 @@
     4. 读取并打印 data.yaml。
 
 用法：
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\check_dataset.py
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\check_dataset.py
 """
 
 import argparse
@@ -50,7 +50,7 @@ def check_split(root: Path, split: str) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default=r"E:\robot_inspection\dataset\box_yolo")
+    ap.add_argument("--root", default=r"E:\robot_project\robot_inspection\dataset\box_yolo")
     args = ap.parse_args()
 
     root = Path(args.root)
@@ -62,8 +62,8 @@ def main() -> int:
 
     if not root.is_dir():
         print("[错误] 数据集目录不存在：", root)
-        print("[提示] 请把 box_yolo_dataset.zip 解压到 E:\\robot_inspection\\dataset\\ 下，")
-        print("       解压后应为 E:\\robot_inspection\\dataset\\box_yolo\\")
+        print("[提示] 请把 box_yolo_dataset.zip 解压到 E:\\robot_project\\robot_inspection\\dataset\\ 下，")
+        print("       解压后应为 E:\\robot_project\\robot_inspection\\dataset\\box_yolo\\")
         return 2
 
     data_yaml = root / "data.yaml"

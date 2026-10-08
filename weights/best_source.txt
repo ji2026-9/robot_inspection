@@ -1,2 +1,2 @@
-来源 run 目录: E:\robot_inspection\runs\box_yolo_yolo11n_seg
+来源 run 目录: E:\robot_project\robot_inspection\runs\box_yolo_yolo11n_seg
 复制时间: 2026-10-06 16:36:10

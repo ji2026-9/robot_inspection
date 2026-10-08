@@ -5,13 +5,13 @@ YOLO11n-Seg 训练脚本（RTX 3050 Ti 4GB 专用）
 - 默认参数：epochs=100, imgsz=640, batch=2, workers=2, patience=20, device=0
 - 如果显存不足（CUDA out of memory），会自动降低 batch / imgsz 重试，不需要人工排查：
       (batch=2, imgsz=640) -> (1,640) -> (2,512) -> (1,512) -> (1,416)
-- 训练完成后自动把 weights/best.pt 复制到 E:\\robot_inspection\\weights\\best.pt
+- 训练完成后自动把 weights/best.pt 复制到 E:\\robot_project\\robot_inspection\\weights\\best.pt
 - 同时保留完整 runs 目录与训练日志
 
 用法：
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\train_seg.py
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\train_seg.py
     # 冒烟测试（只跑 1 轮，验证流程是否通）：
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\train_seg.py --epochs 1 --name smoke_test
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\train_seg.py --epochs 1 --name smoke_test
 """
 
 import argparse
@@ -24,7 +24,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 DEFAULT_DATA = PROJ / "dataset" / "box_yolo" / "data.yaml"
 RUNS_DIR = PROJ / "runs"
 WEIGHTS_DIR = PROJ / "weights"
@@ -214,11 +214,11 @@ def main() -> int:
     ap.add_argument("--device", default="0")
     ap.add_argument("--name", default=None, help="runs 下的实验名，默认自动生成时间戳")
     ap.add_argument("--seed", type=int, default=0, help="随机种子（默认 0，与 Ultralytics 默认一致）")
-    ap.add_argument("--project", default=str(RUNS_DIR), help="实验输出根目录（默认 E:\\robot_inspection\\runs）")
+    ap.add_argument("--project", default=str(RUNS_DIR), help="实验输出根目录（默认 E:\\robot_project\\robot_inspection\\runs）")
     ap.add_argument("--weights-out", default=str(WEIGHTS_DIR),
-                    help="best.pt/last.pt 的保存目录（默认 E:\\robot_inspection\\weights，不会覆盖其它实验）")
+                    help="best.pt/last.pt 的保存目录（默认 E:\\robot_project\\robot_inspection\\weights，不会覆盖其它实验）")
     ap.add_argument("--logs-out", default=str(LOGS_DIR),
-                    help="日志输出目录（默认 E:\\robot_inspection\\logs）")
+                    help="日志输出目录（默认 E:\\robot_project\\robot_inspection\\logs）")
     ap.add_argument("--deterministic", type=int, default=1, help="是否启用确定性训练，1=启用(默认) 0=关闭")
     ap.add_argument("--no-fallback", action="store_true", help="禁用自动降 batch 逻辑")
     args = ap.parse_args()
@@ -266,7 +266,7 @@ def main() -> int:
     data_path = Path(args.data)
     if not data_path.is_file():
         log("[错误] 找不到数据集配置：{}".format(data_path))
-        log("       请先把 box_yolo_dataset.zip 解压到 E:\\robot_inspection\\dataset\\ 下。")
+        log("       请先把 box_yolo_dataset.zip 解压到 E:\\robot_project\\robot_inspection\\dataset\\ 下。")
         log.close()
         return 2
 
@@ -417,7 +417,7 @@ def main() -> int:
     log("实验目录 : {}".format(run_dir))
     log("权重目录 : {}".format(weights_out))
     log("原生日志 : {}".format(native_log))
-    log("查看报告 : 运行 E:\\robot_inspection\\run_report.bat")
+    log("查看报告 : 运行 E:\\robot_project\\robot_inspection\\run_report.bat")
     log("========================================")
 
     log("")

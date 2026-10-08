@@ -15,7 +15,14 @@
 | [`BRANCH_PLAN.md`](../BRANCH_PLAN.md) | 分支规划与各自负责范围 |
 | [`PROJECT_FILES.md`](PROJECT_FILES.md) | **文件分类与共享说明**（Git / Release 附件 / 不上传 三类） |
 | [`FRIEND_UPLOAD_PROMPT.md`](FRIEND_UPLOAD_PROMPT.md) | **给朋友的提示词**：让他把自己的项目安全上传到独立分支 |
-| [`app\README.md`](../app/README.md) | GUI 软件说明（界面、分层结构、已知限制） |
+| [`FRIEND_REVIEW_AND_MERGE_PLAN.md`](FRIEND_REVIEW_AND_MERGE_PLAN.md) | **朋友分支审核报告 + 合并方案**（哪些值得合并、哪些别合并） |
+| [`ELLIPSE_FIT_COMPARISON.md`](ELLIPSE_FIT_COMPARISON.md) | **椭圆拟合方式对比与采纳记录**（已采纳稳健+边缘精修） |
+| [`FRIEND_PIPELINE_AUDIT.md`](FRIEND_PIPELINE_AUDIT.md) | **朋友管线复现审核**：5/7 vs 7/7 差距来自模型与训练数据量 |
+| [`FRIEND_REVIEW_20261008.md`](FRIEND_REVIEW_20261008.md) | **朋友分支复审与合并结论**（2026-10-08） |
+| [`CAMERA_ORBBEC_20261008.md`](CAMERA_ORBBEC_20261008.md) | **工业相机（Orbbec）接入**：驱动、实时画面/抓拍、网段配置、换电脑恢复步骤 |
+| [`PROJECT_STATUS.md`](PROJECT_STATUS.md) | **项目进度与后续计划**（进度总表 + 未完成项 + 后续方向） |
+| [`app\README.md`](../app/README.md) | **视觉核心库说明**（推理/拟合/编号；界面已统一到 `inspection_app`） |
+| [`software\README.md`](../software/README.md) | **正式版软件源码说明**（我们这套界面的权威版本：怎么交付、怎么跑、怎么自检） |
 | [`configs\README.md`](../configs/README.md) | 配置文件放哪里 |
 
 ## 二、不在 Git 里的报告（本机生成物）
@@ -39,7 +46,7 @@
 ## 四、提交前检查
 
 ```bat
-E:\robot_inspection\.venv\Scripts\python.exe E:\robot_inspection\scripts\check_git_safety.py
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_git_safety.py
 ```
 
 确认输出 `RESULT: PASS`。

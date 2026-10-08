@@ -7,12 +7,12 @@
          -> 每个实例的 mask 轮廓 -> cv2.fitEllipse 得到更准确的孔中心
          -> 4 个孔中心做 PCA 求工件长轴
          -> 沿长轴排序，编号 H01 / H02 / H03 / H04
-         -> 可视化保存到 E:\\robot_inspection\\results\\
+         -> 可视化保存到 E:\\robot_project\\robot_inspection\\results\\
 
 用法：
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\predict_holes.py
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\predict_holes.py --source "E:\\some\\dir"
-    E:\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\predict_holes.py --source 测试1.jpg
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\predict_holes.py
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\predict_holes.py --source "E:\\some\\dir"
+    E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe scripts\\predict_holes.py --source 测试1.jpg
 """
 
 import argparse
@@ -23,7 +23,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-PROJ = Path(r"E:\robot_inspection")
+PROJ = Path(r"E:\robot_project\robot_inspection")
 DEFAULT_WEIGHTS = PROJ / "weights" / "best.pt"
 DEFAULT_OUT = PROJ / "results"
 CONF_THRESHOLD = 0.50      # 高置信度阈值（与之前验证一致）
@@ -156,7 +156,7 @@ def main() -> int:
     images = find_images(args.source)
     if not images:
         print("[错误] 没有找到任何测试图片。")
-        print("       请把测试图片放到 E:\\robot_inspection\\test_images\\ 下，")
+        print("       请把测试图片放到 E:\\robot_project\\robot_inspection\\test_images\\ 下，")
         print("       或用 --source 指定图片路径/目录。")
         return 2
 
