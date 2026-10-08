@@ -235,6 +235,50 @@ def patch_photo_dir(engine: Path) -> str:
     return "已改为记住上次文件夹（原文件备份为 app.py.bak）"
 
 
+def patch_qt_photo_dir(engine: Path) -> str:
+    """The Qt UI keeps its own `last_dir` (defaults to a folder that does not exist,
+    so the picker opened the program directory) and never persisted it. Load it from
+    the marker file and save it after each selection."""
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    text = f.read_text(encoding="utf-8")
+    if "remember the last used photo folder" in text:
+        return "已打过补丁（跳过）"
+    edits = [
+        ("        self.last_dir = str(BASE / 'data' / 'incoming_photos')",
+         "        # [local patch] remember the last used photo folder across restarts\n"
+         "        _marker = BASE / 'last_photo_dir.txt'\n"
+         "        try:\n"
+         "            _saved = Path(_marker.read_text(encoding='utf-8').strip()) if _marker.is_file() else None\n"
+         "        except OSError:\n"
+         "            _saved = None\n"
+         "        if _saved is not None and _saved.is_dir():\n"
+         "            self.last_dir = str(_saved)\n"
+         "        else:\n"
+         "            _pictures = Path.home() / 'Pictures'\n"
+         "            self.last_dir = str(_pictures) if _pictures.is_dir() else str(BASE)"),
+        ("        self.last_dir = str(Path(self.paths[0]).parent) if self.paths else self.last_dir",
+         "        self.last_dir = str(Path(self.paths[0]).parent) if self.paths else self.last_dir\n"
+         "        try:   # [local patch] remember it for next launch\n"
+         "            (BASE / 'last_photo_dir.txt').write_text(self.last_dir, encoding='utf-8')\n"
+         "        except OSError:\n"
+         "            pass"),
+    ]
+    applied = 0
+    for old, new in edits:
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied += 1
+    if not applied:
+        return "没找到目标代码行，请人工检查"
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    return "Qt 界面已改为记住上次文件夹（原文件备份为 gui.py.bak）"
+
+
 def patch_tk_dark_mode(engine: Path) -> str:
     """The management windows are Tkinter and use ttk defaults, so in Windows dark
     mode their labels draw white text on the app's light background (invisible).
@@ -1101,6 +1145,193 @@ def patch_fresh_start(engine: Path) -> str:
     return "；".join(out) or "无需修改"
 
 
+def patch_batch_history(engine: Path) -> str:
+    """"打开上次批次" only ever reached the newest batch (last_batch.json is
+    overwritten). Archive every batch and let the user pick which one to reopen."""
+    edits = [
+        (engine / "inspection_gui" / "gui.py", [
+            ("LAST_BATCH = BASE / 'last_batch.json'",
+             "LAST_BATCH = BASE / 'last_batch.json'\n"
+             "BATCH_DIR = BASE / 'batches'                    # [local patch] 历史批次归档目录\n"
+             "BATCH_INDEX = BATCH_DIR / 'index.jsonl'         # [local patch] 批次索引"),
+            # 1) archive every batch next to last_batch.json
+            ("        temporary = LAST_BATCH.with_suffix('.tmp')\n"
+             "        temporary.write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding='utf-8')\n"
+             "        temporary.replace(LAST_BATCH)",
+             "        temporary = LAST_BATCH.with_suffix('.tmp')\n"
+             "        temporary.write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding='utf-8')\n"
+             "        temporary.replace(LAST_BATCH)\n"
+             "        # [local patch] keep every batch so older ones stay reachable\n"
+             "        try:\n"
+             "            BATCH_DIR.mkdir(exist_ok=True)\n"
+             "            stamp = datetime.now().strftime('%Y%m%d_%H%M%S')\n"
+             "            snapshot = BATCH_DIR / (stamp + '.json')\n"
+             "            snapshot.write_text(json.dumps(reports, ensure_ascii=False, indent=2),\n"
+             "                                encoding='utf-8')\n"
+             "            entry = {'stamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),\n"
+             "                     'count': len(reports),\n"
+             "                     'photos': [Path(r.get('image', '')).name for r in reports][:3],\n"
+             "                     'dir': str(snapshot.parent),\n"
+             "                     'file': str(snapshot)}\n"
+             "            with BATCH_INDEX.open('a', encoding='utf-8') as handle:\n"
+             "                handle.write(json.dumps(entry, ensure_ascii=False) + '\\n')\n"
+             "        except OSError:\n"
+             "            pass"),
+            # 2) the button opens a chooser instead of blindly loading the newest
+            ("        self.btn_last_batch = QPushButton('打开上次批次')   # [local patch]\n"
+             "        self.btn_last_batch.setToolTip('只在你点击时才载入上一次的检测结果，启动时不会自动载入。')",
+             "        self.btn_last_batch = QPushButton('打开历史批次')   # [local patch]\n"
+             "        self.btn_last_batch.setToolTip('列出以前检测过的每一批，自己选一批重新载入；启动时不会自动载入。')"),
+            ("        self.btn_last_batch.clicked.connect(self.open_last_batch)   # [local patch]",
+             "        self.btn_last_batch.clicked.connect(self.open_batch_history)   # [local patch]"),
+            # 3) replace the simple loader with a picker + a shared loader
+            ("    @Slot()\n"
+             "    def open_last_batch(self):\n"
+             "        \"\"\"[local patch] explicit user action: load the previous batch.\"\"\"\n"
+             "        if not LAST_BATCH.is_file():\n"
+             "            QMessageBox.information(self, '没有历史批次',\n"
+             "                                    '还没有可以打开的上一次检测结果。')\n"
+             "            return\n"
+             "        self.restore_last_batch()\n"
+             "        if not self.paths:\n"
+             "            QMessageBox.information(self, '没有历史批次',\n"
+             "                                    '上一次的检测结果文件内容为空。')\n",
+             "    def _batch_entries(self):\n"
+             "        entries = []\n"
+             "        if BATCH_INDEX.is_file():\n"
+             "            try:\n"
+             "                for line in BATCH_INDEX.read_text(encoding='utf-8').splitlines():\n"
+             "                    if line.strip():\n"
+             "                        entries.append(json.loads(line))\n"
+             "            except (OSError, ValueError):\n"
+             "                entries = []\n"
+             "        entries = [entry for entry in entries\n"
+             "                   if Path(entry.get('file', '')).is_file()]\n"
+             "        if not entries and LAST_BATCH.is_file():\n"
+             "            try:\n"
+             "                reports = json.loads(LAST_BATCH.read_text(encoding='utf-8'))\n"
+             "                entries = [{'stamp': '（较早，未归档）', 'count': len(reports),\n"
+             "                            'photos': [Path(r.get('image', '')).name\n"
+             "                                       for r in reports if isinstance(r, dict)][:3],\n"
+             "                            'dir': str(BATCH_DIR), 'file': str(LAST_BATCH)}]\n"
+             "            except (OSError, ValueError):\n"
+             "                entries = []\n"
+             "        return list(reversed(entries))\n"
+             "\n"
+             "    @Slot()\n"
+             "    def open_batch_history(self):\n"
+             "        \"\"\"[local patch] pick WHICH previous batch to reopen.\"\"\"\n"
+             "        entries = self._batch_entries()\n"
+             "        if not entries:\n"
+             "            QMessageBox.information(self, '没有历史批次',\n"
+             "                                    '还没有可以打开的历史检测批次。')\n"
+             "            return\n"
+             "        dialog = QDialog(self)\n"
+             "        dialog.setWindowTitle('打开历史批次')\n"
+             "        dialog.resize(820, 440)\n"
+             "        layout = QVBoxLayout(dialog)\n"
+             "        layout.addWidget(QLabel('选择要重新载入的检测批次（不会重新检测，也不会新增实验记录）：'))\n"
+             "        table = QTableWidget(len(entries), 4)\n"
+             "        table.setHorizontalHeaderLabels(['检测时间', '张数', '照片', '结果目录'])\n"
+             "        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)\n"
+             "        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)\n"
+             "        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)\n"
+             "        table.verticalHeader().setVisible(False)\n"
+             "        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)\n"
+             "        table.horizontalHeader().setStretchLastSection(True)\n"
+             "        for row, entry in enumerate(entries):\n"
+             "            photos = entry.get('photos') or []\n"
+             "            table.setItem(row, 0, QTableWidgetItem(str(entry.get('stamp', ''))))\n"
+             "            table.setItem(row, 1, QTableWidgetItem(str(entry.get('count', ''))))\n"
+             "            table.setItem(row, 2, QTableWidgetItem('、'.join(photos)))\n"
+             "            table.setItem(row, 3, QTableWidgetItem(str(entry.get('dir', ''))))\n"
+             "        table.selectRow(0)\n"
+             "        layout.addWidget(table, 1)\n"
+             "        buttons = QHBoxLayout()\n"
+             "        buttons.addStretch(1)\n"
+             "        open_button = QPushButton('打开这一批')\n"
+             "        open_button.setObjectName('primary')\n"
+             "        cancel_button = QPushButton('取消')\n"
+             "        buttons.addWidget(open_button)\n"
+             "        buttons.addWidget(cancel_button)\n"
+             "        layout.addLayout(buttons)\n"
+             "        chosen = {'row': None}\n"
+             "        def accept():\n"
+             "            chosen['row'] = table.currentRow()\n"
+             "            dialog.accept()\n"
+             "        open_button.clicked.connect(accept)\n"
+             "        cancel_button.clicked.connect(dialog.reject)\n"
+             "        table.cellDoubleClicked.connect(lambda *_: accept())\n"
+             "        if dialog.exec() != QDialog.DialogCode.Accepted or chosen['row'] is None:\n"
+             "            return\n"
+             "        self.load_batch(entries[chosen['row']].get('file'))\n"
+             "\n"
+             "    def load_batch(self, path):\n"
+             "        \"\"\"[local patch] show a stored batch in the workspace (no detection).\"\"\"\n"
+             "        try:\n"
+             "            reports = json.loads(Path(path).read_text(encoding='utf-8'))\n"
+             "        except (OSError, ValueError, TypeError):\n"
+             "            reports = []\n"
+             "        reports = [r for r in reports if isinstance(r, dict) and r.get('image')]\n"
+             "        if not reports:\n"
+             "            QMessageBox.information(self, '批次为空', '这个批次里没有可显示的结果。')\n"
+             "            return\n"
+             "        self.paths = [r['image'] for r in reports]\n"
+             "        self.results = [_report_to_result(r) for r in reports]\n"
+             "        self.selector.blockSignals(True)\n"
+             "        self.selector.clear()\n"
+             "        self.selector.addItems([f'{i + 1}. {Path(p).name}'\n"
+             "                                for i, p in enumerate(self.paths)])\n"
+             "        self.selector.blockSignals(False)\n"
+             "        self.completed_count = len(reports)\n"
+             "        self.batch_progress.setRange(0, len(reports))\n"
+             "        self.batch_progress.setValue(len(reports))\n"
+             "        self.show_index(0)\n"
+             "        self.set_controls()\n"
+             "        self.log(f'已载入历史批次：{len(reports)} 张（未重新检测、未新增实验记录）。')\n"),
+            # restore_last_batch now goes through load_batch
+            ("            self.paths = [report['image'] for report in reports]\n"
+             "            self.results = [_report_to_result(report) for report in reports]\n"
+             "            self.selector.blockSignals(True)\n"
+             "            self.selector.addItems([f'{index + 1}. {Path(path).name}' for index, path in enumerate(self.paths)])\n"
+             "            self.selector.blockSignals(False)\n"
+             "            self.completed_count = len(reports)\n"
+             "            self.batch_progress.setRange(0, len(reports))\n"
+             "            self.batch_progress.setValue(len(reports))\n"
+             "            self.show_index(0)\n"
+             "            self.log(f'已恢复上次 {len(reports)} 张检测结果，未新增实验记录。')",
+             "            self.load_batch(LAST_BATCH)   # [local patch] shared loader\n"),
+        ]),
+    ]
+    applied, skipped, missing = [], [], []
+    for path, pairs in edits:
+        if not path.is_file():
+            missing.append(path.name)
+            continue
+        text = path.read_text(encoding="utf-8")
+        original = text
+        for old, new in pairs:
+            if new in text:
+                skipped.append(path.name)
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+            else:
+                missing.append("{}:{}".format(path.name, old.strip()[:26]))
+        if text != original:
+            shutil.copy2(path, path.with_suffix(".py.bak"))
+            path.write_text(text, encoding="utf-8")
+            applied.append(path.name)
+    out = []
+    if applied:
+        out.append("已改: " + ", ".join(sorted(set(applied))))
+    if skipped:
+        out.append("已是最新: " + ", ".join(sorted(set(skipped))))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:3]))
+    return "；".join(out) or "无需修改"
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -1148,6 +1379,7 @@ def main() -> int:
     print("3) 应用图标 :", patch_app_icon(engine))
     print("4) 深色模式 :", patch_dark_mode(engine))
     print("5) 照片目录 :", patch_photo_dir(engine))
+    print("5b) Qt目录  :", patch_qt_photo_dir(engine))
     print("6) Tk 配色  :", patch_tk_dark_mode(engine))
     print("7) 界面布局 :", patch_ui_layout(engine))
     print("8) 3D 场景  :", patch_3d_scene(engine))
@@ -1156,6 +1388,7 @@ def main() -> int:
     print("9c) 弹窗布局:", patch_dialog_layouts(engine))
     print("9d) 浅色外框:", patch_light_frame(engine))
     print("9e) 空白启动:", patch_fresh_start(engine))
+    print("9f) 批次历史:", patch_batch_history(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
