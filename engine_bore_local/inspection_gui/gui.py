@@ -201,10 +201,7 @@ class MainWindow(QMainWindow):
         archive_actions = QHBoxLayout()
         parameters_button = QPushButton('相机采集参数')
         parameters_button.clicked.connect(self.show_camera_parameters)
-        archive_button = QPushButton('打开拍摄留样')
-        archive_button.clicked.connect(self.open_capture_archive)
         archive_actions.addWidget(parameters_button)
-        archive_actions.addWidget(archive_button)
         live_layout.addLayout(archive_actions)
         self.btn_capture.setEnabled(False)
         self.btn_live_stop.setEnabled(False)
@@ -677,6 +674,8 @@ class MainWindow(QMainWindow):
         self.measure_mode.setCurrentIndex(0)
         self.selection_note.setText('已冻结本次相机照片。点击“开始检测”，再按图上编号选择要测的孔。')
         self.log('相机原图已留样：' + str(photo) + '；拍摄信息：' + str(sidecar))
+        if self.records_dialog:
+            self.records_dialog.refresh()
 
     def show_camera_parameters(self):
         from .devices_view import _registered_backends

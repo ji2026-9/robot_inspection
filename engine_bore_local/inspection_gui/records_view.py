@@ -8,11 +8,12 @@ from PySide6.QtCore import Qt, QUrl, Slot
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QAbstractItemView, QDialog, QFileDialog, QHBoxLayout, QHeaderView,
-    QLabel, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem,
+    QLabel, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem, QTabWidget,
     QVBoxLayout, QWidget,
 )
 
 from experiment_records import COLUMNS, RECORD_FILE, ExperimentRecords
+from .capture_archive import capture_information
 
 
 class RecordsDialog(QDialog):
@@ -25,12 +26,14 @@ class RecordsDialog(QDialog):
 
     def __init__(self, parent: QWidget | None = None,
                  records: ExperimentRecords | None = None,
-                 path: str | Path = RECORD_FILE):
+                 path: str | Path = RECORD_FILE, capture_root: str | Path | None = None):
         super().__init__(parent)
         self.setWindowTitle("实验记录")
         self.resize(1260, 720)
         self.setMinimumSize(760, 450)
         self.path = Path(records.path if records is not None else path)
+        self.capture_root = Path(capture_root) if capture_root is not None else self.path.parent / 'data' / 'camera_captures'
+        self.capture_rows = []
         self.records = ExperimentRecords.__new__(ExperimentRecords)
         self.records.path = self.path
         self.records.groups = []
@@ -54,7 +57,7 @@ class RecordsDialog(QDialog):
 
         explanation = QLabel(
             "每批照片为一组，新实验追加保存。空白表示没有保留该孔。"
-            "孔号按图像位置排序；双击一行打开检测结果图片。"
+            "孔号按图像位置排序；全部拍摄照片包含尚未检测的留样。双击一行打开原图。"
         )
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
@@ -88,8 +91,29 @@ class RecordsDialog(QDialog):
                 "fit_count": 95, "constraint": 105, "status": 155,
                 "warnings": 520,
             }.get(key, 130))
-        self.table.cellDoubleClicked.connect(self.open_result)
-        layout.addWidget(self.table, 1)
+        self.table.cellDoubleClicked.connect(self.open_original)
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.table, '实验检测记录')
+        self.capture_table = QTableWidget(0, 6)
+        self.capture_table.setHorizontalHeaderLabels(['拍摄时间', '照片', '相机', '图像尺寸', '关联实验组', '状态'])
+        self.capture_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.capture_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.capture_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.capture_table.setAlternatingRowColors(True)
+        self.capture_table.setShowGrid(True)
+        self.capture_table.setStyleSheet(self.table.styleSheet())
+        self.capture_table.verticalHeader().setVisible(False)
+        for column, width in enumerate([215, 360, 160, 120, 175, 180]):
+            self.capture_table.setColumnWidth(column, width)
+        self.capture_table.cellDoubleClicked.connect(self.open_original)
+        self.tabs.addTab(self.capture_table, '全部拍摄照片')
+        layout.addWidget(self.tabs, 1)
+        photo_actions = QHBoxLayout()
+        for label, callback in [('查看原图', self.open_original), ('查看检测结果', self.open_selected_result), ('打开照片所在文件夹', self.open_photo_folder)]:
+            button = QPushButton(label)
+            button.clicked.connect(callback)
+            photo_actions.addWidget(button)
+        layout.addLayout(photo_actions)
         layout.addWidget(QLabel("导出的 CSV 保留全部字段，包括照片、结果图片及模型路径。"))
         self.refresh()
 
@@ -131,7 +155,59 @@ class RecordsDialog(QDialog):
         self.table.verticalScrollBar().setValue(vertical_position)
         self.table.horizontalScrollBar().setValue(horizontal_position)
         self.summary.setText(f"累计 {len(groups)} 组，{len(rows)} 张图片")
+        self.refresh_captures()
         return True
+
+    def refresh_captures(self):
+        selected = self.selected_row().get('image')
+        by_photo = {}
+        for row in self.rows:
+            by_photo.setdefault(str(Path(row['image']).resolve()).casefold(), []).append(row)
+        captures = []
+        for photo in sorted(self.capture_root.glob('*/*.png'), reverse=True):
+            info = capture_information(photo) or {}
+            related = by_photo.get(str(photo.resolve()).casefold(), [])
+            captures.append({'image': str(photo), 'result_image': next((r['result_image'] for r in reversed(related) if r.get('result_image')), ''),
+                'time': info.get('frame_received_at_local') or info.get('saved_at') or '',
+                'photo': photo.name, 'camera': (info.get('camera') or {}).get('model') or '未获取',
+                'size': f"{info['width_px']} × {info['height_px']}" if info.get('width_px') and info.get('height_px') else '未获取',
+                'groups': '、'.join(dict.fromkeys(r['group'] for r in related)) or '—',
+                'status': '拍摄信息缺失，请复核' if not info else ('已有检测记录' if related else '已留样，未检测')})
+        self.capture_rows = captures
+        self.capture_table.setRowCount(len(captures))
+        for index, row in enumerate(captures):
+            for column, key in enumerate(['time', 'photo', 'camera', 'size', 'groups', 'status']):
+                item = QTableWidgetItem(row[key]); item.setToolTip(row[key] if key != 'photo' else row['image'])
+                self.capture_table.setItem(index, column, item)
+            if row['image'] == selected:
+                self.capture_table.selectRow(index)
+        self.tabs.setTabText(1, f'全部拍摄照片（{len(captures)}）')
+
+    def selected_row(self):
+        if self.tabs.currentIndex() == 1:
+            index, rows = self.capture_table.currentRow(), self.capture_rows
+        else:
+            index, rows = self.table.currentRow(), self.rows
+        return rows[index] if 0 <= index < len(rows) else {}
+
+    def open_original(self, *_):
+        self.open_photo_path(self.selected_row().get('image', ''), '拍摄原图')
+
+    def open_selected_result(self, *_):
+        self.open_photo_path(self.selected_row().get('result_image', ''), '检测结果')
+
+    def open_photo_path(self, path_text, title):
+        if not path_text or not Path(path_text).is_file():
+            QMessageBox.information(self, title, '请先选择记录；尚未检测的照片没有检测结果。若文件已移动，记录仍保留。')
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(path_text).resolve())))
+
+    def open_photo_folder(self, *_):
+        photo = self.selected_row().get('image')
+        if photo and Path(photo).parent.is_dir():
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(photo).resolve().parent)))
+        else:
+            QMessageBox.information(self, '照片所在文件夹', '请先选择一条照片记录。')
 
     @Slot()
     def export_csv(self) -> None:
