@@ -31,6 +31,7 @@ OB_FORMAT_YUYV = 0
 OB_FORMAT_YUY2 = 1
 OB_FORMAT_RGB = 22          # OB_FORMAT_RGB888
 OB_FORMAT_BGR = 23
+OB_FORMAT_MJPG = 5
 
 DEFAULT_BIN_DIRS = (
     r"C:\Program Files\OrbbecSDK 2.9.3\bin",
@@ -41,6 +42,9 @@ DEFAULT_BIN_DIRS = (
 
 # 依次尝试的彩色流配置：分辨率、帧率、像素格式
 PROFILE_CANDIDATES = (
+    (1280, 800, 30, OB_FORMAT_MJPG),
+    (1280, 800, 15, OB_FORMAT_MJPG),
+    (640, 480, 15, OB_FORMAT_MJPG),
     (1280, 800, 30, OB_FORMAT_RGB),
     (1280, 720, 30, OB_FORMAT_RGB),
     (848, 480, 30, OB_FORMAT_RGB),
@@ -415,6 +419,8 @@ class OrbbecCamera:
     def _to_bgr(buffer, width, height, pixel_format):
         import cv2
         array = np.frombuffer(buffer, dtype=np.uint8)
+        if pixel_format == OB_FORMAT_MJPG:
+            return cv2.imdecode(array, cv2.IMREAD_COLOR)
         if pixel_format in (OB_FORMAT_RGB,):
             return cv2.cvtColor(array.reshape(height, width, 3), cv2.COLOR_RGB2BGR)
         if pixel_format in (OB_FORMAT_BGR,):
