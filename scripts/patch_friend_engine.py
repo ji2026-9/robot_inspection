@@ -1674,6 +1674,162 @@ def patch_batch_dialog_details(engine: Path) -> str:
     return "已改 {} 处（批次弹窗列名与照片列表）".format(len(applied))
 
 
+def patch_fusion_sync(engine: Path) -> str:
+    """[fusion-sync 2026-10-08] 把朋友分支 feature/fusion 新增的两个能力接进本软件：
+
+    * 「测量就绪检查」（inspection_gui/measurement_readiness.py）——
+      如实列出相机 / 两条机械臂 / 标定 / 测孔清单的完成情况，未完成的项不隐藏，
+      用来决定「发送测量任务」能不能开放；
+    * 「本次要测量的孔」——在孔位表里勾选孔号，只有圆心可靠的孔能进测量清单。
+
+    另外三个新文件（camera_parameters.py / capture_archive.py / vision_workspace.py）
+    已经原样复制进来，等接了真实工业相机（见 CAMERA_DRIVER_CONTRACT.md）再启用。
+    """
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    text = f.read_text(encoding="utf-8")
+    if "[fusion-sync]" in text:
+        return "已打过补丁（跳过）"
+
+    edits = [
+        # 1) 其他功能：多一个「测量就绪检查」按钮
+        ("        self.btn_last_batch.setToolTip('列出以前检测过的每一批，自己选一批重新载入；启动时不会自动载入。')\n"
+         "        for _index, _button in enumerate((self.btn_devices, self.btn_records,\n"
+         "                                          self.btn_models, self.btn_simulation,\n"
+         "                                          self.btn_last_batch, self.btn_results)):\n",
+         "        self.btn_last_batch.setToolTip('列出以前检测过的每一批，自己选一批重新载入；启动时不会自动载入。')\n"
+         "        # [fusion-sync] 来自朋友分支的“测量就绪检查”\n"
+         "        self.btn_readiness = QPushButton('测量就绪检查')\n"
+         "        self.btn_readiness.setToolTip('列出相机 / 机械臂 / 标定 / 测孔清单的完成情况，未完成的项不会隐藏。')\n"
+         "        for _index, _button in enumerate((self.btn_devices, self.btn_records,\n"
+         "                                          self.btn_models, self.btn_simulation,\n"
+         "                                          self.btn_last_batch, self.btn_results,\n"
+         "                                          self.btn_readiness)):\n"),
+        ("        others.setMinimumHeight(146)", "        others.setMinimumHeight(184)"),
+        # 2) 孔位表：勾选＝本次要测的孔
+        ("        self.task_note = QLabel('孔号按当前图像位置排序；尚未建立固定物理孔身份。')",
+         "        self.task_note = QLabel('孔号按当前图像位置排序，不是永久物理孔号；勾选孔号表示“本次要测量这个孔”。')"),
+        ("        self.table = QTableWidget(0, 5)\n"
+         "        self.table.setHorizontalHeaderLabels(['孔号', '置信度', '图像圆心 px', '定位状态', '三维坐标'])",
+         "        self.measure_targets = set()      # [fusion-sync] 本次要测量的孔\n"
+         "        self._filling_table = False       # [fusion-sync] 防止程序填表误触发勾选回调\n"
+         "        self.table = QTableWidget(0, 5)\n"
+         "        self.table.setHorizontalHeaderLabels(['孔号 ☑', '置信度', '图像圆心 px', '定位状态', '三维坐标'])"),
+        # 3) 填表时把勾选状态画出来，并记录可靠圆心
+        ("        self.table.setRowCount(4)\n"
+         "        for row in range(4):\n"
+         "            hid = f'H{row + 1:02d}'\n"
+         "            hole = by_id.get(hid)\n"
+         "            if hole:\n"
+         "                center = hole.get('center_px')\n"
+         "                point = f'{center[0]:.2f}, {center[1]:.2f}' if center is not None else '—'\n"
+         "                state = '图像已定位' if hole.get('reliable_center') else ('圆心待复核' if center else '未拟合出圆心')\n"
+         "                values = [hid, f\"{hole['confidence']:.4f}\", point, state, '待标定']\n"
+         "            else:\n"
+         "                values = [hid, '—', '—', '未识别' if result else '待检测', '—']\n"
+         "            for column, value in enumerate(values):\n"
+         "                item = QTableWidgetItem(value)\n"
+         "                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)\n"
+         "                self.table.setItem(row, column, item)\n",
+         "        self.table.setRowCount(4)\n"
+         "        self._filling_table = True        # [fusion-sync]\n"
+         "        try:\n"
+         "            for row in range(4):\n"
+         "                hid = f'H{row + 1:02d}'\n"
+         "                hole = by_id.get(hid)\n"
+         "                if hole:\n"
+         "                    center = hole.get('center_px')\n"
+         "                    point = f'{center[0]:.2f}, {center[1]:.2f}' if center is not None else '—'\n"
+         "                    state = '图像已定位' if hole.get('reliable_center') else ('圆心待复核' if center else '未拟合出圆心')\n"
+         "                    values = [hid, f\"{hole['confidence']:.4f}\", point, state, '待标定']\n"
+         "                else:\n"
+         "                    values = [hid, '—', '—', '未识别' if result else '待检测', '—']\n"
+         "                for column, value in enumerate(values):\n"
+         "                    item = QTableWidgetItem(value)\n"
+         "                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)\n"
+         "                    if column == 0:   # [fusion-sync] 勾选＝本次要测的孔\n"
+         "                        item.setToolTip('勾选表示“本次要测量这个孔”；只有圆心可靠的孔才允许勾选。')\n"
+         "                        if hole and hole.get('reliable_center'):\n"
+         "                            item.setFlags(Qt.ItemFlag.ItemIsUserCheckable\n"
+         "                                          | Qt.ItemFlag.ItemIsEnabled\n"
+         "                                          | Qt.ItemFlag.ItemIsSelectable)\n"
+         "                            item.setCheckState(Qt.CheckState.Checked if hid in self.measure_targets\n"
+         "                                               else Qt.CheckState.Unchecked)\n"
+         "                    self.table.setItem(row, column, item)\n"
+         "        finally:\n"
+         "            self._filling_table = False\n"),
+        # 4) 信号
+        ("        self.btn_last_batch.clicked.connect(self.open_batch_history)   # [local patch]\n",
+         "        self.btn_last_batch.clicked.connect(self.open_batch_history)   # [local patch]\n"
+         "        self.btn_readiness.clicked.connect(self.show_readiness)   # [fusion-sync]\n"),
+        ("        self.table.cellDoubleClicked.connect(self.open_current_result)\n",
+         "        self.table.cellDoubleClicked.connect(self.open_current_result)\n"
+         "        self.table.itemChanged.connect(self.measure_target_changed)   # [fusion-sync]\n"),
+        # 5) 未满足就绪条件前，发送测量任务保持禁用（说明去哪看）
+        ("        self.btn_send.setToolTip('设备连接、三维坐标、孔轴方向和标定验证完成后才能下发测量任务。')",
+         "        self.btn_send.setToolTip('先点「测量就绪检查」：标定、手眼坐标转换、测针 TCP 等未完成项全部满足后才会开放下发。')"),
+        # 6) 新方法
+        ("    def log(self, message):\n",
+         "    def measure_target_changed(self, item):\n"
+         "        \"\"\"[fusion-sync] 勾选孔号 = 本次要测量这个孔。\"\"\"\n"
+         "        if self._filling_table or item.column() != 0:\n"
+         "            return\n"
+         "        hid = f'H{item.row() + 1:02d}'\n"
+         "        if item.checkState() == Qt.CheckState.Checked:\n"
+         "            self.measure_targets.add(hid)\n"
+         "        else:\n"
+         "            self.measure_targets.discard(hid)\n"
+         "        chosen = '、'.join(sorted(self.measure_targets)) if self.measure_targets else '（空）'\n"
+         "        self.log(f'本次测量清单：{chosen}')\n"
+         "\n"
+         "    def confirmed_targets(self):\n"
+         "        \"\"\"[fusion-sync] 勾选且圆心可靠的孔（对齐朋友分支 selected_targets 的校验口径）。\"\"\"\n"
+         "        result = self.current_result or {}\n"
+         "        reliable = {hole['id'] for hole in result.get('fitted_holes', [])\n"
+         "                    if hole.get('reliable_center')}\n"
+         "        return sorted(self.measure_targets & reliable)\n"
+         "\n"
+         "    @Slot()\n"
+         "    def show_readiness(self):\n"
+         "        \"\"\"[fusion-sync] 测量就绪检查：如实列出未完成项，不因连接成功就放行。\"\"\"\n"
+         "        try:\n"
+         "            from .measurement_readiness import readiness_rows, ReadinessDialog\n"
+         "            from .devices_view import _registered_backends\n"
+         "        except ImportError as error:\n"
+         "            QMessageBox.warning(self, '测量就绪检查不可用', str(error))\n"
+         "            return\n"
+         "        originals_kept = bool(self.paths) and all(Path(path).is_file() for path in self.paths)\n"
+         "        group_done = bool(self.paths) and all(item is not None for item in self.results)\n"
+         "        rows = readiness_rows(_registered_backends, originals_kept and group_done,\n"
+         "                              bool(self.confirmed_targets()))\n"
+         "        self.log('打开测量就绪检查：未完成的标定项不会被隐藏，发送测量任务保持禁用。')\n"
+         "        ReadinessDialog(rows, self).exec()\n"
+         "\n"
+         "    def log(self, message):\n"),
+    ]
+    applied, skipped, missing = [], [], []
+    for old, new in edits:
+        if new in text:
+            skipped.append(old.strip().splitlines()[0][:26])
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:26])
+        else:
+            missing.append(old.strip().splitlines()[0][:26])
+    if not applied:
+        return "未匹配: " + "; ".join(missing[:4])
+    shutil.copy2(f, f.with_suffix(".py.bak"))
+    f.write_text(text, encoding="utf-8")
+    out = ["已改 {} 处（接入测量就绪检查 + 可勾选测量孔）".format(len(applied))]
+    if skipped:
+        out.append("已是最新: {}".format(len(skipped)))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -1737,6 +1893,7 @@ def main() -> int:
     print("9j) 收尾清理:", patch_tidy_signals(engine))
     print("9k) 设备页紧凑:", patch_device_page_compact(engine))
     print("9l) 批次弹窗:", patch_batch_dialog_details(engine))
+    print("9m) 融合同步:", patch_fusion_sync(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
