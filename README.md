@@ -18,8 +18,8 @@
 | 类别 | `cylinder_bore`（单类别） |
 | 模型 | YOLO11n-Seg（实例分割），可在 4 GB 显存显卡上完成训练与推理 |
 | 后处理 | 稳健椭圆拟合 + 孔口边缘亚像素精修 → 孔心；4 孔心做 PCA 主轴排序 |
-| 交付形态 | 图形界面软件（检测 / 设备连接 / 实验记录 / 模型与数据管理）+ 命令行脚本 |
-| 当前状态 | **视觉检测与孔心定位已跑通并验证**；标定与机器人接入尚未开始 |
+| 交付形态 | 图形界面软件「双机械臂孔检测系统」**融合版**（`inspection_app`，见 §6.4）+ 命令行脚本 |
+| 当前状态 | **视觉检测与孔心定位已跑通并验证；工业相机（Orbbec Gemini 335Le）已接入实时画面与抓拍**；标定与机器人接入尚未开始 |
 
 ---
 
@@ -108,14 +108,20 @@
 
 ### 6.1 图形界面（推荐）
 
+日常使用的界面统一在**融合版软件** `E:\robot_project\inspection_app`
+（朋友的双机械臂孔检测系统 + 本仓库的补丁），桌面快捷方式「机械臂孔检测系统」就是启动它：
+
 ```bat
-cd /d <项目根目录>
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe <图形界面入口>
+:: 直接启动（本机路径）
+E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\inspection_app\app.py
 ```
 
-界面提供：**离线检测（可一次选多张）／设备连接／实验记录／模型与数据管理（标注 + 增量训练）**。
+界面提供：**相机实时画面 + 抓拍／离线检测（可一次选多张）／点孔选择本次要测的孔／设备连接／
+实验记录（载入工作区·看图·看检测报告·删除整批）／模型与数据管理（标注 + 增量训练）**。
+
+> 本仓库的 `app/` 只是**视觉核心库**（推理 / 拟合 / 编号），里面没有界面代码；
+> 更早的我方 PySide6 界面已归档到 `_archive/gui_v1_pyside6/`，只作参考。
+> 从本仓库重新生成这份融合版软件见 [§6.4](#64-融合版软件inspection_app怎么生成)。
 
 ### 6.2 命令行推理
 
@@ -138,6 +144,43 @@ python -m venv .venv
 默认参数针对 4 GB 显存：`imgsz=640`、`batch=2`、`workers=2`、`patience=20`、`device=0`。
 **显存不足时会自动降级重试**（batch 2→1、imgsz 640→512→416），不需要人工排查。
 
+### 6.4 融合版软件（inspection_app）怎么生成
+
+`inspection_app` 是**交付/使用目录，不在本仓库里**，它由本仓库的三部分拼出来：
+
+| 来源 | 作用 |
+| --- | --- |
+| `engine_bore_local/` | 朋友的「箱体孔检测系统」源码快照（融合版软件的基底） |
+| `scripts/app_addons/` | 我方新增模块（Orbbec 相机驱动 `orbbec_camera.py`、实时预览窗口 `camera_preview.py`） |
+| `scripts/patch_friend_engine.py` | 我方补丁脚本：拟合策略、相机接入、界面整合、实验记录工具、设备参数不落盘……（**幂等**，可反复跑） |
+
+```bat
+:: 1) 把朋友的源码铺到交付目录（他更新版本时重做这一步）
+git archive origin/feature/fusion engine_bore_local | tar -x -C E:\robot_project\inspection_app --strip-components=1
+
+:: 2) 跑补丁（每一步打印 已改 / 已是最新 / 未匹配）
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\patch_friend_engine.py
+
+:: 3) 端到端自检：离屏跑真实检测器 + 真实界面对象，不碰真实实验记录
+set CODEX_APP_DIR=E:\robot_project\inspection_app
+set CODEX_E2E_DIR=%TEMP%\inspection_e2e
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_inspection_app.py
+```
+
+界面要点（2026-10-08 起）：
+
+- **视觉检测区左右分屏**：左格＝相机实时画面（只看，不响应点击），右格＝检测结果（识别/标定后的孔图）。
+  点右格的孔即可选中/取消，选中的孔**椭圆变绿 + 圆心打勾**，右格角标写清「本次要测：H0x」，表格同步打勾。
+  分隔条可拖，两侧都有最小宽度（**拖到头也不会把某一格拖没**）；关掉实时时左格收起、右格占满。
+- **抓拍**：把当前实时帧无损留样并放进工作区（不自动检测）；「用工业相机拍照」与它共用同一段取流代码，不会抢相机。
+- **实验记录**：查看/导出/载入到工作区/打开原图·结果图·检测报告/删除整批记录（只删记录，磁盘上的文件保留）。
+- **设备参数不落盘**：设备信息只在本次运行有效（相机插上自动识别型号与序列号；机械臂按当前电脑实际 IP 填写），
+  换一台电脑不需要清理本机配置。
+
+> ⚠️ 已知：`engine_bore_local/` 是朋友**较新**的一版源码，与本仓库的补丁有若干处对不上（跑补丁时会打印「未匹配」）。
+> 交付目录 `inspection_app` 本身完整可用；若要基于他的新源码重新生成，需要先做一轮界面补丁同步
+> （他的新版自带「实时采集 / 测量模式」那套界面，要和我们的整合方案做个取舍）。
+
 ---
 
 ## 7. 数据集
@@ -159,6 +202,10 @@ python -m venv .venv
 <项目根目录>/
 ├── app/                     视觉核心库（推理 → 掩膜 → 椭圆 → 编号）
 ├── scripts/                 训练 / 推理 / 评估 / 数据与实验工具
+│   ├── patch_friend_engine.py   融合版软件的补丁脚本（幂等）
+│   ├── check_inspection_app.py  融合版软件的端到端自检
+│   └── app_addons/              我方新增模块（Orbbec 驱动、实时预览窗口）
+├── engine_bore_local/       朋友的「箱体孔检测系统」源码（融合版软件的基底）
 ├── docs/                    文档（方案、对比、审核、进度）
 ├── configs/                 配置
 ├── experiments/             实验代码与轻量记录（模型与图片在发布附件中）
@@ -200,6 +247,8 @@ python -m venv .venv
 | [`docs/ELLIPSE_FIT_COMPARISON.md`](docs/ELLIPSE_FIT_COMPARISON.md) | 椭圆拟合方案对比（含叠加图） |
 | [`docs/FUSION_V1_TRAINING.md`](docs/FUSION_V1_TRAINING.md) | 现役模型的训练记录与配置 |
 | [`docs/FRIEND_PIPELINE_AUDIT.md`](docs/FRIEND_PIPELINE_AUDIT.md) | 外部方案的复现审核与数据泄漏排查 |
+| [`docs/FRIEND_REVIEW_20261008.md`](docs/FRIEND_REVIEW_20261008.md) | 朋友分支的复审与合并结论 |
+| [`docs/CAMERA_ORBBEC_20261008.md`](docs/CAMERA_ORBBEC_20261008.md) | 工业相机（Orbbec）接入、网段配置与「换电脑恢复」步骤 |
 | [`docs/PROJECT_FILES.md`](docs/PROJECT_FILES.md) | 文件分类与分发方式 |
 | [docs/UI_OPTIMIZATION_NOTES.md](docs/UI_OPTIMIZATION_NOTES.md) | 界面优化建议 |
 | [docs/APP_AUDIT_20261007.md](docs/APP_AUDIT_20261007.md) | **软件实测审核记录**（发现的问题与实际修复） |
@@ -219,6 +268,10 @@ python -m venv .venv
 - 孔位编号（PCA 主轴排序）与编号稳定性研究
 - 图形界面软件（检测 / 设备连接 / 实验记录 / 模型与数据管理 / 标注）
 - 外部数据集的审计（未用于训练，未生成伪标签）
+- **融合版界面**（2026-10-08）：视觉检测区左右分屏（实时 / 检测结果）、点孔选择本次要测的孔并给出图上反馈、
+  实验记录工具（载入工作区 / 看原图·结果图·报告 / 删除整批）、设备参数不落本机
+- **工业相机接入**（2026-10-08）：Orbbec Gemini 335Le 驱动 + 启动自动连接 + 实时画面 + 无损抓拍留样
+- **补丁脚本工程化**（2026-10-08）：幂等化、修掉重复插入与崩溃，新增端到端自检脚本
 
 **待完成（按优先级）**
 
@@ -228,8 +281,8 @@ python -m venv .venv
 | P0 | 扩充评估集 | 增加不同角度、光照与箱体样本，统计真实漏检率 |
 | P1 | 相机标定 | 内参 + 畸变校正，建立像素与实际尺寸的对应关系 |
 | P1 | 手眼标定 | 像素坐标 → 机器人坐标（平面可用单应矩阵，三维需深度信息） |
+| P1 | 补丁与新源码同步 | 朋友新版自带「实时采集 / 测量模式」界面，需要与我们的整合版做一轮取舍后再重建 |
 | P2 | 机器人接入 | 实现运动与测量接口；**先只读 → 再点动 → 最后自动**，并加软限位与急停 |
-| P2 | 工业相机接入 | 替换为在线采集，替换文件读图方式 |
 | P3 | 模型持续迭代 | 补足难样本（高反光、大角度斜视）后重训，保持同一评估口径 |
 
 ---
@@ -241,6 +294,8 @@ python -m venv .venv
 3. 机器人接口当前为仿真实现，界面中机器人状态恒为"未连接"，不会驱动真实设备。
 4. 评估仅覆盖**有限的实拍样本**，不代表所有工况；换箱体/相机/光照后需重新验证。
 5. 外部数据集仅用于审计与方案评估，**未参与训练**，也未生成伪标签。
+6. **交付目录 `inspection_app` 不在本仓库内**（含模型、实验记录与现场照片）；本仓库只保存它的源码基底与生成脚本，
+   仓库内任何模型/数据都由发布附件分发。
 
 ---
 

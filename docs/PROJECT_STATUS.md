@@ -1,6 +1,6 @@
 # 机械臂智能视觉检测系统 —— 项目进度与后续计划
 
-更新日期：2026-10-07
+更新日期：2026-10-08
 项目路径：`E:\robot_project\robot_inspection`
 仓库：https://github.com/ji2026-9/robot_inspection （私有）
 
@@ -16,6 +16,15 @@
 椭圆拟合 + PCA 编号 + GUI + 任务生成都能用；代码和文档已上 Git，
 模型通过 GitHub Release 分发。**下一步是"标定 + 接真机"**，这部分还没开始。
 
+> **2026-10-08 更新**：界面统一到融合版软件 `E:\robot_project\inspection_app`
+> （朋友的双机械臂孔检测系统 + 我方补丁），本轮完成：
+> ① 工业相机 Orbbec Gemini 335Le 接入（启动自动连接 + 视觉检测区实时画面 + 无损抓拍）；
+> ② 视觉检测区**左右分屏**（左＝实时画面，右＝检测结果），在结果图上**点孔选择本次要测的孔**并给出图上反馈；
+> ③ 实验记录窗口补齐**载入到工作区 / 打开原图·结果图·检测报告 / 删除整批记录**；
+> ④ **设备参数不落本机**（换电脑不需要清配置）；
+> ⑤ 补丁脚本幂等化 + 新增端到端自检脚本（见「九、常用命令」）。
+> 「二、硬件与环境」里旧的「机械臂智能视觉检测系统」桌面入口已由融合版取代。
+
 ---
 
 ## 二、硬件与环境
@@ -26,9 +35,10 @@
 | 驱动 | 610.60（CUDA UMD 13.3） |
 | Python | 3.11.14（`E:\Miniconda3`）+ 虚拟环境 `E:\robot_project\robot_inspection\.venv` |
 | 关键库 | torch 2.5.1+cu121、ultralytics 8.4.173、opencv 5.0.0、numpy 2.4.6、PySide6 6.11.2 |
-| 启动软件 | 双击桌面「机械臂智能视觉检测系统」（= `.venv\Scripts\pythonw.exe app\main.py`） |
-| 排查用 | 双击桌面「机械臂智能视觉检测系统(调试)」（带控制台，报错看得见） |
-| 另一套软件 | 朋友的「双机械臂孔检测系统」→ 桌面「双机械臂孔检测系统（朋友版）」，装在 `E:\robot_project\inspection_app` |
+| 启动软件 | 双击桌面「机械臂孔检测系统」＝融合版 `E:\robot_project\inspection_app\app.py`（`.venv\Scripts\pythonw.exe` 启动） |
+| 排查用 | 用同一条命令但把 `pythonw.exe` 换成 `python.exe`，报错会打在控制台里 |
+| 界面来源 | 朋友「双机械臂孔检测系统」源码 `engine_bore_local\` + 我方补丁 `scripts\patch_friend_engine.py` |
+| 早期界面 | 我方旧版 PySide6 界面已归档到 `_archive\gui_v1_pyside6\`，不再日常使用 |
 
 ---
 
@@ -91,7 +101,7 @@
 | --- | --- |
 | 仓库 | **私有**（只有你和被邀请的协作者能访问） |
 | 分支 | `main`（稳定）、`feature/vision`（你）、`feature/fusion`（朋友） |
-| 最新提交 | `cad00bb`（本地与远程一致） |
+| 最新提交 | 见 `git log -1 --oneline`（截至 2026-10-08：融合版界面 + 工业相机 + 补丁工程化） |
 | Release | `v1.1-model`（新模型 3 个附件）、`v1.0-data`（数据集/结果 8 个）、`v1.0-fusion-data`（朋友的 29 个） |
 | 协作规范 | `TEAM_WORKFLOW.md`、`BRANCH_PLAN.md`、`DATA_AND_MODEL_MANAGEMENT.md` |
 | 每次提交前 | 跑 `scripts\check_git_safety.py`（保证模型/数据不会误进 Git） |
@@ -108,7 +118,7 @@
 | 2 | 相机标定（内参 + 畸变） | 像素 → 真实尺寸的前提 |
 | 3 | 手眼标定（像素坐标 → 机器人坐标） | 机械臂对准孔的前提 |
 | 4 | 真实机械臂接入 | 现在只有 `MockRobot`，界面恒显示"未连接" |
-| 5 | 工业相机接入 | 现在只能读图片文件，没有实时采集 |
+| 5 | ~~工业相机接入~~（**2026-10-08 已完成**） | Orbbec Gemini 335Le 已接入：启动自动连接、实时画面、无损抓拍留样 |
 | 6 | 孔编号的永久物理身份 | 现在 H01~H04 只是当前图像内的排序，旋转 180° 会对调 |
 | 7 | 多箱体 / 多光照泛化验证 | 只在这 4 张同箱体照片上验证过 |
 | 8 | 深度 / 高度信息 | 当前只有平面像素坐标，没有三维信息 |
@@ -155,12 +165,16 @@
 ## 九、常用命令
 
 ```bat
-:: 启动软件（也可以直接双击桌面快捷方式）
-E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\robot_inspection\app\main.py
+:: 启动软件（也可以直接双击桌面「机械臂孔检测系统」）
+E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\inspection_app\app.py
 
-:: 自测（改完代码务必跑）
-E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\app\selftest_full.py
-E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\app\selftest_coldstart.py
+:: 融合版界面端到端自检（改完界面/补丁务必跑；离屏跑真实检测器 + 界面对象，不碰真实实验记录）
+set CODEX_APP_DIR=E:\robot_project\inspection_app
+set CODEX_E2E_DIR=%TEMP%\inspection_e2e
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_inspection_app.py
+
+:: 从朋友的源码重新生成融合版软件（幂等；他更新源码后重跑）
+E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\patch_friend_engine.py
 
 :: 提交前安全检查（确认模型/数据没进 Git）
 E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\check_git_safety.py
@@ -246,7 +260,14 @@ E:\robot_project\                     ← 项目所有东西都在这一个文�
     └── friend_engine_audit\          ← 审核时下载/导出的原始资料
 ```
 
-**搬家后做过的验证**：Python 环境（CUDA/依赖）正常、`selftest_full` **73/73**、
-冷启动 PASS、4 张测试图 **16/16**、两个桌面快捷方式都能启动软件。
+**最近一次验证（2026-10-08）**：
+
+- 4 张测试图 **16/16**（`scripts\predict_holes.py`，conf=0.50）
+- `scripts\check_git_safety.py` **PASS**（模型/数据/大文件都没有进 Git）
+- 融合版软件端到端自检 `scripts\check_inspection_app.py` **全部通过**（离屏跑真实检测器 + 界面对象）
+- 桌面快捷方式「机械臂孔检测系统」可正常启动融合版（相机自动连接）
+
+> 旧记录（仅供回溯）：我方早期 PySide6 界面 `selftest_full` **73/73**、冷启动 PASS ——
+> 该界面已归档到 `_archive\gui_v1_pyside6\`，不再是日常使用的软件。
 
 > `E:\Miniconda3`（Python 基础环境）和 `E:\vm_share`（你的共享文件夹）**没有动**。

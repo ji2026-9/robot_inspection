@@ -18,8 +18,10 @@
 | [`FRIEND_REVIEW_AND_MERGE_PLAN.md`](FRIEND_REVIEW_AND_MERGE_PLAN.md) | **朋友分支审核报告 + 合并方案**（哪些值得合并、哪些别合并） |
 | [`ELLIPSE_FIT_COMPARISON.md`](ELLIPSE_FIT_COMPARISON.md) | **椭圆拟合方式对比与采纳记录**（已采纳稳健+边缘精修） |
 | [`FRIEND_PIPELINE_AUDIT.md`](FRIEND_PIPELINE_AUDIT.md) | **朋友管线复现审核**：5/7 vs 7/7 差距来自模型与训练数据量 |
+| [`FRIEND_REVIEW_20261008.md`](FRIEND_REVIEW_20261008.md) | **朋友分支复审与合并结论**（2026-10-08） |
+| [`CAMERA_ORBBEC_20261008.md`](CAMERA_ORBBEC_20261008.md) | **工业相机（Orbbec）接入**：驱动、实时画面/抓拍、网段配置、换电脑恢复步骤 |
 | [`PROJECT_STATUS.md`](PROJECT_STATUS.md) | **项目进度与后续计划**（进度总表 + 未完成项 + 后续方向） |
-| [`app\README.md`](../app/README.md) | GUI 软件说明（界面、分层结构、已知限制） |
+| [`app\README.md`](../app/README.md) | **视觉核心库说明**（推理/拟合/编号；界面已统一到 `inspection_app`） |
 | [`configs\README.md`](../configs/README.md) | 配置文件放哪里 |
 
 ## 二、不在 Git 里的报告（本机生成物）
