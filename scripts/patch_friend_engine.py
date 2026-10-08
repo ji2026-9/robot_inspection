@@ -1808,10 +1808,15 @@ def patch_fusion_sync(engine: Path) -> str:
          "        self.log('打开测量就绪检查：未完成的标定项不会被隐藏，发送测量任务保持禁用。')\n"
          "        ReadinessDialog(rows, self).exec()\n"
          "\n"
-         "    def log(self, message):\n"),
+         "    def log(self, message):\n",
+         "def show_readiness(self):"),
     ]
     applied, skipped, missing = [], [], []
-    for old, new in edits:
+    for entry in edits:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
         if new in text:
             skipped.append(old.strip().splitlines()[0][:26])
             continue
@@ -1955,9 +1960,15 @@ def patch_camera_sync(engine: Path) -> str:
          "        self.log(f'相机拍照完成：{photo.name}（{data[\"width_px\"]}×{data[\"height_px\"]}，'\n"
          "                 f'SHA256 {data[\"image_sha256\"][:12]}…）已放入工作区，可点「② 开始检测」。')\n"
          "\n"
-         "    def log(self, message):\n"),
+         "    def log(self, message):\n",
+         "def capture_from_camera(self):"),
     ]
-    for old, new in edits:
+    for entry in edits:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            # 方法已经存在：绝不再插一遍（插重复会让软件行为不确定）
+            continue
         if new in text:
             continue
         if old in text:
@@ -1973,6 +1984,136 @@ def patch_camera_sync(engine: Path) -> str:
             return "已是最新（无需修改）"
         return "未匹配: " + "; ".join(missing[:4])
     out = ["已改 {} 处（接入工业相机拍照）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def deploy_app_addons(engine: Path) -> str:
+    """把 ``scripts/app_addons/`` 里的本机扩展模块同步进软件目录。
+
+    这些模块（Orbbec 相机驱动、实时预览窗口）是**我们自己加的**，
+    放在仓库里做版本管理，软件目录只是部署位置；按内容比较，幂等。
+    """
+    source = Path(__file__).resolve().parent / "app_addons"
+    target = engine / "inspection_gui"
+    if not source.is_dir():
+        return "没有 scripts/app_addons 目录"
+    if not target.is_dir():
+        return "找不到 inspection_gui 目录"
+    copied, kept = [], []
+    for item in sorted(source.glob("*.py")):
+        destination = target / item.name
+        data = item.read_bytes()
+        if destination.is_file() and destination.read_bytes() == data:
+            kept.append(item.name)
+            continue
+        if destination.is_file():
+            shutil.copy2(destination, destination.with_suffix(".py.bak"))
+        destination.write_bytes(data)
+        copied.append(item.name)
+    out = []
+    if copied:
+        out.append("已更新: " + ", ".join(copied))
+    if kept:
+        out.append("已是最新: " + ", ".join(kept))
+    return "；".join(out) or "无需修改"
+
+
+def patch_camera_preview(engine: Path) -> str:
+    """[camera-sync] 主界面加「相机实时预览」按钮，并接上预览窗口。"""
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    original = f.read_text(encoding="utf-8")
+    text = original
+    edits = [
+        ("        self.btn_readiness.setToolTip('列出相机 / 机械臂 / 标定 / 测孔清单的完成情况，未完成的项不会隐藏。')\n"
+         "        for _index, _button in enumerate((self.btn_devices, self.btn_records,\n"
+         "                                          self.btn_models, self.btn_simulation,\n"
+         "                                          self.btn_last_batch, self.btn_results,\n"
+         "                                          self.btn_readiness)):\n",
+         "        self.btn_readiness.setToolTip('列出相机 / 机械臂 / 标定 / 测孔清单的完成情况，未完成的项不会隐藏。')\n"
+         "        self.btn_preview = QPushButton('相机实时预览')      # [camera-sync]\n"
+         "        self.btn_preview.setToolTip('打开工业相机实时画面；预览本身不写文件，抓拍才做无损留样。')\n"
+         "        for _index, _button in enumerate((self.btn_devices, self.btn_records,\n"
+         "                                          self.btn_models, self.btn_simulation,\n"
+         "                                          self.btn_last_batch, self.btn_results,\n"
+         "                                          self.btn_readiness, self.btn_preview)):\n"),
+        ("        self.btn_readiness.clicked.connect(self.show_readiness)   # [fusion-sync]\n",
+         "        self.btn_readiness.clicked.connect(self.show_readiness)   # [fusion-sync]\n"
+         "        self.btn_preview.clicked.connect(self.show_camera_preview)   # [camera-sync]\n"),
+        # 实时预览正在取流时，主界面的「用工业相机拍照」不要再动相机，
+        # 直接交给预览窗口抓拍，避免两条取流互相打断。
+        ("        camera = _registered_backends.get('camera')\n"
+         "        if camera is None:\n"
+         "            QMessageBox.information(self, '相机未接入',\n"
+         "                                    '本机没有可用的 Orbbec 相机驱动。\\n'\n"
+         "                                    '请确认已安装 OrbbecSDK，并且相机 USB 已插好。')\n"
+         "            return\n",
+         "        camera = _registered_backends.get('camera')\n"
+         "        if camera is None:\n"
+         "            QMessageBox.information(self, '相机未接入',\n"
+         "                                    '本机没有可用的 Orbbec 相机驱动。\\n'\n"
+         "                                    '请确认已安装 OrbbecSDK，并且相机 USB 已插好。')\n"
+         "            return\n"
+         "        preview = getattr(self, 'preview_dialog', None)   # [camera-sync] 实时预览正在占用相机\n"
+         "        if preview is not None and getattr(preview, 'worker', None) is not None:\n"
+         "            preview.grab(False)\n"
+         "            return\n",
+         "实时预览正在占用相机"),
+        ("        self.bridge.detach()\n",
+         "        preview = getattr(self, 'preview_dialog', None)\n"
+         "        if preview is not None:      # [camera-sync] 先停取流线程，避免退出时线程还在跑\n"
+         "            try:\n"
+         "                preview.stop_preview()\n"
+         "            except RuntimeError:\n"
+         "                pass\n"
+         "        self.bridge.detach()\n"),
+        ("    def log(self, message):\n",
+         "    @Slot()\n"
+         "    def show_camera_preview(self):\n"
+         "        \"\"\"[camera-sync] 工业相机实时预览（取流线程复用朋友分支的 vision_workspace）。\"\"\"\n"
+         "        try:\n"
+         "            from .camera_preview import CameraPreviewDialog\n"
+         "        except ImportError as error:\n"
+         "            QMessageBox.warning(self, '实时预览不可用', str(error))\n"
+         "            return\n"
+         "        dialog = getattr(self, 'preview_dialog', None)\n"
+         "        try:\n"
+         "            if dialog is None:\n"
+         "                raise RuntimeError('create')\n"
+         "            dialog.show()\n"
+         "            dialog.raise_()\n"
+         "            dialog.activateWindow()\n"
+         "        except RuntimeError:\n"
+         "            self.preview_dialog = CameraPreviewDialog(self)\n"
+         "            self.preview_dialog.show()\n"
+         "\n"
+         "    def log(self, message):\n",
+         "def show_camera_preview(self):"),
+    ]
+    applied, missing = [], []
+    for entry in edits:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:26])
+        else:
+            missing.append(old.strip().splitlines()[0][:26])
+    if text != original:
+        shutil.copy2(f, f.with_suffix(".py.bak"))
+        f.write_text(text, encoding="utf-8")
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改 {} 处（实时预览窗口）".format(len(applied))]
     if missing:
         out.append("未匹配: " + "; ".join(missing[:4]))
     return "；".join(out)
@@ -2043,6 +2184,8 @@ def main() -> int:
     print("9l) 批次弹窗:", patch_batch_dialog_details(engine))
     print("9m) 融合同步:", patch_fusion_sync(engine))
     print("9n) 相机接入:", patch_camera_sync(engine))
+    print("9o) 扩展模块:", deploy_app_addons(engine))
+    print("9p) 实时预览:", patch_camera_preview(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
