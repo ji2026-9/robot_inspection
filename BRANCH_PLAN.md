@@ -19,9 +19,17 @@
 
 只有**确认能跑通**的内容才合并进来。合并前至少确认：
 
-1. GUI 能启动：`app\run_gui.bat`
-2. 自测通过：`.venv\Scripts\python.exe app\selftest_full.py`
-3. 安全检查通过：`.venv\Scripts\python.exe scripts\check_git_safety.py`
+1. GUI 能启动：双击桌面「机械臂孔检测系统」＝
+   `.venv\Scripts\pythonw.exe E:\robot_project\inspection_app\app.py`
+2. 融合版界面端到端自检：
+   `.venv\Scripts\python.exe scripts\check_inspection_app.py`
+   （离屏跑真实检测器 + 界面对象，不碰真实实验记录；需要设 `CODEX_APP_DIR` / `CODEX_E2E_DIR`）
+3. 视觉回归（4 张测试图应 16/16）：
+   `.venv\Scripts\python.exe scripts\predict_holes.py --weights weights\best.pt --source test_images`
+4. 安全检查通过：`.venv\Scripts\python.exe scripts\check_git_safety.py`
+
+> 我方早期 PySide6 界面（`app\main.py` / `app\selftest_full.py`）已归档到
+> `_archive\gui_v1_pyside6\`，上面第 1、2 条是现在的口径。
 
 ---
 
