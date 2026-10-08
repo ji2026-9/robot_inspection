@@ -95,3 +95,25 @@ app/selftest/**/*.png
 *.bak
 *.orig
 *~
+
+# Local snapshot assets remain in Release attachments
+*.ckpt
+*.7z
+*.rar
+*.tar
+*.gz
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tif
+*.tiff
+*.exe
+datasets/
+images/
+data/
+weights/
+updates/
+.labelme_env/
+packaging/payload/
+packaging/release/
