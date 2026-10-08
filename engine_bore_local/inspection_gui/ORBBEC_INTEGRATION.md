@@ -34,5 +34,5 @@ SDK 接口参考：https://orbbec.github.io/docs/OrbbecSDKv2/_context_8h.html
 已发现 Gemini 335Le，序列号 CPEB4630005D，IP 192.168.1.10。
 电脑有线网卡保留192.168.5.102，并添加192.168.1.100，两个地址均为Preferred；TCP8090通信通过。
 未压缩1280×800@30流出现连续RTP丢包，未得到完整图像，因此新增MJPEG优先流配置和JPEG解码。
-MJPEG解码单元检查通过；再次实机连接遇到正在运行的OrbbecViewer占用，仍待释放相机后验证实际取图。
+MJPEG解码单元检查通过；释放OrbbecViewer后实机取图通过：1280×800@30 MJPEG，真实序列号CPEB4630005D，2026-10-08保存首张相机留样于data/camera_captures/2026-10-08。采集后已停止并释放测试连接，可由主界面继续采集。
 留样PNG保留解码后的图像；MJPEG传输本身有损，PNG保存不额外增加压缩损失，不等于传感器原始无损采样。
