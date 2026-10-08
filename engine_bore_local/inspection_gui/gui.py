@@ -307,8 +307,8 @@ class MainWindow(QMainWindow):
         self.btn_confirm_holes.clicked.connect(self.confirm_hole_selection)
         self.btn_confirm_holes.setEnabled(False)
         task_layout.addWidget(self.btn_confirm_holes)
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(['孔号', '置信度', '图像圆心 px', '定位状态', '相机 XYZ mm（估计）'])
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(['孔号', '置信度', '图像圆心 px', '定位状态', '相机 XYZ mm（估计）', 'B基座 XYZ mm（估计）'])
         self.table.setShowGrid(True)
         self.table.setGridStyle(Qt.PenStyle.SolidLine)
         self.table.setAlternatingRowColors(True)
@@ -317,7 +317,7 @@ class MainWindow(QMainWindow):
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
-        for column, width in enumerate((60, 80, 150, 100, 210)):
+        for column, width in enumerate((60, 80, 150, 100, 210, 210)):
             self.table.setColumnWidth(column, width)
         self.table.setMinimumHeight(190)
         self.table.cellClicked.connect(self.review_hole)
@@ -333,6 +333,9 @@ class MainWindow(QMainWindow):
         self.btn_readiness = QPushButton('测量就绪检查')
         self.btn_readiness.clicked.connect(self.show_readiness)
         task_layout.addWidget(self.btn_readiness)
+        self.btn_calibration=QPushButton('相机到机械臂坐标标定')
+        self.btn_calibration.clicked.connect(self.show_coordinate_calibration)
+        task_layout.addWidget(self.btn_calibration)
         task_layout.addWidget(self.btn_send)
         side_layout.addWidget(task_box, 1)
         scroll = QScrollArea()
@@ -493,9 +496,9 @@ class MainWindow(QMainWindow):
                 state = '图像已定位' if hole.get('reliable_center') else ('圆心待复核' if center else '未拟合出圆心')
                 geometry=hole.get('camera_3d')
                 xyz=', '.join(f'{v:.2f}' for v in geometry['center_camera_mm']) if geometry else '深度未就绪'
-                values = [hid, f"{hole['confidence']:.4f}", point, state, xyz]
+                values = [hid, f"{hole['confidence']:.4f}", point, state, xyz, (', '.join(f'{v:.2f}' for v in hole['robot_3d']['center_robot_base_mm']) if hole.get('robot_3d') else '待标定／无有效深度')]
             else:
-                values = [hid, '—', '—', '未识别' if result else '待检测', '—']
+                values = [hid, '—', '—', '未识别' if result else '待检测', '—', '—']
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -503,7 +506,7 @@ class MainWindow(QMainWindow):
                 if column==4 and hole:
                     geometry=hole.get('camera_3d')
                     item.setToolTip((f"相机坐标估计，需复核；平面残差 {geometry['plane_rmse_mm']:.2f} mm；圆拟合残差 {geometry['circle_rmse_mm']:.2f} mm；深度覆盖 {geometry['depth_coverage']:.0%}。不是机械臂坐标。" if geometry else '；'.join(result.get('camera_3d_notes',[])) or '该照片没有对应的有效深度图。'))
-        self.coordinate_note.setText('相机坐标估计：X 向右、Y 向下、Z 向前，单位 mm；需复核。机械臂坐标转换仍待标定。')
+        self.coordinate_note.setText('单位mm，均为待复核估计；'+result.get('robot_coordinate_note','未完成相机到B基座标定'))
         message, needs_review = review_summary(result)
         self.review_warning.setText(message)
         self.review_warning.setStyleSheet('color:#b45309;font-weight:600;' if needs_review else 'color:#15803d;')
@@ -594,9 +597,9 @@ class MainWindow(QMainWindow):
                     'selection_mode': 'automatic' if self.measure_mode.currentIndex() == 0 else 'manual',
                     'model': result.get('model_path'), 'coordinate_frame': 'image_pixel',
                     'robot_ready': False, 'measurement_executed': False,
-                    'note': '本次图片的测孔清单，像素圆心尚未转换成机械臂坐标。',
+                    'note': '本次图片测孔清单；如有B基座坐标则附带标定版本，尚未发送运动。',
                     'targets': [{'id': h['id'], 'confidence': h['confidence'], 'center_px': h['center_px'],
-                                 'ellipse': h.get('ellipse'), 'camera_3d':h.get('camera_3d')} for h in targets]}
+                                 'ellipse': h.get('ellipse'), 'camera_3d':h.get('camera_3d'), 'robot_3d':h.get('robot_3d')} for h in targets]}
             output = destination / (datetime.now().strftime('%Y%m%d_%H%M%S_%f') + '.json')
             output.write_text(json.dumps(task, ensure_ascii=False, indent=2), encoding='utf-8')
             self.selection_note.setText('已确认测孔：' + '、'.join(h['id'] for h in targets) + '\n清单已保存，尚未发送机械臂或执行测量。')
@@ -702,6 +705,11 @@ class MainWindow(QMainWindow):
         folder = BASE / 'data' / 'camera_captures'
         folder.mkdir(parents=True, exist_ok=True)
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def show_coordinate_calibration(self):
+        from .coordinate_calibration import CoordinateCalibrationDialog
+        self.coordinate_dialog=CoordinateCalibrationDialog(self)
+        self.coordinate_dialog.show()
 
     def show_readiness(self):
         from .devices_view import _registered_backends

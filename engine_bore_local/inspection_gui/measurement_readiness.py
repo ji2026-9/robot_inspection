@@ -7,12 +7,12 @@ def readiness_rows(backends,has_capture,has_targets):
         try:return bool(backend and backend.is_connected())
         except Exception:return False
     return [('相机连接',connected('camera'),'连接相机后检查驱动状态'),
-        ('拍照机械臂 A',connected('robot_a'),'需要有效的实时状态'),
+        ('固定相机方案',True,'相机固定在工作台，不依赖拍照机械臂A'),
         ('测量机械臂 B',connected('robot_b'),'只读反馈正常不代表可以执行运动'),
         ('本次原图留样',has_capture,'原图与拍摄信息均保存'),
         ('测孔清单',has_targets,'对应当前照片，已确认选择'),
         ('相机内参标定',False,'尚未实现标定结果的有效性验证'),
-        ('手眼标定及双臂坐标转换',False,'尚未验证相机坐标到测量机械臂坐标'),
+        ('相机到B基座标定',False,'需导入实测对应点并独立验证；未完成实际现场核验'),
         ('测针 TCP 与孔轴方向',False,'尚未完成工具标定及方向验证'),
         ('运动路径与测量接口',False,'尚未实现并验证实际任务执行')]
 

@@ -208,6 +208,9 @@ display, never for automatic task creation.
     from .camera_3d import restore_camera_3d
     restore_camera_3d(result,report.get('camera_3d',[]))
     result['camera_3d_notes']=list(report.get('camera_3d_notes',[]))
+    from .robot_coordinates import restore_robot_coordinates
+    restore_robot_coordinates(result,report.get('robot_3d',[]))
+    result['robot_coordinate_note']=report.get('robot_coordinate_note','未完成相机到B基座标定')
     return result
 
 

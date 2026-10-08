@@ -39,3 +39,6 @@ def add_camera_3d(result, photo):
     result['camera_3d_notes']=notes
     report['camera_3d']=estimates;report['camera_3d_notes']=notes
     report['camera_3d_frame']='color_camera';report['robot_ready']=False
+
+    from .robot_coordinates import add_robot_coordinates
+    add_robot_coordinates(result,info)

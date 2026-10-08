@@ -22,6 +22,9 @@ COLUMNS += [(f'hole{i}_{axis}', f'孔{i}相机{axis.upper()} mm（估计）') fo
 COLUMNS += [(f'hole{i}_depth_quality', f'孔{i}深度复核信息') for i in range(1,5)]
 
 
+COLUMNS += [(f'hole{i}_robot_{axis}', f'孔{i}B基座{axis.upper()} mm（估计）') for i in range(1,5) for axis in ('x','y','z')]
+COLUMNS += [('robot_calibration', '相机到B基座标定版本')]
+
 class ExperimentRecords:
     def __init__(self, path=RECORD_FILE):
         self.path = Path(path)
@@ -81,6 +84,10 @@ class ExperimentRecords:
                     i=int(estimate['id'][1:])
                     for axis,value in zip(('x','y','z'),estimate['center_camera_mm']):row[f'hole{i}_{axis}']=f'{value:.3f}'
                     row[f'hole{i}_depth_quality']=f"需复核；覆盖 {estimate['depth_coverage']:.0%}；平面残差 {estimate['plane_rmse_mm']:.2f} mm；圆残差 {estimate['circle_rmse_mm']:.2f} mm"
+                for estimate in report.get('robot_3d',[]):
+                    i=int(estimate['id'][1:])
+                    for axis,value in zip(('x','y','z'),estimate['center_robot_base_mm']):row[f'hole{i}_robot_{axis}']=f'{value:.3f}'
+                    row['robot_calibration']=estimate['calibration_id']
                 rows.append(row)
         return rows
 
