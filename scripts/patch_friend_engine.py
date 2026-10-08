@@ -389,7 +389,13 @@ def patch_ui_layout(engine: Path) -> str:
             continue
         text = path.read_text(encoding="utf-8")
         original = text
-        for old, new in pairs:
+        for entry in pairs:
+            old, new = entry[0], entry[1]
+            marker = entry[2] if len(entry) > 2 else None
+            if marker and marker in text:
+                # 内容已经在文件里了：绝不再插一遍
+                skipped.append(path.name)
+                continue
             if new in text:
                 skipped.append(path.name)
                 continue
@@ -1150,6 +1156,10 @@ def patch_fresh_start(engine: Path) -> str:
 def patch_batch_history(engine: Path) -> str:
     """"打开上次批次" only ever reached the newest batch (last_batch.json is
     overwritten). Archive every batch and let the user pick which one to reopen."""
+    target = engine / "inspection_gui" / "gui.py"
+    if target.is_file() and "BATCH_DIR.mkdir(exist_ok=True)" in target.read_text(encoding="utf-8"):
+        # [audit] 这一组改动是一次性的：已经在文件里就整体跳过，避免插入重复块
+        return "已打过补丁（跳过）"
     edits = [
         (engine / "inspection_gui" / "gui.py", [
             ("LAST_BATCH = BASE / 'last_batch.json'",
@@ -1178,7 +1188,8 @@ def patch_batch_history(engine: Path) -> str:
              "            with BATCH_INDEX.open('a', encoding='utf-8') as handle:\n"
              "                handle.write(json.dumps(entry, ensure_ascii=False) + '\\n')\n"
              "        except OSError:\n"
-             "            pass"),
+             "            pass",
+             "BATCH_DIR.mkdir(exist_ok=True)"),
             # 2) the button opens a chooser instead of blindly loading the newest
             ("        self.btn_last_batch = QPushButton('打开上次批次')   # [local patch]\n"
              "        self.btn_last_batch.setToolTip('只在你点击时才载入上一次的检测结果，启动时不会自动载入。')",
@@ -1300,7 +1311,8 @@ def patch_batch_history(engine: Path) -> str:
              "            self.batch_progress.setValue(len(reports))\n"
              "            self.show_index(0)\n"
              "            self.log(f'已恢复上次 {len(reports)} 张检测结果，未新增实验记录。')",
-             "            self.load_batch(LAST_BATCH)   # [local patch] shared loader\n"),
+             "            self.load_batch(LAST_BATCH)   # [local patch] shared loader\n",
+             "def _batch_entries"),
         ]),
     ]
     applied, skipped, missing = [], [], []
@@ -2119,6 +2131,161 @@ def patch_camera_preview(engine: Path) -> str:
     return "；".join(out)
 
 
+def patch_device_state_sync(engine: Path) -> str:
+    """[device-state] 让状态栏显示**真实**连接状态。
+
+    以前只有「设备连接」窗口里点按钮才会刷新状态栏；实时预览 / 拍照是直接调用
+    驱动连接的，状态栏不知道，于是明明相机在出图，底部还写着"未连接"。
+    这里加一个定时器，按驱动的 ``is_connected()`` 真值刷新状态栏，
+    并同步设备窗口里那一页的状态，避免两处显示互相矛盾。
+    """
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    original = f.read_text(encoding="utf-8")
+    text = original
+    edits = [
+        # 1) 把「状态栏文字」抽成独立方法，并带上真实型号
+        ("    def device_status_changed(self, device, connected, note):\n"
+         "        self.device_states[device] = connected\n"
+         "        names = {'camera':'工业相机', 'robot_a':'拍照机械臂 A', 'robot_b':'测量机械臂 B'}\n"
+         "        self.connection_line.setText('　｜　'.join(\n"
+         "            names[key]+('：只读反馈已连接' if key == 'robot_b' and self.device_states.get(key)\n"
+         "                        else '：已连接' if self.device_states.get(key) else '：未连接')\n"
+         "            for key in names))\n"
+         "        self.log(names[device]+'：'+note)\n",
+         "    def device_status_changed(self, device, connected, note):\n"
+         "        self.device_states[device] = connected\n"
+         "        self.update_connection_line()\n"
+         "        names = {'camera':'工业相机', 'robot_a':'拍照机械臂 A', 'robot_b':'测量机械臂 B'}\n"
+         "        self.log(names[device]+'：'+note)\n"
+         "\n"
+         "    def _device_backends(self):\n"
+         "        \"\"\"[device-state] 当前注册的设备驱动。\"\"\"\n"
+         "        try:\n"
+         "            from .devices_view import _registered_backends\n"
+         "        except ImportError:\n"
+         "            return {}\n"
+         "        return _registered_backends\n"
+         "\n"
+         "    def update_connection_line(self):\n"
+         "        \"\"\"[device-state] 状态栏只反映实际连接状态，显示真实型号。\"\"\"\n"
+         "        names = {'camera': '工业相机', 'robot_a': '拍照机械臂 A', 'robot_b': '测量机械臂 B'}\n"
+         "        backends = self._device_backends()\n"
+         "        parts = []\n"
+         "        for key, title in names.items():\n"
+         "            connected = bool(self.device_states.get(key))\n"
+         "            suffix = ''\n"
+         "            if connected:\n"
+         "                backend = backends.get(key)\n"
+         "                model = (getattr(backend, 'device_name', '') or\n"
+         "                         getattr(backend, 'device_serial', '')) if backend is not None else ''\n"
+         "                if model:\n"
+         "                    suffix = f'（{model}）'\n"
+         "            state = '只读反馈已连接' if (key == 'robot_b' and connected) else ('已连接' if connected else '未连接')\n"
+         "            parts.append(f'{title}：{state}{suffix}')\n"
+         "        self.connection_line.setText('　｜　'.join(parts))\n"
+         "\n"
+         "    def refresh_device_states(self):\n"
+         "        \"\"\"[device-state] 按驱动真实状态刷新状态栏与设备窗口（谁连上就显示谁）。\"\"\"\n"
+         "        backends = self._device_backends()\n"
+         "        if not backends:\n"
+         "            return\n"
+         "        changed = False\n"
+         "        for key in ('camera', 'robot_a', 'robot_b'):\n"
+         "            backend = backends.get(key)\n"
+         "            try:\n"
+         "                connected = bool(backend is not None and backend.is_connected())\n"
+         "            except Exception:      # noqa: BLE001 - 驱动异常不能把界面弄崩\n"
+         "                connected = False\n"
+         "            if bool(self.device_states.get(key, False)) != connected:\n"
+         "                self.device_states[key] = connected\n"
+         "                changed = True\n"
+         "                self.sync_device_dialog(key, connected)\n"
+         "        if changed:\n"
+         "            self.update_connection_line()\n"
+         "\n"
+         "    def sync_device_dialog(self, device, connected):\n"
+         "        \"\"\"[device-state] 设备窗口那一页的状态跟着变，避免两处显示矛盾。\"\"\"\n"
+         "        dialog = getattr(self, '_inspection_devices_dialog', None)\n"
+         "        if dialog is None:\n"
+         "            return\n"
+         "        try:\n"
+         "            page = dialog.pages.get(device)\n"
+         "            if page is None:\n"
+         "                return\n"
+         "            page._set_status(bool(connected),\n"
+         "                             '连接已建立。' if connected else '连接已断开。')\n"
+         "        except (RuntimeError, AttributeError):\n"
+         "            pass\n",
+         "def update_connection_line"),
+        # 2) 启动定时刷新
+        ("        QShortcut(QKeySequence('Ctrl+O'), self, activated=self.select_images)\n",
+         "        # [device-state] 定时用驱动真值刷新状态栏，不再依赖“上一次点击”\n"
+         "        self.device_timer = QTimer(self)\n"
+         "        self.device_timer.setInterval(1500)\n"
+         "        self.device_timer.timeout.connect(self.refresh_device_states)\n"
+         "        self.device_timer.start()\n"
+         "        self.refresh_device_states()\n"
+         "        QShortcut(QKeySequence('Ctrl+O'), self, activated=self.select_images)\n",
+         "self.device_timer.setInterval(1500)"),
+        # 3) 设备窗口那一页：只有和真实状态不一致时才改写，避免把"尚未接入"说成"已断开"
+        ("            page = dialog.pages.get(device)\n"
+         "            if page is None:\n"
+         "                return\n"
+         "            page._set_status(bool(connected),\n"
+         "                             '连接已建立。' if connected else '连接已断开。')\n",
+         "            page = dialog.pages.get(device)\n"
+         "            if page is None:\n"
+         "                return\n"
+         "            if ('已连接' in page.status.text()) == bool(connected):\n"
+         "                return\n"
+         "            page._set_status(bool(connected),\n"
+         "                             '连接已建立。' if connected else '连接已断开。')\n",
+         "if ('已连接' in page.status.text()) == bool(connected):"),
+        # 4) 打开设备窗口时先对齐一次真实状态（否则后打开的窗口永远停在"未连接"）
+        ("    def show_device_panel(self):\n"
+         "        dialog = show_devices(self)\n"
+         "        if not getattr(dialog, '_main_status_bound', False):\n"
+         "            dialog.connection_status_changed.connect(self.device_status_changed)\n"
+         "            dialog._main_status_bound = True\n",
+         "    def show_device_panel(self):\n"
+         "        dialog = show_devices(self)\n"
+         "        if not getattr(dialog, '_main_status_bound', False):\n"
+         "            dialog.connection_status_changed.connect(self.device_status_changed)\n"
+         "            dialog._main_status_bound = True\n"
+         "        # [device-state] 打开时按驱动真值对齐，避免窗口里和状态栏说法不一致\n"
+         "        self.refresh_device_states()\n"
+         "        for _key in ('camera', 'robot_a', 'robot_b'):\n"
+         "            self.sync_device_dialog(_key, bool(self.device_states.get(_key)))\n",
+         "self.sync_device_dialog(_key, bool(self.device_states.get(_key)))"),
+    ]
+    applied, missing = [], []
+    for entry in edits:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:26])
+        else:
+            missing.append(old.strip().splitlines()[0][:26])
+    if text != original:
+        shutil.copy2(f, f.with_suffix(".py.bak"))
+        f.write_text(text, encoding="utf-8")
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改 {} 处（设备状态自动刷新）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -2186,6 +2353,7 @@ def main() -> int:
     print("9n) 相机接入:", patch_camera_sync(engine))
     print("9o) 扩展模块:", deploy_app_addons(engine))
     print("9p) 实时预览:", patch_camera_preview(engine))
+    print("9q) 设备状态:", patch_device_state_sync(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
