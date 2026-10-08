@@ -1472,6 +1472,8 @@ def patch_left_column(engine: Path) -> str:
         else:
             missing.append(old.strip().splitlines()[0][:28])
     if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
         return "未匹配: " + "; ".join(missing[:4])
     shutil.copy2(f, f.with_suffix(".py.bak"))
     f.write_text(text, encoding="utf-8")
@@ -1830,6 +1832,152 @@ def patch_fusion_sync(engine: Path) -> str:
     return "；".join(out)
 
 
+def patch_camera_sync(engine: Path) -> str:
+    """[camera-sync 2026-10-08] 接上 Orbbec Gemini 335Le 工业相机：
+
+    * ``devices_view`` 注册真实相机驱动（没装 OrbbecSDK 时保持"未接入"，不假装）；
+    * 主界面加「用工业相机拍照」按钮：取一帧 → 无损留样（capture_archive）→ 直接进工作区；
+    * 「测量就绪检查」里的"本次原图留样"改为以真实留样为准。
+    """
+    devices = engine / "inspection_gui" / "devices_view.py"
+    gui = engine / "inspection_gui" / "gui.py"
+    if not devices.is_file() or not gui.is_file():
+        return "找不到 devices_view.py 或 gui.py"
+    applied, missing = [], []
+
+    devices_text = devices.read_text(encoding="utf-8")
+    old = "_registered_backends['robot_b'] = DobotFeedback()"
+    new = ("_registered_backends['robot_b'] = DobotFeedback()\n"
+           "# [camera-sync] 真实相机驱动：Orbbec Gemini 335Le（USB-Ethernet）。\n"
+           "# 没有安装 OrbbecSDK 时保持“未接入”，绝不假装已连接。\n"
+           "try:\n"
+           "    from .orbbec_camera import OrbbecCamera\n"
+           "    _registered_backends['camera'] = OrbbecCamera()\n"
+           "except (ImportError, OSError):\n"
+           "    pass")
+    if new not in devices_text and old in devices_text:
+        shutil.copy2(devices, devices.with_suffix(".py.bak"))
+        devices.write_text(devices_text.replace(old, new, 1), encoding="utf-8")
+        applied.append("devices_view: 注册相机驱动")
+    elif new not in devices_text:
+        missing.append("devices_view: _registered_backends['robot_b']")
+
+    original = gui.read_text(encoding="utf-8")
+    text = original
+    edits = [
+        ("        self.btn_select = QPushButton('① 选择照片')\n"
+         "        self.btn_select.setObjectName('primary')\n",
+         "        self.btn_select = QPushButton('① 选择照片')\n"
+         "        self.btn_select.setObjectName('primary')\n"
+         "        # [camera-sync] 直接从工业相机拍一张\n"
+         "        self.btn_capture = QPushButton('用工业相机拍照')\n"
+         "        self.btn_capture.setToolTip('从 Orbbec Gemini 335Le 取一帧彩色图，无损留样后直接放进工作区。')\n"),
+        ("        actions.setMinimumHeight(176)", "        actions.setMinimumHeight(222)"),
+        ("        for _button in (self.btn_select, self.btn_detect, self.btn_send):\n",
+         "        # [camera-sync] 拍照按钮排在“选择照片”后面\n"
+         "        for _button in (self.btn_select, self.btn_capture, self.btn_detect, self.btn_send):\n"),
+        ("        self.btn_select.clicked.connect(self.select_images)\n",
+         "        self.btn_select.clicked.connect(self.select_images)\n"
+         "        self.btn_capture.clicked.connect(self.capture_from_camera)   # [camera-sync]\n"),
+        ("        originals_kept = bool(self.paths) and all(Path(path).is_file() for path in self.paths)\n"
+         "        group_done = bool(self.paths) and all(item is not None for item in self.results)\n"
+         "        rows = readiness_rows(_registered_backends, originals_kept and group_done,\n"
+         "                              bool(self.confirmed_targets()))",
+         "        # [camera-sync] “本次原图留样”以真实留样为准（capture_archive 写的无损原图 + 同批 JSON）\n"
+         "        has_capture = bool(getattr(self, 'last_capture', None))\n"
+         "        rows = readiness_rows(_registered_backends, has_capture,\n"
+         "                              bool(self.confirmed_targets()))"),
+        ("    def log(self, message):\n",
+         "    def camera_settings(self):\n"
+         "        \"\"\"[camera-sync] 读「设备连接 → 工业相机」里保存的配置。\"\"\"\n"
+         "        try:\n"
+         "            from .devices_view import _load_settings, SETTINGS_PATH\n"
+         "            settings, _warning = _load_settings(SETTINGS_PATH)\n"
+         "            return settings.get('camera', {})\n"
+         "        except (ImportError, OSError, ValueError):\n"
+         "            return {}\n"
+         "\n"
+         "    @Slot()\n"
+         "    def capture_from_camera(self):\n"
+         "        \"\"\"[camera-sync] 用工业相机拍一张：无损留样后直接进入检测工作区。\"\"\"\n"
+         "        try:\n"
+         "            from .capture_archive import save_capture\n"
+         "            from .devices_view import _registered_backends\n"
+         "        except ImportError as error:\n"
+         "            QMessageBox.warning(self, '相机拍照不可用', str(error))\n"
+         "            return\n"
+         "        camera = _registered_backends.get('camera')\n"
+         "        if camera is None:\n"
+         "            QMessageBox.information(self, '相机未接入',\n"
+         "                                    '本机没有可用的 Orbbec 相机驱动。\\n'\n"
+         "                                    '请确认已安装 OrbbecSDK，并且相机 USB 已插好。')\n"
+         "            return\n"
+         "        self.set_status('正在从工业相机拍照…', '#a86613')\n"
+         "        QApplication.processEvents()\n"
+         "        frame = None\n"
+         "        try:\n"
+         "            if not camera.is_connected() and not camera.connect(self.camera_settings()):\n"
+         "                raise RuntimeError(camera.last_error or '相机连接失败。')\n"
+         "            if not camera.start():\n"
+         "                raise RuntimeError(camera.last_error or '相机取流失败。')\n"
+         "            for _attempt in range(30):\n"
+         "                frame = camera.get_frame()\n"
+         "                if frame is not None:\n"
+         "                    break\n"
+         "            if frame is None:\n"
+         "                raise RuntimeError('相机没有返回图像。')\n"
+         "        except Exception as error:      # noqa: BLE001 - 相机异常一律如实报出\n"
+         "            self.set_status('相机拍照失败', '#bf3e35')\n"
+         "            self.log(f'相机拍照失败：{error}')\n"
+         "            QMessageBox.warning(self, '相机拍照失败', str(error))\n"
+         "            return\n"
+         "        finally:\n"
+         "            try:\n"
+         "                camera.stop()\n"
+         "            except Exception:\n"
+         "                pass\n"
+         "        try:\n"
+         "            photo, info, data = save_capture(BASE / 'captures', frame, metadata={\n"
+         "                'source': 'Orbbec Gemini 335Le（工业相机）',\n"
+         "                'device_serial': getattr(camera, 'device_serial', '')\n"
+         "                                 or getattr(camera, 'device_uid', ''),\n"
+         "                'profile': getattr(camera, 'profile', ''),\n"
+         "                'note': '软件内「用工业相机拍照」采集；原图无损保存，不覆盖。',\n"
+         "            })\n"
+         "        except OSError as error:\n"
+         "            self.set_status('原图留样失败', '#bf3e35')\n"
+         "            self.log(f'原图留样失败：{error}')\n"
+         "            QMessageBox.warning(self, '原图留样失败', str(error))\n"
+         "            return\n"
+         "        self.last_capture = {'photo': str(photo), 'info': str(info)}\n"
+         "        self.set_images([str(photo)])\n"
+         "        self.set_status('相机拍照完成')\n"
+         "        self.log(f'相机拍照完成：{photo.name}（{data[\"width_px\"]}×{data[\"height_px\"]}，'\n"
+         "                 f'SHA256 {data[\"image_sha256\"][:12]}…）已放入工作区，可点「② 开始检测」。')\n"
+         "\n"
+         "    def log(self, message):\n"),
+    ]
+    for old, new in edits:
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:26])
+        else:
+            missing.append(old.strip().splitlines()[0][:26])
+    if text != original:
+        shutil.copy2(gui, gui.with_suffix(".py.bak"))
+        gui.write_text(text, encoding="utf-8")
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改 {} 处（接入工业相机拍照）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -1894,6 +2042,7 @@ def main() -> int:
     print("9k) 设备页紧凑:", patch_device_page_compact(engine))
     print("9l) 批次弹窗:", patch_batch_dialog_details(engine))
     print("9m) 融合同步:", patch_fusion_sync(engine))
+    print("9n) 相机接入:", patch_camera_sync(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
