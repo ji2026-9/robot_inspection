@@ -2286,6 +2286,106 @@ def patch_device_state_sync(engine: Path) -> str:
     return "；".join(out)
 
 
+def patch_auto_connect(engine: Path) -> str:
+    """[camera-sync] 软件启动后在**后台**自动连一次相机。
+
+    原则不变：连上就显示已连接（含型号），连不上就照实显示未连接并写清原因，
+    绝不假装连接成功；连接过程不阻塞界面（放到后台线程里做）。
+    """
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    original = f.read_text(encoding="utf-8")
+    text = original
+    edits = [
+        ("import json\nfrom pathlib import Path\n",
+         "import json\nimport threading\nfrom pathlib import Path\n",
+         "import threading"),
+        ("        QShortcut(QKeySequence('Ctrl+O'), self, activated=self.select_images)\n",
+         "        # [camera-sync] 启动后延迟一点在后台自动连一次相机（不阻塞界面）\n"
+         "        self._auto_connect_state = {'done': False, 'ok': False, 'error': ''}\n"
+         "        self._auto_connect_checks = 0\n"
+         "        QTimer.singleShot(1200, self.auto_connect_camera)\n"
+         "        QShortcut(QKeySequence('Ctrl+O'), self, activated=self.select_images)\n",
+         "self._auto_connect_state"),
+        ("    def log(self, message):\n",
+         "    def auto_connect_camera(self):\n"
+         "        \"\"\"[camera-sync] 后台连一次相机；连不上只记录原因，不改任何显示状态。\"\"\"\n"
+         "        backend = self._device_backends().get('camera')\n"
+         "        if backend is None:\n"
+         "            self.log('未发现 Orbbec 相机驱动（未安装 OrbbecSDK），相机保持未连接。')\n"
+         "            return\n"
+         "        try:\n"
+         "            if backend.is_connected():\n"
+         "                self.refresh_device_states()\n"
+         "                return\n"
+         "        except Exception:      # noqa: BLE001 - 驱动异常不能影响启动\n"
+         "            pass\n"
+         "        state = self._auto_connect_state\n"
+         "        settings = self.camera_settings()\n"
+         "\n"
+         "        def worker():\n"
+         "            try:\n"
+         "                state['ok'] = bool(backend.connect(settings)) and bool(backend.is_connected())\n"
+         "                state['error'] = '' if state['ok'] else (getattr(backend, 'last_error', '') or '未知原因')\n"
+         "            except Exception as error:      # noqa: BLE001\n"
+         "                state['ok'], state['error'] = False, str(error)\n"
+         "            state['done'] = True\n"
+         "\n"
+         "        threading.Thread(target=worker, daemon=True, name='camera-auto-connect').start()\n"
+         "        QTimer.singleShot(3000, self.report_auto_connect)\n"
+         "\n"
+         "    def report_auto_connect(self):\n"
+         "        \"\"\"[camera-sync] 把自动连接的结果如实写进运行日志。\"\"\"\n"
+         "        state = getattr(self, '_auto_connect_state', None)\n"
+         "        if state is None:\n"
+         "            return\n"
+         "        if not state.get('done'):\n"
+         "            self._auto_connect_checks = getattr(self, '_auto_connect_checks', 0) + 1\n"
+         "            if self._auto_connect_checks <= 5:\n"
+         "                QTimer.singleShot(3000, self.report_auto_connect)\n"
+         "            else:\n"
+         "                self.log('相机自动连接仍在等待设备响应，可点「相机实时预览」重试。')\n"
+         "            return\n"
+         "        backend = self._device_backends().get('camera')\n"
+         "        if state['ok']:\n"
+         "            name = (getattr(backend, 'device_name', '') or '相机') if backend is not None else '相机'\n"
+         "            serial = getattr(backend, 'device_serial', '') if backend is not None else ''\n"
+         "            self.log('相机已自动连接：' + name + (f'（序列号 {serial}）' if serial else ''))\n"
+         "        else:\n"
+         "            self.log('相机自动连接未成功：' + (state['error'] or '未知原因')\n"
+         "                     + '；可点「相机实时预览」或「设备连接 → 连接设备」重试。')\n"
+         "        self.refresh_device_states()\n"
+         "\n"
+         "    def log(self, message):\n",
+         "def report_auto_connect(self):"),
+    ]
+    applied, missing = [], []
+    for entry in edits:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:26])
+        else:
+            missing.append(old.strip().splitlines()[0][:26])
+    if text != original:
+        shutil.copy2(f, f.with_suffix(".py.bak"))
+        f.write_text(text, encoding="utf-8")
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改 {} 处（启动自动连相机）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -2354,6 +2454,7 @@ def main() -> int:
     print("9o) 扩展模块:", deploy_app_addons(engine))
     print("9p) 实时预览:", patch_camera_preview(engine))
     print("9q) 设备状态:", patch_device_state_sync(engine))
+    print("9r) 自动连相机:", patch_auto_connect(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
