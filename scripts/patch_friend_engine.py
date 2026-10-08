@@ -1029,6 +1029,78 @@ def patch_light_frame(engine: Path) -> str:
     return "；".join(out) or "无需修改"
 
 
+def patch_fresh_start(engine: Path) -> str:
+    """The app restored the previous batch at every startup, so a "new" run showed
+    old photos, old ellipses and old numbers. Start clean instead and load the
+    previous batch only when the user explicitly asks for it."""
+    edits = [
+        (engine / "inspection_gui" / "gui.py", [
+            ("        self.log('系统就绪，检测使用当前正式模型，孔置信度保留阈值为 0.5。')\n"
+             "        self.restore_last_batch()\n"
+             "        self.set_controls()",
+             "        # [local patch] start with a CLEAN workspace. The previous batch is\n"
+             "        # only shown when the user clicks 「打开上次批次」 (or opens 实验记录).\n"
+             "        self.log('系统就绪，检测使用当前正式模型，孔置信度保留阈值为 0.5。')\n"
+             "        self.log('工作区为空。如需查看上一次的检测结果，请点「打开上次批次」。')\n"
+             "        self.set_controls()"),
+            ("        self.btn_results = QPushButton('打开结果文件夹')\n"
+             "        for _button in (self.btn_devices, self.btn_records, self.btn_models,\n"
+             "                        self.btn_simulation, self.btn_results):\n"
+             "            others_layout.addWidget(_button)",
+             "        self.btn_results = QPushButton('打开结果文件夹')\n"
+             "        self.btn_last_batch = QPushButton('打开上次批次')   # [local patch]\n"
+             "        self.btn_last_batch.setToolTip('只在你点击时才载入上一次的检测结果，启动时不会自动载入。')\n"
+             "        for _button in (self.btn_devices, self.btn_records, self.btn_models,\n"
+             "                        self.btn_simulation, self.btn_last_batch, self.btn_results):\n"
+             "            others_layout.addWidget(_button)"),
+            ("        self.btn_simulation.clicked.connect(self.show_simulation)\n",
+             "        self.btn_simulation.clicked.connect(self.show_simulation)\n"
+             "        self.btn_last_batch.clicked.connect(self.open_last_batch)   # [local patch]\n"),
+            ("    def restore_last_batch(self):\n",
+             "    @Slot()\n"
+             "    def open_last_batch(self):\n"
+             "        \"\"\"[local patch] explicit user action: load the previous batch.\"\"\"\n"
+             "        if not LAST_BATCH.is_file():\n"
+             "            QMessageBox.information(self, '没有历史批次',\n"
+             "                                    '还没有可以打开的上一次检测结果。')\n"
+             "            return\n"
+             "        self.restore_last_batch()\n"
+             "        if not self.paths:\n"
+             "            QMessageBox.information(self, '没有历史批次',\n"
+             "                                    '上一次的检测结果文件内容为空。')\n"
+             "\n"
+             "    def restore_last_batch(self):\n"),
+        ]),
+    ]
+    applied, skipped, missing = [], [], []
+    for path, pairs in edits:
+        if not path.is_file():
+            missing.append(path.name)
+            continue
+        text = path.read_text(encoding="utf-8")
+        original = text
+        for old, new in pairs:
+            if new in text:
+                skipped.append(path.name)
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+            else:
+                missing.append("{}:{}".format(path.name, old.strip()[:26]))
+        if text != original:
+            shutil.copy2(path, path.with_suffix(".py.bak"))
+            path.write_text(text, encoding="utf-8")
+            applied.append(path.name)
+    out = []
+    if applied:
+        out.append("已改: " + ", ".join(sorted(set(applied))))
+    if skipped:
+        out.append("已是最新: " + ", ".join(sorted(set(skipped))))
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:3]))
+    return "；".join(out) or "无需修改"
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -1083,6 +1155,7 @@ def main() -> int:
     print("9b) 画布配色:", patch_canvas_theme(engine))
     print("9c) 弹窗布局:", patch_dialog_layouts(engine))
     print("9d) 浅色外框:", patch_light_frame(engine))
+    print("9e) 空白启动:", patch_fresh_start(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
