@@ -122,7 +122,6 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self.refresh_model_summary()
         self.log('系统就绪，检测使用当前正式模型，孔置信度保留阈值为 0.5。')
-        self.restore_last_batch()
         self.set_controls()
 
     def _build_ui(self):
