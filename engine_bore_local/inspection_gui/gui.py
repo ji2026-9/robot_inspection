@@ -123,6 +123,10 @@ class MainWindow(QMainWindow):
         self.refresh_model_summary()
         self.log('系统就绪，检测使用当前正式模型，孔置信度保留阈值为 0.5。')
         self.set_controls()
+        self.device_status_timer = QTimer(self)
+        self.device_status_timer.setInterval(1000)
+        self.device_status_timer.timeout.connect(self.refresh_device_status)
+        self.device_status_timer.start()
 
     def _build_ui(self):
         central = QWidget()
@@ -598,15 +602,19 @@ class MainWindow(QMainWindow):
     def start_camera_preview(self):
         if self.camera_worker and self.camera_worker.isRunning():
             return
-        from .devices_view import _registered_backends
+        from .devices_view import _registered_backends, _load_settings, SETTINGS_PATH
         backend = _registered_backends.get('camera')
-        if backend is None or not backend.is_connected():
+        if backend is None:
             QMessageBox.information(self, '相机尚未接入', '请先在设备连接中接入相机驱动并连接设备。需要相机品牌、型号与厂家SDK，当前不会用模拟画面冒充实时画面。')
             return
         if not all(callable(getattr(backend, name, None)) for name in ('start', 'stop', 'get_frame')):
             QMessageBox.warning(self, '相机驱动不完整', '驱动需提供 start、stop、get_frame 三个采集方法。')
             return
-        self.camera_worker = CameraPreviewWorker(backend, self)
+        settings, error = _load_settings(SETTINGS_PATH)
+        if error:
+            QMessageBox.warning(self, '相机配置读取失败', error)
+            return
+        self.camera_worker = CameraPreviewWorker(backend, self, settings=settings['camera'])
         self.camera_worker.failed.connect(lambda error: self.live_note.setText('采集异常：' + error))
         self.camera_worker.start()
         self.btn_live.setEnabled(False)
@@ -658,6 +666,8 @@ class MainWindow(QMainWindow):
                     'robot_a_pose': None, 'robot_a_pose_note': '未取得有效拍照机械臂位姿',
                     'model_version': self.active_models.get('version'),
                     'camera_parameters_note': '仅记录设备实际读回值，未获取时保持空值，不用期望配置替代。'}
+        camera = self.camera_worker.backend
+        metadata['camera_identity_actual'] = {key: getattr(camera, key, None) for key in ('device_name', 'device_serial', 'device_uid', 'profile')}
         backend = _registered_backends.get('robot_a')
         latest = getattr(backend, 'latest', None)
         if isinstance(latest, dict) and latest.get('received_at') and 0 <= time.time()-latest['received_at'] < 2:
@@ -913,6 +923,20 @@ class MainWindow(QMainWindow):
                         else '：已连接' if self.device_states.get(key) else '：反馈过期／已断开' if '过期' in self.device_notes.get(key, '') else '：未连接')
             for key in names))
         self.log(names[device]+'：'+note)
+
+    def refresh_device_status(self):
+        from .devices_view import _registered_backends
+        names = {'camera':'工业相机', 'robot_a':'拍照机械臂 A', 'robot_b':'测量机械臂 B'}
+        descriptions = []
+        for key, name in names.items():
+            backend = _registered_backends.get(key)
+            connected = bool(backend and backend.is_connected())
+            self.device_states[key] = connected
+            detail = '只读反馈已连接' if key == 'robot_b' and connected else '设备已打开' if key == 'camera' and connected else '已连接' if connected else '未连接'
+            if key == 'camera' and connected and getattr(backend, 'device_name', ''):
+                detail += '（' + backend.device_name + '）'
+            descriptions.append(name + '：' + detail)
+        self.connection_line.setText('　｜　'.join(descriptions))
 
     @Slot()
     def open_results(self):

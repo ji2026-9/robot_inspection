@@ -12,13 +12,17 @@ class ClickablePhoto(QLabel):
 
 class CameraPreviewWorker(QThread):
     failed=Signal(str)
-    def __init__(self,backend,parent=None):
+    def __init__(self,backend,parent=None,settings=None):
         super().__init__(parent);self.backend=backend;self.stop_event=threading.Event();self.lock=threading.Lock();self.latest=None;self.received_at=0;self.received_wall=None;self.parameter_readback=None
+        self.settings=settings
     def run(self):
         try:
             if getattr(self.backend,'_inspection_parameter_busy',False):raise RuntimeError('相机参数操作尚未结束')
+            if not self.backend.is_connected():
+                if self.settings is None or not self.backend.connect(self.settings):
+                    raise RuntimeError(getattr(self.backend,'last_error','') or '相机连接失败，请核对设备连接配置')
             self.backend._inspection_acquiring=True
-            if not self.backend.start():raise RuntimeError('相机采集启动失败')
+            if not self.backend.start():raise RuntimeError(getattr(self.backend,'last_error','') or '相机采集启动失败')
             if callable(getattr(self.backend,'get_parameters',None)):
                 try:
                     self.parameter_readback={'received_at':time.time(),'values':self.backend.get_parameters()}
@@ -33,9 +37,10 @@ class CameraPreviewWorker(QThread):
                 self.stop_event.wait(.03)
         except Exception as error:self.failed.emit(str(error))
         finally:
-            self.backend._inspection_acquiring=False
             try:self.backend.stop()
             except Exception as error:self.failed.emit('相机停止失败：'+str(error))
+            self.backend._inspection_acquiring=False
+            with self.lock:self.latest=None;self.received_at=0
     def snapshot(self):
         with self.lock:
             if self.latest is None or time.monotonic()-self.received_at>2:return None

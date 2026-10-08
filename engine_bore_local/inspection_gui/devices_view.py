@@ -77,6 +77,8 @@ class RobotConnection(DeviceConnection, Protocol):
 
 _registered_backends: dict[str, DeviceConnection] = {}
 _registered_backends['robot_b'] = DobotFeedback()
+from .orbbec_camera import OrbbecCamera
+_registered_backends['camera'] = OrbbecCamera()
 _dialog_ref = None
 
 
@@ -331,6 +333,26 @@ class DevicePage(QWidget):
 
         self.transport.currentTextChanged.connect(self._transport_changed)
         self._transport_changed(self.transport.currentText())
+        if device_id == 'camera':
+            if not self.manufacturer.text(): self.manufacturer.setText('Orbbec')
+            if not self.model.text(): self.model.setText('Gemini 335Le')
+            if not self.port.value(): self.port.setValue(8090)
+            self.camera_status_timer = QTimer(self)
+            self.camera_status_timer.setInterval(1000)
+            self.camera_status_timer.timeout.connect(self._refresh_camera_status)
+            self.camera_status_timer.start()
+            self._refresh_camera_status()
+
+    def _refresh_camera_status(self):
+        if self._connection_pending:
+            return
+        backend = _registered_backends.get('camera')
+        connected = bool(backend and backend.is_connected())
+        self._backend = backend if connected else None
+        if connected:
+            self._set_status(True, '设备已打开：' + (getattr(backend, 'device_name', '') or '相机') + '；序列号：' + (getattr(backend, 'device_serial', '') or '未读回') + '。采集状态以实时画面为准。')
+        else:
+            self._set_status(False, getattr(backend, 'last_error', '') or '相机未连接；请填写当前 IP 后连接。')
 
     def _transport_changed(self, transport: str) -> None:
         network = transport == "网口"
@@ -463,11 +485,12 @@ class DevicePage(QWidget):
         self._connection_pending = False
         self.connection_timer.stop()
         self._backend = backend if connected else None
-        note = ('只读反馈已建立，不具备运动下发功能。' if self.device_id == 'robot_b' else '连接已建立。') if connected else ('连接失败：' + error if error else '未能连接，请核对设备信息。')
+        error = error or getattr(backend, 'last_error', '')
+        note = ('只读反馈已建立，不具备运动下发功能。' if self.device_id == 'robot_b' else '设备连接已建立；图像状态以实时画面为准。') if connected else ('连接失败：' + error if error else '未能连接，请核对设备信息。')
         self._set_status(connected, note)
 
     def _disconnect(self) -> None:
-        backend = self._backend
+        backend = self._backend or _registered_backends.get(self.device_id)
         if backend is None:
             self._set_status(False, "设备未连接。")
             return
@@ -481,6 +504,9 @@ class DevicePage(QWidget):
             QMessageBox.warning(self, "断开未完成", str(exc))
 
     def _set_status(self, connected: bool, note: str) -> None:
+        if getattr(self, '_last_status_message', None) == (connected, note):
+            return
+        self._last_status_message = (connected, note)
         self.status.setText("● 已连接" if connected else "● 未连接")
         self.status.setStyleSheet("color: #15803d;" if connected else "color: #b45309;")
         self.connection_note.setText(note)

@@ -308,14 +308,15 @@ class EngineDetector:
                         raise ValueError('原图边缘复核失败：'+edge_info['reason'])
                     fit_source = 'image_edge_verified'
                     residual = edge_info['median_residual_px']
-                if fit_source == 'segmentation_contour' and support < .85:
+                # Verify the physical image edge even when the mask itself is smooth.
+                if fit_source == 'segmentation_contour':
                     refined,verification = refine_multi_edge(result.orig_img,ellipse)
                     if verification['used']:
                         ellipse = refined
                         edge_info = verification
                         residual = verification['median_residual_px']
                         fit_source = 'image_edge_verified'
-                    else:
+                    elif support < .85:
                         warnings.append(f"孔 {number} 分割轮廓不稳定，原图边缘修正未通过：{verification['reason']}；请复核圆心。")
                 (cx, cy), (a, b), angle = ellipse
                 if not (0 <= cx < width and 0 <= cy < height):
