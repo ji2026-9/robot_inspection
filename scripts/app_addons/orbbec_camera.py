@@ -17,6 +17,7 @@ SDK 位置查找顺序：环境变量 ``ORBBEC_SDK_BIN`` → 已安装的默认�
 from __future__ import annotations
 
 import ctypes
+import glob
 import os
 import threading
 from ctypes import POINTER, byref, c_char_p, c_int32, c_uint8, c_uint32, c_void_p
@@ -30,10 +31,17 @@ OB_FORMAT_YUY2 = 1
 OB_FORMAT_RGB = 22          # OB_FORMAT_RGB888
 OB_FORMAT_BGR = 23
 
+# 常见安装位置只是"提示"；真正靠下面的 glob 在别人电脑上自动找
 DEFAULT_BIN_DIRS = (
-    r"D:\OrbbecSDK_v2.9.3\OrbbecSDK 2.9.3\bin",
     r"C:\Program Files\Orbbec\OrbbecSDK\bin",
     r"C:\Program Files (x86)\Orbbec\OrbbecSDK\bin",
+)
+SEARCH_PATTERNS = (
+    r"C:\Program Files*\Orbbec*\**\bin",
+    r"C:\Orbbec*\**\bin",
+    r"D:\Orbbec*\**\bin",
+    r"E:\Orbbec*\**\bin",
+    r"F:\Orbbec*\**\bin",
 )
 
 # 依次尝试的彩色流配置：分辨率、帧率、像素格式
@@ -48,11 +56,23 @@ PROFILE_CANDIDATES = (
 
 
 def find_sdk_bin():
-    """返回含 OrbbecSDK.dll 的目录，找不到返回 None。"""
+    """返回含 OrbbecSDK.dll 的目录，找不到返回 None。
+
+    查找顺序：环境变量 ``ORBBEC_SDK_BIN`` → 常见安装目录 → 各盘的
+    ``OrbbecSDK_v*`` 自动搜索。这样换一台电脑、装到别的盘也不用改代码。
+    """
     override = os.environ.get("ORBBEC_SDK_BIN", "").strip()
-    for candidate in ((override,) if override else ()) + DEFAULT_BIN_DIRS:
+    candidates = ([override] if override else []) + list(DEFAULT_BIN_DIRS)
+    for candidate in candidates:
         if candidate and Path(candidate, "OrbbecSDK.dll").is_file():
             return Path(candidate)
+    for pattern in SEARCH_PATTERNS:
+        try:
+            for folder in sorted(glob.glob(pattern, recursive=True), reverse=True):
+                if Path(folder, "OrbbecSDK.dll").is_file():
+                    return Path(folder)
+        except (OSError, ValueError):
+            continue
     return None
 
 

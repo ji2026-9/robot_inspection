@@ -164,7 +164,13 @@ def patch_dark_mode(engine: Path) -> str:
             continue
         text = path.read_text(encoding="utf-8")
         original = text
-        for old, new in pairs:
+        for entry in pairs:
+            # 兼容两种写法：(old, new) 或者 (old, new, 幂等标记)
+            old, new = entry[0], entry[1]
+            marker = entry[2] if len(entry) > 2 else None
+            if marker and marker in text:
+                skipped.append(path.name)
+                continue
             if new in text:
                 skipped.append(path.name)
                 continue
@@ -1322,7 +1328,13 @@ def patch_batch_history(engine: Path) -> str:
             continue
         text = path.read_text(encoding="utf-8")
         original = text
-        for old, new in pairs:
+        for entry in pairs:
+            # 这批改动里有一条是 (old, new, 幂等标记)，不能只按两元组解包
+            old, new = entry[0], entry[1]
+            marker = entry[2] if len(entry) > 2 else None
+            if marker and marker in text:
+                skipped.append(path.name)
+                continue
             if new in text:
                 skipped.append(path.name)
                 continue
@@ -2386,6 +2398,1705 @@ def patch_auto_connect(engine: Path) -> str:
     return "；".join(out)
 
 
+def patch_records_data(engine: Path) -> str:
+    """[records-tools] 实验记录数据层：补上"组 id / 组号 / 报告路径"，并支持删除整组。
+
+    界面要能做「载入到工作区」「打开检测报告」「删除这一组」，就必须知道每条记录
+    属于哪一组、报告文件在哪。这里只**增加字段和方法**，不动原有语义。
+    """
+    f = engine / "experiment_records.py"
+    if not f.is_file():
+        return "找不到 experiment_records.py"
+    original = f.read_text(encoding="utf-8")
+    text = original
+    edits = [
+        ("                       'model': report.get('model', group['model']), 'image': report['image'],\n"
+         "                       'result_image': report.get('result_image', ''),\n"
+         "                       'part_model': report.get('part_model') or ''}\n",
+         "                       'model': report.get('model', group['model']), 'image': report['image'],\n"
+         "                       'result_image': report.get('result_image', ''),\n"
+         "                       'result_csv': report.get('result_csv', ''),\n"
+         "                       'group_id': group.get('id', ''),\n"
+         "                       'group_number': group.get('number', ''),\n"
+         "                       'part_model': report.get('part_model') or ''}\n",
+         "'group_id': group.get('id', '')"),
+        ("    def export(self, destination):\n",
+         "    def reports_of(self, group_id):\n"
+         "        \"\"\"[records-tools] 取某一组的原始 reports（用于载入到工作区）。\"\"\"\n"
+         "        for group in self.groups:\n"
+         "            if group.get('id') == group_id:\n"
+         "                return list(group.get('reports', []))\n"
+         "        return []\n"
+         "\n"
+         "    def delete_group(self, group_id):\n"
+         "        \"\"\"[records-tools] 删除一整组实验记录；返回 (是否删除, 说明)。\n"
+         "\n"
+         "        只删记录本身，不动磁盘上的原图 / 结果图 / 报告文件。\n"
+         "        \"\"\"\n"
+         "        for index, group in enumerate(self.groups):\n"
+         "            if group.get('id') == group_id:\n"
+         "                number = group.get('number', '?')\n"
+         "                count = len(group.get('reports', []))\n"
+         "                del self.groups[index]\n"
+         "                self.save()\n"
+         "                return True, f'第{number}组（{count} 张）已从实验记录中删除；原图与结果文件未删除。'\n"
+         "        return False, '没有找到这一组，可能已经被删除。'\n"
+         "\n"
+         "    def export(self, destination):\n",
+         "def delete_group(self, group_id):"),
+    ]
+    applied, missing = [], []
+    for entry in edits:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:26])
+        else:
+            missing.append(old.strip().splitlines()[0][:26])
+    if text != original:
+        shutil.copy2(f, f.with_suffix(".py.bak"))
+        f.write_text(text, encoding="utf-8")
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    return "已改 {} 处（记录数据层）".format(len(applied))
+
+
+def patch_records_tools(engine: Path) -> str:
+    """[records-tools] 实验记录窗口：合并"打开历史批次"的能力，并支持删除与看图。
+
+    新增按钮：载入到工作区 / 打开原图 / 打开结果图 / 打开检测报告 / 删除这一组。
+    这样「打开历史批次」就多余了，主界面那个按钮会一并去掉。
+    """
+    f = engine / "inspection_gui" / "records_view.py"
+    if not f.is_file():
+        return "找不到 records_view.py"
+    original = f.read_text(encoding="utf-8")
+    text = original
+    edits = [
+        ("        folder_button = QPushButton('打开结果文件夹')\n"
+         "        folder_button.clicked.connect(self.open_results_folder)\n"
+         "        tools.addWidget(folder_button)\n"
+         "        layout.addLayout(tools)\n",
+         "        folder_button = QPushButton('打开结果文件夹')\n"
+         "        folder_button.clicked.connect(self.open_results_folder)\n"
+         "        tools.addWidget(folder_button)\n"
+         "        # [records-tools] 载入 / 看图 / 报告 / 删除（合并了原来的「打开历史批次」）\n"
+         "        load_button = QPushButton('载入到工作区')\n"
+         "        load_button.setToolTip('把选中的这一组照片和检测结果载入主界面（不会重新检测、不会新增记录）')\n"
+         "        load_button.clicked.connect(self.load_group)\n"
+         "        tools.addWidget(load_button)\n"
+         "        original_button = QPushButton('打开原图')\n"
+         "        original_button.clicked.connect(lambda: self.open_field('image', '原图'))\n"
+         "        tools.addWidget(original_button)\n"
+         "        result_button = QPushButton('打开结果图')\n"
+         "        result_button.clicked.connect(lambda: self.open_field('result_image', '结果图'))\n"
+         "        tools.addWidget(result_button)\n"
+         "        report_button = QPushButton('打开检测报告')\n"
+         "        report_button.setToolTip('打开这一张图对应的检测报告（CSV，可用 Excel / WPS 打开）')\n"
+         "        report_button.clicked.connect(lambda: self.open_field('result_csv', '检测报告'))\n"
+         "        tools.addWidget(report_button)\n"
+         "        delete_button = QPushButton('删除这一组')\n"
+         "        delete_button.setToolTip('从实验记录里删除选中的整组（含该组所有照片的行），删除后无法撤销')\n"
+         "        delete_button.clicked.connect(self.delete_group)\n"
+         "        tools.addWidget(delete_button)\n"
+         "        layout.addLayout(tools)\n",
+         "delete_button = QPushButton('删除这一组')"),
+        ('            "每批照片为一组，新实验追加保存。空白表示没有保留该孔。"\n'
+         '            "孔号按图像位置排序；双击一行打开检测结果图片。"\n',
+         '            "每批照片为一组，新实验追加保存。空白表示没有保留该孔。"\n'
+         '            "孔号按图像位置排序。选中一行后可以：载入到工作区 / 打开原图 / 打开结果图 / 打开检测报告 / 删除这一组。"\n',
+         "选中一行后可以：载入到工作区"),
+        ("    @Slot(int, int)\n"
+         "    def open_result(self, row_index: int, _column: int = 0) -> None:\n",
+         "    def current_row(self):\n"
+         "        \"\"\"[records-tools] 当前选中的那一行记录。\"\"\"\n"
+         "        row = self.table.currentRow()\n"
+         "        return self.rows[row] if 0 <= row < len(self.rows) else None\n"
+         "\n"
+         "    @Slot()\n"
+         "    def open_field(self, key, label):\n"
+         "        \"\"\"[records-tools] 打开这一行的原图 / 结果图 / 检测报告。\"\"\"\n"
+         "        row = self.current_row()\n"
+         "        if row is None:\n"
+         "            QMessageBox.information(self, '请先选一行', '请先在表格里选中一张图片。')\n"
+         "            return\n"
+         "        path_text = row.get(key, '') or ''\n"
+         "        if not path_text or not Path(path_text).is_file():\n"
+         "            QMessageBox.information(self, label + '无法打开',\n"
+         "                                    f'这条记录没有可用的{label}文件。\\n'\n"
+         "                                    f'路径：{path_text or \"（记录里没有记录路径）\"}')\n"
+         "            return\n"
+         "        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(path_text).resolve()))):\n"
+         "            QMessageBox.warning(self, label + '无法打开', f'未能打开：\\n{path_text}')\n"
+         "\n"
+         "    @Slot()\n"
+         "    def load_group(self):\n"
+         "        \"\"\"[records-tools] 把选中的这一组载入主界面工作区（不重新检测）。\"\"\"\n"
+         "        row = self.current_row()\n"
+         "        if row is None:\n"
+         "            QMessageBox.information(self, '请先选一行', '请先选中要载入的那一组里的任意一行。')\n"
+         "            return\n"
+         "        reports = self.records.reports_of(row.get('group_id', ''))\n"
+         "        if not reports:\n"
+         "            QMessageBox.information(self, '无法载入', '这一组里没有可显示的照片记录。')\n"
+         "            return\n"
+         "        main = self.parent()\n"
+         "        if main is None or not hasattr(main, 'load_reports'):\n"
+         "            QMessageBox.information(self, '无法载入', '当前主界面不支持载入，请用主界面的「选择照片」。')\n"
+         "            return\n"
+         "        main.load_reports(reports)\n"
+         "        if hasattr(main, 'log'):\n"
+         "            main.log(f'已从实验记录载入第{row.get(\"group_number\", \"?\")}组：{len(reports)} 张'\n"
+         "                     '（未重新检测、未新增记录）。')\n"
+         "\n"
+         "    @Slot()\n"
+         "    def delete_group(self):\n"
+         "        \"\"\"[records-tools] 删除选中的整组记录（二次确认）。\"\"\"\n"
+         "        row = self.current_row()\n"
+         "        if row is None:\n"
+         "            QMessageBox.information(self, '请先选一行', '请先选中要删除的那一组里的任意一行。')\n"
+         "            return\n"
+         "        number = row.get('group_number', '?')\n"
+         "        confirm = QMessageBox.question(\n"
+         "            self, '确认删除',\n"
+         "            f'确定要从实验记录中删除「第{number}组」吗？\\n\\n'\n"
+         "            '该组的全部照片记录都会被删除，删除后无法撤销。\\n'\n"
+         "            '（磁盘上的原图、结果图、检测报告文件不会被删除）',\n"
+         "            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,\n"
+         "            QMessageBox.StandardButton.No)\n"
+         "        if confirm != QMessageBox.StandardButton.Yes:\n"
+         "            return\n"
+         "        ok, message = self.records.delete_group(row.get('group_id', ''))\n"
+         "        self.refresh()\n"
+         "        QMessageBox.information(self, '删除完成' if ok else '未删除', message)\n"
+         "\n"
+         "    @Slot(int, int)\n"
+         "    def open_result(self, row_index: int, _column: int = 0) -> None:\n",
+         "def delete_group(self):"),
+    ]
+    applied, missing = [], []
+    for entry in edits:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:26])
+        else:
+            missing.append(old.strip().splitlines()[0][:26])
+    if text != original:
+        shutil.copy2(f, f.with_suffix(".py.bak"))
+        f.write_text(text, encoding="utf-8")
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改 {} 处（实验记录工具）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def patch_canvas_live(engine: Path) -> str:
+    """[canvas-live] 视觉检测区做成"能实时看、能抓拍、能点孔"的主工作区。
+
+    * 「相机实时画面」开关 + 「抓拍」按钮直接放在检测区工具栏；
+    * 直接点图片上的孔 = 勾选/取消"本次要测量的孔"（用朋友的 pick_hole 命中判断）；
+    * 「打开历史批次」按钮去掉——它的能力已经并进「实验记录 → 载入到工作区」。
+    """
+    f = engine / "inspection_gui" / "gui.py"
+    if not f.is_file():
+        return "找不到 gui.py"
+    original = f.read_text(encoding="utf-8")
+    text = original
+    methods = (
+        "    @Slot(bool)\n"
+        "    def toggle_live_preview(self, on):\n"
+        "        \"\"\"[canvas-live] 视觉检测区显示/关闭工业相机实时画面。\"\"\"\n"
+        "        if on:\n"
+        "            if self.batch_running or self.bridge.busy:\n"
+        "                self.chk_live.setChecked(False)\n"
+        "                QMessageBox.information(self, '正在忙', '检测或训练正在进行，先等它结束再开实时画面。')\n"
+        "                return\n"
+        "            backend = self._device_backends().get('camera')\n"
+        "            if backend is None:\n"
+        "                self.chk_live.setChecked(False)\n"
+        "                QMessageBox.information(self, '相机未接入',\n"
+        "                                        '本机没有可用的 Orbbec 相机驱动。\\n'\n"
+        "                                        '请确认已安装 OrbbecSDK，并且相机 USB 已插好。')\n"
+        "                return\n"
+        "            self.set_status('正在连接相机…', '#a86613')\n"
+        "            QApplication.processEvents()\n"
+        "            try:\n"
+        "                if not backend.is_connected() and not backend.connect(self.camera_settings()):\n"
+        "                    raise RuntimeError(backend.last_error or '相机连接失败。')\n"
+        "            except Exception as error:      # noqa: BLE001 - 如实报出\n"
+        "                self.chk_live.setChecked(False)\n"
+        "                self.set_status('相机连接失败', '#bf3e35')\n"
+        "                self.log('实时画面启动失败：' + str(error))\n"
+        "                QMessageBox.warning(self, '实时画面启动失败', str(error))\n"
+        "                return\n"
+        "            from .vision_workspace import CameraPreviewWorker\n"
+        "            self.live_worker = CameraPreviewWorker(backend, self)\n"
+        "            self.live_worker.failed.connect(self.live_preview_failed)\n"
+        "            self.live_worker.start()\n"
+        "            self.live_timer.start()\n"
+        "            self.log('视觉检测区已切到相机实时画面（预览不写文件，点「抓拍」才留样）。')\n"
+        "        else:\n"
+        "            self.live_timer.stop()\n"
+        "            worker, self.live_worker = getattr(self, 'live_worker', None), None\n"
+        "            if worker is not None:\n"
+        "                worker.stop()\n"
+        "                worker.wait(5000)\n"
+        "            self.live_frame = None\n"
+        "            self.log('实时画面已关闭。')\n"
+        "            self.render_view()\n"
+        "        self.chk_fit.setEnabled(not on)\n"
+        "        self.sld_zoom.setEnabled(not on)\n"
+        "\n"
+        "    def update_live_frame(self):\n"
+        "        \"\"\"[canvas-live] 把最新一帧画到视觉检测区。\"\"\"\n"
+        "        worker = getattr(self, 'live_worker', None)\n"
+        "        if worker is None:\n"
+        "            return\n"
+        "        packet = worker.snapshot_packet() if hasattr(worker, 'snapshot_packet') else None\n"
+        "        if not packet:\n"
+        "            self.image_info.setText('等待相机图像…（若一直没有画面，检查相机网段是否为 192.168.1.100）')\n"
+        "            return\n"
+        "        frame = packet.get('frame')\n"
+        "        if frame is None:\n"
+        "            return\n"
+        "        self.live_frame = frame\n"
+        "        height, width = frame.shape[:2]\n"
+        "        size = self.image_label.size()\n"
+        "        scale = min(size.width() / width, size.height() / height, 1.0)\n"
+        "        canvas = frame\n"
+        "        if scale < 0.999:\n"
+        "            canvas = cv2.resize(frame, (max(1, int(width * scale)), max(1, int(height * scale))),\n"
+        "                                interpolation=cv2.INTER_AREA)\n"
+        "        self.image_label.setPixmap(bgr_to_pixmap(canvas))\n"
+        "        self.image_info.setText(f'相机实时画面 · {width}×{height}（未写文件）')\n"
+        "\n"
+        "    def live_preview_failed(self, message):\n"
+        "        self.log('实时画面中断：' + message)\n"
+        "        if getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked():\n"
+        "            self.chk_live.setChecked(False)\n"
+        "\n"
+        "    @Slot()\n"
+        "    def snap_from_camera(self):\n"
+        "        \"\"\"[canvas-live] 抓拍：无损留样后放进工作区（实时画面会被冻结成照片）。\"\"\"\n"
+        "        live_on = getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked()\n"
+        "        frame = getattr(self, 'live_frame', None)\n"
+        "        frame = frame.copy() if (live_on and frame is not None) else None\n"
+        "        backend = self._device_backends().get('camera')\n"
+        "        if frame is None:\n"
+        "            if backend is None:\n"
+        "                QMessageBox.information(self, '相机未接入', '本机没有可用的 Orbbec 相机驱动。')\n"
+        "                return\n"
+        "            self.set_status('正在从相机拍照…', '#a86613')\n"
+        "            QApplication.processEvents()\n"
+        "            try:\n"
+        "                if not backend.is_connected() and not backend.connect(self.camera_settings()):\n"
+        "                    raise RuntimeError(backend.last_error or '相机连接失败。')\n"
+        "                if not backend.start():\n"
+        "                    raise RuntimeError(backend.last_error or '相机取流失败。')\n"
+        "                for _attempt in range(30):\n"
+        "                    frame = backend.get_frame()\n"
+        "                    if frame is not None:\n"
+        "                        break\n"
+        "                if frame is None:\n"
+        "                    raise RuntimeError('相机没有返回图像。')\n"
+        "            except Exception as error:      # noqa: BLE001\n"
+        "                self.set_status('相机拍照失败', '#bf3e35')\n"
+        "                self.log('相机拍照失败：' + str(error))\n"
+        "                QMessageBox.warning(self, '相机拍照失败', str(error))\n"
+        "                return\n"
+        "            finally:\n"
+        "                try:\n"
+        "                    backend.stop()\n"
+        "                except Exception:\n"
+        "                    pass\n"
+        "        if live_on:\n"
+        "            self.chk_live.setChecked(False)      # 冻结成照片，避免立刻被实时画面覆盖\n"
+        "        try:\n"
+        "            photo, info, data = save_capture(BASE / 'captures', frame, metadata={\n"
+        "                'source': 'Orbbec Gemini 335Le（工业相机 · 视觉检测区抓拍）',\n"
+        "                'device_serial': getattr(backend, 'device_serial', '')\n"
+        "                                 or getattr(backend, 'device_uid', ''),\n"
+        "                'profile': getattr(backend, 'profile', ''),\n"
+        "                'note': '视觉检测区抓拍；原图无损保存，不覆盖。',\n"
+        "            })\n"
+        "        except OSError as error:\n"
+        "            self.set_status('原图留样失败', '#bf3e35')\n"
+        "            self.log('原图留样失败：' + str(error))\n"
+        "            QMessageBox.warning(self, '原图留样失败', str(error))\n"
+        "            return\n"
+        "        self.last_capture = {'photo': str(photo), 'info': str(info)}\n"
+        "        self.set_images([str(photo)])\n"
+        "        self.set_status('相机拍照完成')\n"
+        "        self.log(f'相机抓拍：{photo.name}（{data[\"width_px\"]}×{data[\"height_px\"]}，'\n"
+        "                 f'SHA256 {data[\"image_sha256\"][:12]}…）已放入工作区，可点「② 开始检测」。')\n"
+        "\n"
+        "    def canvas_clicked(self, x, y):\n"
+        "        \"\"\"[canvas-live] 在图片上点一下 = 选中/取消这个孔（本次要测量的孔）。\"\"\"\n"
+        "        if getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked():\n"
+        "            return\n"
+        "        if self.display_photo is None:\n"
+        "            return\n"
+        "        holes = (self.current_result or {}).get('fitted_holes', [])\n"
+        "        if not holes:\n"
+        "            self.log('这张图还没有检测结果，先点「② 开始检测」，再点孔来选。')\n"
+        "            return\n"
+        "        from .vision_workspace import pick_hole\n"
+        "        hole_id = pick_hole(x, y, getattr(self, 'display_mapping', None), holes)\n"
+        "        if not hole_id:\n"
+        "            return\n"
+        "        if hole_id in self.measure_targets:\n"
+        "            self.measure_targets.discard(hole_id)\n"
+        "        else:\n"
+        "            self.measure_targets.add(hole_id)\n"
+        "        \"\"\"点孔后立刻把表格里的勾选状态同步过来\"\"\"\n"
+        "        self.refresh_current_summary()\n"
+        "        chosen = '、'.join(sorted(self.measure_targets)) if self.measure_targets else '（空）'\n"
+        "        self.log(f'点选 {hole_id} → 本次测量清单：{chosen}')\n"
+        "\n"
+        "    def log(self, message):\n"
+    )
+    edits = [
+        ("from .view_render import compose, holes_bbox, zoom_rect, _map_pts\n",
+         "from .view_render import compose, holes_bbox, zoom_rect, _map_pts\n"
+         "from .vision_workspace import CameraPreviewWorker, ClickablePhoto   # [canvas-live]\n",
+         "from .vision_workspace import CameraPreviewWorker, ClickablePhoto"),
+        ("        image_tools = QHBoxLayout()\n"
+         "        self.image_info = QLabel('尚未选择照片')\n"
+         "        self.chk_fit = QCheckBox('适应孔区域')\n",
+         "        image_tools = QHBoxLayout()\n"
+         "        self.image_info = QLabel('尚未选择照片')\n"
+         "        # [canvas-live] 视觉检测区里直接看实时、直接抓拍\n"
+         "        self.chk_live = QCheckBox('相机实时画面')\n"
+         "        self.chk_live.setToolTip('勾选后中间这块直接显示工业相机实时画面；预览本身不写文件。')\n"
+         "        self.chk_live.toggled.connect(self.toggle_live_preview)\n"
+         "        self.btn_snap = QPushButton('抓拍')\n"
+         "        self.btn_snap.setToolTip('把当前画面（实时画面，或临时取一帧）无损留样并放进工作区。')\n"
+         "        self.btn_snap.clicked.connect(self.snap_from_camera)\n"
+         "        self.chk_fit = QCheckBox('适应孔区域')\n",
+         "self.chk_live = QCheckBox"),
+        ("        image_tools.addWidget(self.image_info, 1)\n"
+         "        image_tools.addWidget(self.chk_fit)\n",
+         "        image_tools.addWidget(self.image_info, 1)\n"
+         "        image_tools.addWidget(self.chk_live)\n"
+         "        image_tools.addWidget(self.btn_snap)\n"
+         "        image_tools.addWidget(self.chk_fit)\n",
+         "image_tools.addWidget(self.chk_live)"),
+        ("        legend = QLabel('青色：孔轮廓　黄色：拟合椭圆　红色十字：图像圆心')\n",
+         "        legend = QLabel('青色：孔轮廓　黄色：拟合椭圆　红色十字：图像圆心　｜　直接点图上的孔即可选中/取消（要测量的孔）')\n",
+         "直接点图上的孔即可选中"),
+        ("        self.image_label = QLabel('请选择一组测试照片')\n"
+         "        self.image_label.setObjectName('canvas')\n"
+         "        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)\n",
+         "        self.image_label = ClickablePhoto('请选择一组测试照片')\n"
+         "        self.image_label.setObjectName('canvas')\n"
+         "        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)\n"
+         "        self.image_label.clicked.connect(self.canvas_clicked)     # [canvas-live]\n",
+         "self.image_label = ClickablePhoto("),
+        ("                                          self.btn_last_batch, self.btn_results,\n"
+         "                                          self.btn_readiness, self.btn_preview)):\n",
+         "                                          self.btn_results,   # 「打开历史批次」已并入「实验记录」\n"
+         "                                          self.btn_readiness, self.btn_preview)):\n",
+         "「打开历史批次」已并入「实验记录」"),
+        ("    def render_view(self, *_):\n"
+         "        self.lbl_zoom.setText(f'{self.sld_zoom.value()}%')\n",
+         "    def render_view(self, *_):\n"
+         "        if getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked():\n"
+         "            return      # [canvas-live] 实时画面由定时器刷新，别被静态渲染覆盖\n"
+         "        self.lbl_zoom.setText(f'{self.sld_zoom.value()}%')\n",
+         "别被静态渲染覆盖"),
+        ("        canvas, mapping = compose(self.display_photo, (size.width(), size.height()), crop_rect=crop)\n",
+         "        canvas, mapping = compose(self.display_photo, (size.width(), size.height()), crop_rect=crop)\n"
+         "        # [canvas-live] compose 已经把裁剪框/缩放算好放在 mapping 里，点击换算直接用它，\n"
+         "        # 千万不要再覆盖 crop——裁剪被裁边时会让点击位置偏移。\n"
+         "        self.display_mapping = dict(mapping) if mapping else None\n",
+         "self.display_mapping = dict(mapping)"),
+        # 已经打过旧版本的：把那次多余的 crop 覆盖去掉
+        ("        self.display_mapping = dict(mapping) if mapping else None      # [canvas-live] 供点击选孔\n"
+         "        if self.display_mapping is not None:\n"
+         "            self.display_mapping['crop'] = (int(crop[0]), int(crop[1]))\n",
+         "        # [canvas-live] compose 已算好裁剪框/缩放，点击换算直接用它，不要覆盖 crop。\n"
+         "        self.display_mapping = dict(mapping) if mapping else None\n",
+         "不要覆盖 crop"),
+        ("        self._auto_connect_state = {'done': False, 'ok': False, 'error': ''}\n"
+         "        self._auto_connect_checks = 0\n"
+         "        QTimer.singleShot(1200, self.auto_connect_camera)\n"
+         "        QShortcut(QKeySequence('Ctrl+O'), self, activated=self.select_images)\n",
+         "        self._auto_connect_state = {'done': False, 'ok': False, 'error': ''}\n"
+         "        self._auto_connect_checks = 0\n"
+         "        QTimer.singleShot(1200, self.auto_connect_camera)\n"
+         "        # [canvas-live] 视觉检测区实时画面的刷新定时器\n"
+         "        self.live_worker = None\n"
+         "        self.live_frame = None\n"
+         "        self.live_timer = QTimer(self)\n"
+         "        self.live_timer.setInterval(40)\n"
+         "        self.live_timer.timeout.connect(self.update_live_frame)\n"
+         "        QShortcut(QKeySequence('Ctrl+O'), self, activated=self.select_images)\n",
+         "self.live_timer.setInterval(40)"),
+        ("        preview = getattr(self, 'preview_dialog', None)\n",
+         "        worker = getattr(self, 'live_worker', None)      # [canvas-live] 先停实时画面\n"
+         "        if worker is not None:\n"
+         "            try:\n"
+         "                self.live_timer.stop()\n"
+         "                worker.stop()\n"
+         "                worker.wait(5000)\n"
+         "            except RuntimeError:\n"
+         "                pass\n"
+         "        preview = getattr(self, 'preview_dialog', None)\n",
+         "worker = getattr(self, 'live_worker', None)"),
+        ("    def log(self, message):\n", methods, "def canvas_clicked(self, x, y):"),
+        # 点空的时候也要如实写日志，便于排查"点了没反应"
+        ("        hole_id = pick_hole(x, y, getattr(self, 'display_mapping', None), holes)\n"
+         "        if not hole_id:\n"
+         "            self.log(f'点击位置（画布 {int(x)},{int(y)}）没有落在孔上；直接点孔中心即可选中。')\n"
+         "            return\n",
+         "        hole_id = pick_hole(x, y, getattr(self, 'display_mapping', None), holes)\n"
+         "        if not hole_id:\n"
+         "            mapping = getattr(self, 'display_mapping', None)\n"
+         "            if mapping:\n"
+         "                px = (x - mapping['ox']) / mapping['scale'] + mapping['crop'][0]\n"
+         "                py = (y - mapping['oy']) / mapping['scale'] + mapping['crop'][1]\n"
+         "                self.log(f'点击（画布 {int(x)},{int(y)} → 图像 {int(px)},{int(py)}）没有落在孔上；'\n"
+         "                         '直接点孔中心即可选中。')\n"
+         "            else:\n"
+         "                self.log('点击位置没有落在孔上（当前画面没有映射信息）。')\n"
+         "            return\n",
+         "→ 图像"),
+        # 实时画面打开后，AI 检测状态不要停在"正在连接相机…"
+        ("            self.live_worker.start()\n"
+         "            self.live_timer.start()\n"
+         "            self.log('视觉检测区已切到相机实时画面（预览不写文件，点「抓拍」才留样）。')\n",
+         "            self.live_worker.start()\n"
+         "            self.live_timer.start()\n"
+         "            self.set_status('相机实时画面中', '#a86613')      # [canvas-live]\n"
+         "            self.log('视觉检测区已切到相机实时画面（预览不写文件，点「抓拍」才留样）。')\n",
+         "self.set_status('相机实时画面中'"),
+        # 抓拍方法里漏了 save_capture 的导入（会 NameError）
+        ('    def snap_from_camera(self):\n'
+         '        """[canvas-live] 抓拍：无损留样后放进工作区（实时画面会被冻结成照片）。"""\n'
+         '        live_on = getattr(self, \'chk_live\', None) is not None and self.chk_live.isChecked()\n',
+         '    def snap_from_camera(self):\n'
+         '        """[canvas-live] 抓拍：无损留样后放进工作区（实时画面会被冻结成照片）。"""\n'
+         '        from .capture_archive import save_capture      # [canvas-live]\n'
+         '        live_on = getattr(self, \'chk_live\', None) is not None and self.chk_live.isChecked()\n',
+         "from .capture_archive import save_capture      # [canvas-live]"),
+        # 「实验记录 → 载入到工作区」需要主窗口提供 load_reports
+        ("    def log(self, message):\n",
+         "    def load_reports(self, reports):\n"
+         "        \"\"\"[canvas-live] 把一组已保存的检测结果载入工作区（不重新检测、不新增记录）。\"\"\"\n"
+         "        reports = [report for report in reports\n"
+         "                   if isinstance(report, dict) and report.get('image')]\n"
+         "        if not reports:\n"
+         "            QMessageBox.information(self, '没有可载入的记录', '这一组里没有可显示的照片记录。')\n"
+         "            return\n"
+         "        if getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked():\n"
+         "            self.chk_live.setChecked(False)      # 先关掉实时画面，才能显示载入的照片\n"
+         "        self.paths = [report['image'] for report in reports]\n"
+         "        self.results = [_report_to_result(report) for report in reports]\n"
+         "        self.selector.blockSignals(True)\n"
+         "        self.selector.clear()\n"
+         "        self.selector.addItems([f'{index + 1}. {Path(path).name}'\n"
+         "                                for index, path in enumerate(self.paths)])\n"
+         "        self.selector.blockSignals(False)\n"
+         "        self.completed_count = len(reports)\n"
+         "        self.batch_progress.setRange(0, len(reports))\n"
+         "        self.batch_progress.setValue(len(reports))\n"
+         "        self.show_index(0)\n"
+         "        self.set_controls()\n"
+         "\n"
+         "    def log(self, message):\n",
+         "def load_reports(self, reports):"),
+    ]
+    applied, missing = [], []
+    for entry in edits:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append(old.strip().splitlines()[0][:26])
+        else:
+            missing.append(old.strip().splitlines()[0][:26])
+    if text != original:
+        shutil.copy2(f, f.with_suffix(".py.bak"))
+        f.write_text(text, encoding="utf-8")
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改 {} 处（检测区实时画面/抓拍/点孔选孔）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def patch_device_autofill(engine: Path) -> str:
+    """[device-autofill] 换电脑也能用：不依赖保存下来的本地设备参数。
+
+    * 相机页的提示语按"是否真的接了驱动"来写，不再一律说"没有连接功能"；
+    * 连上以后，把驱动**探测到**的厂家/型号/序列号填进界面（用户填过的不覆盖）；
+    * 自动连接失败时给出可操作的提示（网段），且不写死任何本机路径。
+    """
+    devices = engine / "inspection_gui" / "devices_view.py"
+    gui = engine / "inspection_gui" / "gui.py"
+    if not devices.is_file() or not gui.is_file():
+        return "找不到 devices_view.py 或 gui.py"
+    applied, missing = [], []
+
+    original = devices.read_text(encoding="utf-8")
+    text = original
+    edits_devices = [
+        ('        self.connection_note = QLabel("尚未接入此设备的连接功能，填写配置后也不会自动连接。")\n',
+         '        self.connection_note = QLabel(\n'
+         '            "已接入连接功能：点「连接设备」即可连接，连不上会如实提示原因。"\n'
+         '            if device_id in _registered_backends else\n'
+         '            "尚未接入此设备的连接功能，填写配置后也不会自动连接。")\n',
+         "已接入连接功能"),
+        ("    def validate(self) -> str:\n",
+         "    def adopt_runtime_identity(self, backend) -> None:\n"
+         "        \"\"\"[device-autofill] 把驱动探测到的真实身份填进界面。\n"
+         "\n"
+         "        别人电脑上相机地址/序列号可能不同，所以不依赖保存的参数：\n"
+         "        探测到什么就显示什么；用户自己填过的内容不会被覆盖。\n"
+         "        \"\"\"\n"
+         "        name = str(getattr(backend, 'device_name', '') or '')\n"
+         "        serial = str(getattr(backend, 'device_serial', '')\n"
+         "                     or getattr(backend, 'device_uid', ''))\n"
+         "        if not self.manufacturer.text() and name:\n"
+         "            self.manufacturer.setText(name.split(' ')[0])\n"
+         "        if not self.model.text() and name:\n"
+         "            self.model.setText(name.replace('Orbbec', '').strip() or name)\n"
+         "        if not self.serial_number.text() and serial:\n"
+         "            self.serial_number.setText(serial)\n"
+         "\n"
+         "    def validate(self) -> str:\n",
+         "def adopt_runtime_identity(self, backend)"),
+    ]
+    for entry in edits_devices:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append("devices_view: " + old.strip().splitlines()[0][:22])
+        else:
+            missing.append("devices_view: " + old.strip().splitlines()[0][:22])
+    if text != original:
+        shutil.copy2(devices, devices.with_suffix(".py.bak"))
+        devices.write_text(text, encoding="utf-8")
+
+    original = gui.read_text(encoding="utf-8")
+    text = original
+    edits_gui = [
+        ("            if ('已连接' in page.status.text()) == bool(connected):\n",
+         "            if connected and hasattr(page, 'adopt_runtime_identity'):\n"
+         "                # 换电脑也能用：把探测到的真实型号/序列号填进界面\n"
+         "                page.adopt_runtime_identity(self._device_backends().get(device))\n"
+         "            if ('已连接' in page.status.text()) == bool(connected):\n",
+         "page.adopt_runtime_identity("),
+        ("            self.log('相机自动连接未成功：' + (state['error'] or '未知原因')\n"
+         "                     + '；可点「相机实时预览」或「设备连接 → 连接设备」重试。')\n",
+         "            self.log('相机自动连接未成功：' + (state['error'] or '未知原因')\n"
+         "                     + '；可点检测区的「相机实时画面」或「设备连接 → 连接设备」重试。'\n"
+         "                     + '若提示连接超时，请先确认电脑与相机在同一网段（相机默认 192.168.1.10）。')\n",
+         "若提示连接超时，请先确认电脑与相机在同一网段"),
+    ]
+    for entry in edits_gui:
+        old, new = entry[0], entry[1]
+        marker = entry[2] if len(entry) > 2 else None
+        if marker and marker in text:
+            continue
+        if new in text:
+            continue
+        if old in text:
+            text = text.replace(old, new, 1)
+            applied.append("gui: " + old.strip().splitlines()[0][:22])
+        else:
+            missing.append("gui: " + old.strip().splitlines()[0][:22])
+    if text != original:
+        shutil.copy2(gui, gui.with_suffix(".py.bak"))
+        gui.write_text(text, encoding="utf-8")
+
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改 {} 处（设备信息自适应）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def _op_state(text: str, op: str):
+    """单条改动的状态：apply（该改）/ done（已经是目标状态）/ missing（对不上）。"""
+    if op[0] == "replace":
+        old, new = op[1], op[2]
+        if old and new and old in new and new in text:
+            # 插入型改动（新文本里包含锚点）：锚点还在不代表没插过，别重复插
+            return "done"
+        if old in text:
+            return "apply"
+        return "done" if (not new or new in text) else "missing"
+    start, end, new = op[1], op[2], op[3]        # ("cut", 起点, 终点, 替换内容)
+    begin, finish = text.find(start), text.find(end)
+    if begin >= 0 and finish >= begin:
+        return "apply"
+    return "done" if (not new or new in text) else "missing"
+
+
+def _apply_ops(text: str, ops):
+    """套用一组改动：只要有任意一处对不上就整组不改（避免半套用）。
+
+    返回 ``(新文本, 状态)``；状态 applied / done / missing。
+    已经处于目标状态的条目会跳过，所以重复运行是安全的。
+    """
+    states = [_op_state(text, op) for op in ops]
+    if "missing" in states:
+        return text, "missing"
+    if "apply" not in states:
+        return text, "done"
+    for op in ops:
+        if op[0] == "replace":
+            if op[1] in text:
+                text = text.replace(op[1], op[2], 1)
+        else:
+            begin, finish = text.find(op[1]), text.find(op[2])
+            if begin >= 0 and finish >= begin:
+                text = text[:begin] + op[3] + text[finish:]
+    return text, "applied"
+
+
+def patch_merge_history(engine: Path) -> str:
+    """9w) 合并「打开历史批次」进「实验记录」，抓拍只留一套取流代码。
+
+    用户在 2026-10-08 提的要求：历史批次和实验记录内容重复，没必要两个入口；
+    视觉检测区已经有「相机实时画面 / 抓拍」，单独的「相机实时预览」也重复。
+
+    * gui.py 去掉按钮、批次归档读写和死代码，历史只留实验记录这一份；
+    * 「用工业相机拍照」复用视觉检测区的抓拍，实时画面开着时不再两边抢相机；
+    * 实验记录窗口和主界面共用同一个 ExperimentRecords：删掉一组之后，
+      下一次检测不会把删掉的组又写回来（原来的数据只在内存里删）。
+    """
+    gui = engine / "inspection_gui" / "gui.py"
+    records = engine / "inspection_gui" / "records_view.py"
+    data = engine / "experiment_records.py"
+    if not gui.is_file():
+        return "找不到 gui.py"
+    applied, skipped, missing = [], [], []
+
+    text = gui.read_text(encoding="utf-8")
+    original = text
+    groups = [
+        # 1) 常量：不再维护批次归档目录
+        [("replace",
+          "BASE = Path(__file__).resolve().parents[1]\n"
+          "LAST_BATCH = BASE / 'last_batch.json'\n"
+          "BATCH_DIR = BASE / 'batches'                    # [local patch] 历史批次归档目录\n"
+          "BATCH_INDEX = BATCH_DIR / 'index.jsonl'         # [local patch] 批次索引\n",
+          "BASE = Path(__file__).resolve().parents[1]\n"
+          "# [merge-history] 历史批次原来单独归档在 last_batch.json / batches/index.jsonl，\n"
+          "# 内容和「实验记录」重复。现在只保留实验记录这一份历史：不再写这些归档文件，\n"
+          "# 磁盘上已有的旧文件也不会删除。\n")],
+        # 2) 启动提示改成指向实验记录
+        [("replace",
+          "        # [local patch] start with a CLEAN workspace. The previous batch is\n"
+          "        # only shown when the user clicks 「打开上次批次」 (or opens 实验记录).\n",
+          "        # [local patch] start with a CLEAN workspace. History is only shown\n"
+          "        # when the user opens 实验记录 and loads a group back into the workspace.\n"),
+         ("replace",
+          "        self.log('工作区为空。如需查看上一次的检测结果，请点「打开上次批次」。')\n",
+          "        self.log('工作区为空。如需查看以前的检测结果，请点「实验记录」，'\n"
+          "                 '选中一组后「载入到工作区」。')\n"
+          "        self.log('设备信息不再保存到本机：相机插上即自动识别，机械臂按当前电脑实际 IP 填写。')\n")],
+        # 3) 去掉两个重复入口按钮
+        [("replace",
+          "        self.btn_results = QPushButton('打开结果文件夹')\n"
+          "        self.btn_last_batch = QPushButton('打开历史批次')   # [local patch]\n"
+          "        self.btn_last_batch.setToolTip('列出以前检测过的每一批，自己选一批重新载入；启动时不会自动载入。')\n",
+          "        self.btn_results = QPushButton('打开结果文件夹')\n"),
+         ("replace",
+          "        self.btn_preview = QPushButton('相机实时预览')      # [camera-sync]\n"
+          "        self.btn_preview.setToolTip('打开工业相机实时画面；预览本身不写文件，抓拍才做无损留样。')\n",
+          "        # [merge-history] 「打开历史批次」已并入「实验记录」；\n"
+          "        # 「相机实时预览」已并入视觉检测区的「相机实时画面 / 抓拍」。\n"),
+         ("replace",
+          "                                          self.btn_results,   # 「打开历史批次」已并入「实验记录」\n"
+          "                                          self.btn_readiness, self.btn_preview)):\n",
+          "                                          self.btn_results,\n"
+          "                                          self.btn_readiness)):\n"),
+         ("replace",
+          "        self.btn_last_batch.clicked.connect(self.open_batch_history)   # [local patch]\n",
+          ""),
+         ("replace",
+          "        self.btn_preview.clicked.connect(self.show_camera_preview)   # [camera-sync]\n",
+          "")],
+        # 4) 抓拍统一入口 + 相机拍照改为复用抓拍（顺带去掉单独预览窗口的收尾代码）
+        [("cut",
+          "    @Slot()\n    def capture_from_camera(self):\n",
+          "    def auto_connect_camera(self):\n",
+          "    @Slot()\n"
+          "    def capture_from_camera(self):\n"
+          "        \"\"\"[camera-sync] 用工业相机拍一张：交给视觉检测区同一套「抓拍」逻辑。\n"
+          "\n"
+          "        [merge-capture] 以前这里和「抓拍」各写了一份取流代码，实时画面开着\n"
+          "        的时候两边抢同一台相机。现在统一走 snap_from_camera：实时画面开着\n"
+          "        就直接冻结当前帧，没开才临时取流。\n"
+          "        \"\"\"\n"
+          "        self.snap_from_camera(source='用工业相机拍照')\n"
+          "\n"),
+         ("replace",
+          "        preview = getattr(self, 'preview_dialog', None)\n"
+          "        if preview is not None:      # [camera-sync] 先停取流线程，避免退出时线程还在跑\n"
+          "            try:\n"
+          "                preview.stop_preview()\n"
+          "            except RuntimeError:\n"
+          "                pass\n"
+          "        self.bridge.detach()\n",
+          "        self.bridge.detach()\n")],
+        # 5) 抓拍函数支持来源说明
+        [("replace",
+          "    def snap_from_camera(self):\n"
+          "        \"\"\"[canvas-live] 抓拍：无损留样后放进工作区（实时画面会被冻结成照片）。\"\"\"\n",
+          "    def snap_from_camera(self, *_args, source='视觉检测区抓拍'):\n"
+          "        \"\"\"[canvas-live] 抓拍：无损留样后放进工作区（实时画面会被冻结成照片）。\n"
+          "\n"
+          "        ``*_args`` 用来吸收按钮 clicked 信号带过来的布尔值；``source``\n"
+          "        只影响留样说明，不影响保存内容。\n"
+          "        \"\"\"\n"),
+         ("replace",
+          "                'source': 'Orbbec Gemini 335Le（工业相机 · 视觉检测区抓拍）',\n",
+          "                'source': f'Orbbec Gemini 335Le（工业相机 · {source}）',\n"),
+         ("replace",
+          "                'note': '视觉检测区抓拍；原图无损保存，不覆盖。',\n",
+          "                'note': f'{source}；原图无损保存，不覆盖。',\n")],
+        # 6) 检测结果不再另存批次归档；这一组被删掉时如实说明
+        [("replace",
+          "            self.records.update(self.active_group, report=report)\n"
+          "            self.save_batch()\n",
+          "            # [merge-history] 实验记录就是唯一的历史来源，不再另存批次归档。\n"
+          "            if not self.records.update(self.active_group, report=report):\n"
+          "                self.record_error = True\n"
+          "                self.log('这一组已经在「实验记录」里被删除，本次结果不再写回实验记录'\n"
+          "                         '（结果图与检测报告仍在结果文件夹里）。')\n"),
+         ("replace",
+          "            self.records.update(self.active_group, status=status)\n",
+          "            if not self.records.update(self.active_group, status=status):\n"
+          "                self.record_error = True\n"
+          "                self.log('这一组已在「实验记录」里被删除，本组状态不再写回记录。')\n")],
+        # 7) 相机配置只取本次运行填写的内容
+        [("replace",
+          "    def camera_settings(self):\n"
+          "        \"\"\"[camera-sync] 读「设备连接 → 工业相机」里保存的配置。\"\"\"\n"
+          "        try:\n"
+          "            from .devices_view import _load_settings, SETTINGS_PATH\n"
+          "            settings, _warning = _load_settings(SETTINGS_PATH)\n"
+          "            return settings.get('camera', {})\n"
+          "        except (ImportError, OSError, ValueError):\n"
+          "            return {}\n",
+          "    def camera_settings(self):\n"
+          "        \"\"\"[camera-sync] 取「设备连接 → 工业相机」本次运行填写的配置。\n"
+          "\n"
+          "        [no-local-config] 配置不再从本机文件读取，只取本次运行内存里的内容；\n"
+          "        没有填写时返回空字典，相机按实际接入的设备自动识别。\n"
+          "        \"\"\"\n"
+          "        try:\n"
+          "            from .devices_view import current_settings\n"
+          "            return current_settings().get('camera', {})\n"
+          "        except (ImportError, OSError, ValueError, KeyError):\n"
+          "            return {}\n"),
+         ("replace",
+          "                self.log('相机自动连接仍在等待设备响应，可点「相机实时预览」重试。')\n",
+          "                self.log('相机自动连接仍在等待设备响应，可勾选检测区的「相机实时画面」重试。')\n")],
+    ]
+    cut_ops = [
+        # 存档方法 / 历史批次弹窗与载入方法整体删除
+        [("cut", "    def save_batch(self):\n",
+          "    @Slot()\n    def finish_batch(self):\n", "")],
+        [("cut", "    def _batch_entries(self):\n",
+          "    @Slot()\n    def show_records(self):\n", "")],
+    ]
+    for group in groups + cut_ops:
+        label = group[0][1].strip().splitlines()[0][:26]
+        result, state = _apply_ops(text, group)
+        if state == "missing":
+            missing.append(label)
+        elif state == "done":
+            skipped.append(label)
+        else:
+            text = result
+            applied.append(label)
+    if text == original:
+        if missing:
+            return "未匹配（可能已改过或上游补丁变了）: " + "; ".join(missing[:4])
+        return "已是最新（无需修改）"
+    shutil.copy2(gui, gui.with_suffix(".py.bak"))
+    gui.write_text(text, encoding="utf-8")
+
+    # ---- 记录窗口与主界面共用同一份数据 ----
+    if records.is_file():
+        original = records.read_text(encoding="utf-8")
+        text = original
+        edits = [
+            ("        self.records = ExperimentRecords.__new__(ExperimentRecords)\n"
+             "        self.records.path = self.path\n"
+             "        self.records.groups = []\n",
+             "        # [records-tools] 有主界面传进来的 records 就直接共用同一个对象，\n"
+             "        # 这样在这里删除/刷新之后主界面内存里的记录不会滞后。\n"
+             "        if records is not None:\n"
+             "            self.records = records\n"
+             "        else:\n"
+             "            self.records = ExperimentRecords.__new__(ExperimentRecords)\n"
+             "            self.records.path = self.path\n"
+             "            self.records.groups = []\n",
+             "有主界面传进来的 records 就直接共用同一个对象"),
+            ("        try:\n"
+             "            groups = json.loads(self.path.read_text(encoding=\"utf-8\")) if self.path.exists() else []\n"
+             "            if not isinstance(groups, list):\n"
+             "                raise ValueError(\"记录文件的内容不是实验组列表\")\n"
+             "            snapshot = ExperimentRecords.__new__(ExperimentRecords)\n"
+             "            snapshot.path, snapshot.groups = self.path, groups\n"
+             "            rows = snapshot.rows()\n",
+             "        try:\n"
+             "            # 重新读盘，成功后 self.records 就是磁盘上的真实内容（读失败时原有内容不变）。\n"
+             "            groups = self.records.refresh_from_disk()\n"
+             "            rows = self.records.rows()\n",
+             "self.records.refresh_from_disk()"),
+            ("        self.records, self.rows = snapshot, rows\n",
+             "        self.rows = rows\n",
+             "        self.rows = rows\n"),
+        ]
+        touched = False
+        for old, new, marker in edits:
+            if marker in text:
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+                touched = True
+            else:
+                missing.append("records_view: " + old.strip().splitlines()[0][:22])
+        if touched:
+            shutil.copy2(records, records.with_suffix(".py.bak"))
+            records.write_text(text, encoding="utf-8")
+    else:
+        missing.append("records_view.py")
+
+    # ---- 记录数据层：删除之后不会再“复活” ----
+    if data.is_file():
+        original = data.read_text(encoding="utf-8")
+        text = original
+        edits = [
+            ("    def begin(self, paths, model):\n",
+             "    def refresh_from_disk(self):\n"
+             "        \"\"\"[records-tools] 重新从磁盘读记录，但不动任何组的状态。\n"
+             "\n"
+             "        实验记录窗口和主界面共用同一个对象：删除/载入之后重新读一次文件，\n"
+             "        两边就不会出现“界面上删了、内存里还在”的分歧。\n"
+             "        \"\"\"\n"
+             "        groups = json.loads(self.path.read_text(encoding='utf-8')) if self.path.exists() else []\n"
+             "        if not isinstance(groups, list):\n"
+             "            raise ValueError('记录文件的内容不是实验组列表')\n"
+             "        self.groups = groups\n"
+             "        return self.groups\n"
+             "\n"
+             "    def begin(self, paths, model):\n",
+             "def refresh_from_disk(self):"),
+            ("    def update(self, group_id, report=None, status=None):\n"
+             "        group = next(g for g in self.groups if g['id'] == group_id)\n"
+             "        if report is not None:\n"
+             "            group['reports'].append(report)\n"
+             "        if status is not None:\n"
+             "            group['status'] = status\n"
+             "        self.save()\n",
+             "    def update(self, group_id, report=None, status=None):\n"
+             "        group = next((g for g in self.groups if g.get('id') == group_id), None)\n"
+             "        if group is None:\n"
+             "            # 这一组可能已经在「实验记录」里被删除，不能再凭空写回去。\n"
+             "            return False\n"
+             "        if report is not None:\n"
+             "            group['reports'].append(report)\n"
+             "        if status is not None:\n"
+             "            group['status'] = status\n"
+             "        self.save()\n"
+             "        return True\n",
+             "这一组可能已经在「实验记录」里被删除"),
+        ]
+        touched = False
+        for old, new, marker in edits:
+            if marker in text:
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+                touched = True
+            else:
+                missing.append("experiment_records: " + old.strip().splitlines()[0][:22])
+        if touched:
+            shutil.copy2(data, data.with_suffix(".py.bak"))
+            data.write_text(text, encoding="utf-8")
+    else:
+        missing.append("experiment_records.py")
+
+    out = ["已改 {} 组（合并历史批次/抓拍入口）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def patch_no_local_config(engine: Path) -> str:
+    """9x) 设备参数不落盘：换电脑直接按实际设备用，不带上一台机器的参数。
+
+    * devices_view：不再读写 device_settings.json，设备信息只留在本次运行内存里；
+      相机不强制填地址（插上自动识别），机械臂按当前电脑实际 IP 填写；
+    * camera_parameters：期望曝光/增益/触发模式同样只对本次运行有效。
+    """
+    devices = engine / "inspection_gui" / "devices_view.py"
+    params = engine / "inspection_gui" / "camera_parameters.py"
+    applied, missing = [], []
+
+    if devices.is_file():
+        text = devices.read_text(encoding="utf-8")
+        if "[no-local-config]" in text:
+            pass
+        else:
+            groups = [
+                [("replace",
+                  "No motion or image acquisition is initiated from this window.\n\"\"\"\n",
+                  "No motion or image acquisition is initiated from this window.\n"
+                  "\n"
+                  "[no-local-config] 设备参数（型号、地址、序列号等）只对本次运行有效：软件\n"
+                  "不再把它们写到这台电脑上。换一台电脑时，打开软件就按那台电脑实际连接的\n"
+                  "设备填写或由驱动自动读取，避免把上一台机器的参数带过去。\n"
+                  "\"\"\"\n"),
+                 ("replace",
+                  "import ipaddress\nimport json\nimport os\nimport re\nimport uuid\n"
+                  "import weakref\nimport threading\n",
+                  "import ipaddress\nimport re\nimport weakref\nimport threading\n"),
+                 ("replace",
+                  "SETTINGS_PATH = Path(__file__).with_name(\"device_settings.json\")\n",
+                  "# [no-local-config] 这个路径只用来兼容旧调用，程序不会再读写它。\n"
+                  "SETTINGS_PATH = Path(__file__).with_name(\"device_settings.json\")\n"),
+                 ("cut",
+                  "def _load_settings(path: Path) -> tuple[dict, str]:\n",
+                  "def _validate_address(address: str) -> bool:\n",
+                  "# [no-local-config] 设备参数不再从磁盘读取、也不再写入磁盘。\n"
+                  "# 只保留一份“本次运行”的副本：用户在设备连接窗口里填写/应用的内容，\n"
+                  "# 或者驱动探测到的真实信息，都放进这个内存字典里。\n"
+                  "_runtime_settings = _default_settings()\n"
+                  "\n"
+                  "\n"
+                  "def current_settings() -> dict:\n"
+                  "    \"\"\"[no-local-config] 本次运行中填写或自动读取到的设备信息（不落盘）。\"\"\"\n"
+                  "    return deepcopy(_runtime_settings)\n"
+                  "\n"
+                  "\n"
+                  "def remember_settings(settings: dict) -> None:\n"
+                  "    \"\"\"[no-local-config] 把设备窗口里确认过的内容留在本次运行的内存中。\"\"\"\n"
+                  "    for device_id, values in (settings or {}).items():\n"
+                  "        if device_id in _runtime_settings and isinstance(values, dict):\n"
+                  "            _runtime_settings[device_id] = dict(values)\n"
+                  "\n"
+                  "\n"
+                  "def _load_settings(path: Path | None = None) -> tuple[dict, str]:\n"
+                  "    \"\"\"[no-local-config] 兼容旧调用：直接返回本次运行的设备信息。\n"
+                  "\n"
+                  "    参数 ``path`` 只是为了让旧代码可以照原样调用，已经不再读写。\n"
+                  "    \"\"\"\n"
+                  "    return current_settings(), \"\"\n"
+                  "\n"
+                  "\n"),
+                 ("cut",
+                  "def _write_settings(path: Path, settings: dict) -> None:\n",
+                  "class DevicePage(QWidget):\n", ""),
+                 ("replace",
+                  "        explanation = QLabel(\"地址和端口按设备说明填写；未知内容可以暂时留空。\")\n",
+                  "        explanation = QLabel(\n"
+                  "            \"相机可以不填地址：插好相机后软件按实际连接的设备自动识别；\"\n"
+                  "            \"机械臂如需连接，请填写这台电脑上实际使用的 IP。\"\n"
+                  "            \"内容只在本次运行中使用，不会保存到这台电脑。\")\n"),
+                 ("replace",
+                  "            settings = self.settings()\n"
+                  "            if not settings['address']:\n"
+                  "                self.connection_note.setText('请先填写机械臂或设备的 IP 地址。')\n",
+                  "            settings = self.settings()\n"
+                  "            # [no-local-config] 相机由驱动自动识别，不强制填写地址；\n"
+                  "            # 机械臂是网络设备，必须填写这台电脑实际连到的 IP。\n"
+                  "            if not settings['address'] and self.device_id != 'camera':\n"
+                  "                self.connection_note.setText('请先填写机械臂的 IP 地址（相机可以不填，插好会自动识别）。')\n"),
+                 ("replace",
+                  "        self.save_note = QLabel(warning or \"配置只保存在本机，不会自动连接设备。\")\n",
+                  "        self.save_note = QLabel(warning or \"设备信息只在本次运行中使用，不会保存到这台电脑；\"\n"
+                  "                                          \"换电脑后按实际设备重新填写或由软件自动读取。\")\n"),
+                 ("replace",
+                  "        save = QPushButton(\"保存设备配置\")\n",
+                  "        save = QPushButton(\"应用到本次运行\")\n"),
+                 ("replace",
+                  "        settings = self.settings()\n"
+                  "        try:\n"
+                  "            _write_settings(self.settings_path, settings)\n"
+                  "        except OSError as exc:\n"
+                  "            QMessageBox.warning(self, \"配置未保存\", f\"请检查本机文件夹是否可以写入。\\n{exc}\")\n"
+                  "            return False\n"
+                  "        self.save_note.setText(\"设备配置已保存到本机。连接状态保持当前状态。\")\n",
+                  "        settings = self.settings()\n"
+                  "        # [no-local-config] 只记在内存里：换电脑后不会带着上一台机器的参数。\n"
+                  "        remember_settings(settings)\n"
+                  "        self.save_note.setText(\"设备信息已用于本次运行，不会保存到这台电脑；连接状态保持当前状态。\")\n")],
+            ]
+            touched, blocked = False, False
+            for group in groups:
+                result, state = _apply_ops(text, group)
+                if state == "missing":
+                    blocked = True
+                    break
+                if state == "done":
+                    continue
+                text = result
+                touched = True
+            if touched and not blocked:
+                shutil.copy2(devices, devices.with_suffix(".py.bak"))
+                devices.write_text(text, encoding="utf-8")
+                applied.append("devices_view: 设备参数不落盘")
+            elif blocked:
+                missing.append("devices_view: 设备参数不落盘（上游文本变了）")
+    else:
+        missing.append("devices_view.py")
+
+    if params.is_file():
+        original = params.read_text(encoding="utf-8")
+        text = original
+        edits = [
+            ("\"\"\"Desired camera settings are distinct from verified device readback.\"\"\"\n"
+             "from pathlib import Path\n",
+             "\"\"\"Desired camera settings are distinct from verified device readback.\n"
+             "\n"
+             "[no-local-config] 期望参数只保留在本次运行的内存里，不写到这台电脑上：\n"
+             "换一台电脑或换一台相机时，直接按实际设备重新设置并以设备读回为准。\n"
+             "\"\"\"\n",
+             "[no-local-config]"),
+            ("from PySide6.QtWidgets import QDialog,QVBoxLayout,QFormLayout,QLabel,QDoubleSpinBox,QComboBox,QPushButton,QMessageBox\n",
+             "from PySide6.QtWidgets import QDialog,QVBoxLayout,QFormLayout,QLabel,QDoubleSpinBox,QComboBox,QPushButton,QMessageBox\n"
+             "\n"
+             "# [no-local-config] 本次运行中填写的期望参数（不落盘）。\n"
+             "_session_desired = {}\n",
+             "_session_desired = {}"),
+            ("        self.config_path=Path(__file__).resolve().parents[1]/'data/camera_parameters.json'\n"
+             "        try:\n"
+             "            data=json.loads(self.config_path.read_text(encoding='utf-8')).get('desired',{});self.exposure.setValue(data.get('exposure_us',self.exposure.value()));self.gain.setValue(data.get('gain_db',0));index=self.trigger.findData(data.get('trigger_mode'));self.trigger.setCurrentIndex(max(0,index))\n"
+             "        except (OSError,ValueError):pass\n",
+             "        # [no-local-config] 只回填本次运行填过的值，不读本机保存的旧参数。\n"
+             "        self.exposure.setValue(_session_desired.get('exposure_us',self.exposure.value()))\n"
+             "        self.gain.setValue(_session_desired.get('gain_db',0))\n"
+             "        index=self.trigger.findData(_session_desired.get('trigger_mode'))\n"
+             "        self.trigger.setCurrentIndex(max(0,index))\n",
+             "只回填本次运行填过的值"),
+            ("    def save_desired(self):\n"
+             "        try:\n"
+             "            self.config_path.parent.mkdir(parents=True,exist_ok=True)\n"
+             "            data={'saved_at':datetime.now().astimezone().isoformat(),'desired':self.desired(),'actual_readback':self.actual,'applied':False}\n"
+             "            self.config_path.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8');self.status.setText('期望配置已保存，不代表相机实际参数。')\n"
+             "        except OSError as error:QMessageBox.warning(self,'配置未保存',str(error))\n",
+             "    def save_desired(self):\n"
+             "        # [no-local-config] 相机参数不保存到这台电脑，只在本次运行里生效。\n"
+             "        _session_desired.clear();_session_desired.update(self.desired())\n"
+             "        self.status.setText('期望配置已用于本次运行，不会保存到这台电脑；实际参数以「读取实际参数」为准。')\n",
+             "相机参数不保存到这台电脑"),
+        ]
+        touched = False
+        for old, new, marker in edits:
+            if marker in text:
+                continue
+            if old in text:
+                text = text.replace(old, new, 1)
+                touched = True
+            else:
+                missing.append("camera_parameters: " + old.strip().splitlines()[0][:22])
+        if touched:
+            shutil.copy2(params, params.with_suffix(".py.bak"))
+            params.write_text(text, encoding="utf-8")
+        if touched:
+            applied.append("camera_parameters: 期望参数不落盘")
+    else:
+        missing.append("camera_parameters.py")
+
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改： " + "、".join(applied)]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def patch_split_view(engine: Path) -> str:
+    """9y) 视觉检测区拆成左右两格：左=相机实时画面（只看），右=检测结果（点孔选测量目标）。
+
+    用户 2026-10-08 反馈：实时画面和标定好的孔图要同时看，一块画布来回切很别扭。
+    左边只负责对准，右边负责"标定/识别后的孔 + 点选本次要测的孔"；关掉实时时
+    左格隐藏，结果图占满整格。
+    """
+    gui = engine / "inspection_gui" / "gui.py"
+    if not gui.is_file():
+        return "找不到 gui.py"
+    text = gui.read_text(encoding="utf-8")
+    original = text
+    applied, skipped, missing = [], [], []
+
+    groups = [
+        # -1) 分屏要用的 QSize
+        [("replace",
+          "from PySide6.QtCore import QObject, QThread, Qt, QTimer, Signal, Slot, QUrl\n",
+          "from PySide6.QtCore import QObject, QSize, QThread, Qt, QTimer, Signal, Slot, QUrl\n")],
+        # 0) 尺寸变化会重画的分屏画布类（结果格专用）
+        [("replace",
+          "class BatchWorker(QObject):\n",
+          "class PanePhoto(ClickablePhoto):\n"
+          "    \"\"\"[split-view] 画布尺寸一变就通知重画。\n"
+          "\n"
+          "    拖动分隔条、隐藏实时格、缩放窗口都会改变这一格的尺寸；如果不重画，\n"
+          "    点击时用的坐标映射还是旧的，点孔就会点偏。\n"
+          "\n"
+          "    \"\"\"\n"
+          "\n"
+          "    resized = Signal()\n"
+          "\n"
+          "    def sizeHint(self):\n"
+          "        # 交给分隔条决定大小；否则 QLabel 会拿 pixmap 尺寸当期望值，拖起来又卡又跳。\n"
+          "        return QSize(160, 160)\n"
+          "\n"
+          "    def minimumSizeHint(self):\n"
+          "        return QSize(120, 120)\n"
+          "\n"
+          "    def resizeEvent(self, event):\n"
+          "        super().resizeEvent(event)\n"
+          "        self.resized.emit()\n"
+          "\n"
+          "\n"
+          "class PaneLabel(QLabel):\n"
+          "    \"\"\"[split-view] 只显示画面的格子（实时那一格），尺寸完全由分隔条决定。\"\"\"\n"
+          "\n"
+          "    def sizeHint(self):\n"
+          "        return QSize(160, 160)\n"
+          "\n"
+          "    def minimumSizeHint(self):\n"
+          "        return QSize(120, 120)\n"
+          "\n"
+          "\n"
+          "class BatchWorker(QObject):\n")],
+        # 1) 两个格子的角标样式 + 分隔条颜色
+        [("replace",
+          "QLabel#canvas { background: #f7f9fc; border: 1px solid #dde5ee; border-radius: 8px; color: #8a97a8; }\n",
+          "QLabel#canvas { background: #f7f9fc; border: 1px solid #dde5ee; border-radius: 8px; color: #8a97a8; }\n"
+          "QLabel#paneCaption { color: #5a6b82; font-size: 11px; font-weight: 600; }\n"
+          "QSplitter#visualSplit::handle { background: #cfdae8; }\n"
+          "QSplitter#visualSplit::handle:hover { background: #9fb6d1; }\n")],
+        # 2) 单画布 -> 左右分屏
+        [("replace",
+          "        self.image_label = ClickablePhoto('请选择一组测试照片')\n"
+          "        self.image_label.setObjectName('canvas')\n"
+          "        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)\n"
+          "        self.image_label.clicked.connect(self.canvas_clicked)     # [canvas-live]\n"
+          "        self.image_label.setMinimumSize(420, 260)\n"
+          "        self.image_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)\n"
+          "        visual_layout.addWidget(self.image_label, 1)\n",
+          "        # [split-view] 视觉检测区拆成左右两格：左边相机实时画面（只看），右边检测结果\n"
+          "        # （标定/识别后的孔图，点孔选本次要测的孔）。中间分隔条可拖，关掉实时时结果图占满。\n"
+          "        self.visual_split = QSplitter(Qt.Orientation.Horizontal)\n"
+          "        self.visual_split.setObjectName('visualSplit')\n"
+          "        # [split-view] 不允许把某一格拖成 0（拖没了就找不回来），分隔条加宽一点好抓\n"
+          "        self.visual_split.setChildrenCollapsible(False)\n"
+          "        self.visual_split.setHandleWidth(8)\n"
+          "\n"
+          "        self.live_column = QWidget()\n"
+          "        live_layout = QVBoxLayout(self.live_column)\n"
+          "        live_layout.setContentsMargins(0, 0, 0, 0)\n"
+          "        live_layout.setSpacing(4)\n"
+          "        self.live_caption = QLabel('实时画面（未开启）')\n"
+          "        self.live_caption.setObjectName('paneCaption')\n"
+          "        self.live_view = PaneLabel('勾选下方「相机实时画面」\\n在这里看相机实时画面（只看，不点选）')\n"
+          "        self.live_view.setObjectName('canvas')\n"
+          "        self.live_view.setAlignment(Qt.AlignmentFlag.AlignCenter)\n"
+          "        self.live_view.setMinimumSize(150, 200)\n"
+          "        self.live_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)\n"
+          "        live_layout.addWidget(self.live_caption)\n"
+          "        live_layout.addWidget(self.live_view, 1)\n"
+          "        self.live_column.setMinimumWidth(160)\n"
+          "\n"
+          "        self.result_column = QWidget()\n"
+          "        result_layout = QVBoxLayout(self.result_column)\n"
+          "        result_layout.setContentsMargins(0, 0, 0, 0)\n"
+          "        result_layout.setSpacing(4)\n"
+          "        self.result_caption = QLabel('检测结果（标定好的孔）')\n"
+          "        self.result_caption.setObjectName('paneCaption')\n"
+          "        self._result_caption_base = '检测结果（标定好的孔）'\n"
+          "        self.result_view = PanePhoto('请选择一组测试照片')\n"
+          "        self.result_view.setObjectName('canvas')\n"
+          "        self.result_view.setAlignment(Qt.AlignmentFlag.AlignCenter)\n"
+          "        self.result_view.clicked.connect(self.canvas_clicked)     # [split-view]\n"
+          "        self.result_view.resized.connect(self.render_view)        # [split-view] 尺寸变了就重算坐标映射\n"
+          "        self.result_view.setMinimumSize(150, 200)\n"
+          "        self.result_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)\n"
+          "        result_layout.addWidget(self.result_caption)\n"
+          "        result_layout.addWidget(self.result_view, 1)\n"
+          "        self.result_column.setMinimumWidth(220)\n"
+          "\n"
+          "        self.visual_split.addWidget(self.live_column)\n"
+          "        self.visual_split.addWidget(self.result_column)\n"
+          "        self.visual_split.setStretchFactor(0, 4)\n"
+          "        self.visual_split.setStretchFactor(1, 6)\n"
+          "        self.visual_split.splitterMoved.connect(self.render_view)  # [split-view] 拖动分隔条也跟着重画\n"
+          "        self.live_column.hide()          # [split-view] 默认不显示实时，结果图先占满整格\n"
+          "        visual_layout.addWidget(self.visual_split, 1)\n"
+          "        self.image_label = self.result_view      # [split-view] 兼容旧调用，指向结果格\n")],
+        # 3) 提示文字改成"左格实时 / 右格结果"
+        [("replace",
+          "        self.chk_live.setToolTip('勾选后中间这块直接显示工业相机实时画面；预览本身不写文件。')\n",
+          "        self.chk_live.setToolTip('勾选后左边这一格显示工业相机实时画面；预览本身不写文件。')\n"),
+         ("replace",
+          "        self.btn_snap.setToolTip('把当前画面（实时画面，或临时取一帧）无损留样并放进工作区。')\n",
+          "        self.btn_snap.setToolTip('把当前实时画面无损留样，放进工作区并在右格显示（不自动检测）。')\n"),
+         ("replace",
+          "        legend = QLabel('青色：孔轮廓　黄色：拟合椭圆　红色十字：图像圆心　｜　直接点图上的孔即可选中/取消（要测量的孔）')\n",
+          "        legend = QLabel('左格：相机实时画面（只看）　｜　右格：检测结果——青色孔轮廓、黄色拟合椭圆、'\n"
+          "                        '红色十字圆心；直接点右格的孔即可选中/取消（要测量的孔）')\n")],
+        # 4) 开关实时：加实时格 / 关掉实时隐藏左格；并补上三个小工具方法
+        [("replace",
+          "        \"\"\"[canvas-live] 视觉检测区显示/关闭工业相机实时画面。\"\"\"\n",
+          "        \"\"\"[split-view] 左侧那一格显示/关闭工业相机实时画面（右格结果图不受影响）。\"\"\"\n"),
+         ("replace",
+          "            self.live_worker.failed.connect(self.live_preview_failed)\n"
+          "            self.live_worker.start()\n"
+          "            self.live_timer.start()\n"
+          "            self.set_status('相机实时画面中', '#a86613')      # [canvas-live]\n"
+          "            self.log('视觉检测区已切到相机实时画面（预览不写文件，点「抓拍」才留样）。')\n"
+          "        else:\n"
+          "            self.live_timer.stop()\n"
+          "            worker, self.live_worker = getattr(self, 'live_worker', None), None\n"
+          "            if worker is not None:\n"
+          "                worker.stop()\n"
+          "                worker.wait(5000)\n"
+          "            self.live_frame = None\n"
+          "            self.log('实时画面已关闭。')\n"
+          "            self.render_view()\n"
+          "        self.chk_fit.setEnabled(not on)\n"
+          "        self.sld_zoom.setEnabled(not on)\n",
+          "            self.live_worker.failed.connect(self.live_preview_failed)\n"
+          "            self.live_worker.start()\n"
+          "            self.live_timer.start()\n"
+          "            self._show_live_column()\n"
+          "            self.set_status('相机实时画面中', '#a86613')      # [canvas-live]\n"
+          "            self.log('左侧已切到相机实时画面（只看、不点选；预览不写文件，点「抓拍」才留样）。')\n"
+          "        else:\n"
+          "            self.live_timer.stop()\n"
+          "            worker, self.live_worker = getattr(self, 'live_worker', None), None\n"
+          "            if worker is not None:\n"
+          "                worker.stop()\n"
+          "                worker.wait(5000)\n"
+          "            self.live_frame = None\n"
+          "            self._live_placeholder()\n"
+          "            if getattr(self, 'live_column', None) is not None:\n"
+          "                self.live_column.hide()      # [split-view] 关掉实时后，结果图占满整格\n"
+          "            self.log('实时画面已关闭。')\n"
+          "            self.refresh_current_summary()\n"
+          "\n"
+          "    def _live_placeholder(self):\n"
+          "        \"\"\"[split-view] 实时那一格的占位提示（不写文件，也不冒充已经有画面）。\"\"\"\n"
+          "        label = getattr(self, 'live_view', None)\n"
+          "        if label is None:\n"
+          "            return\n"
+          "        label.clear()\n"
+          "        label.setText('勾选下方「相机实时画面」\\n在这里看相机实时画面（只看，不点选）')\n"
+          "        self.live_caption.setText('实时画面（未开启）')\n"
+          "\n"
+          "    def _show_live_column(self):\n"
+          "        \"\"\"[split-view] 打开实时格，按 45:55 摆分隔条（两边都留够最小宽度，之后可以自己拖）。\"\"\"\n"
+          "        if getattr(self, 'live_column', None) is None:\n"
+          "            return\n"
+          "        self.live_column.show()\n"
+          "        total = max(self.visual_split.width(), 420)\n"
+          "        live_width = max(160, min(int(total * 0.45), total - 220))\n"
+          "        self.visual_split.setSizes([live_width, max(220, total - live_width)])\n"
+          "\n"
+          "    def _paint_live_frame(self):\n"
+          "        \"\"\"[split-view] 把最近一帧按实时格当前大小重画（保持长宽比）。\"\"\"\n"
+          "        frame = getattr(self, 'live_frame', None)\n"
+          "        label = getattr(self, 'live_view', None)\n"
+          "        if frame is None or label is None:\n"
+          "            return\n"
+          "        height, width = frame.shape[:2]\n"
+          "        size = label.size()\n"
+          "        scale = min(size.width() / max(width, 1), size.height() / max(height, 1), 1.0)\n"
+          "        canvas = frame\n"
+          "        if scale < 0.999:\n"
+          "            canvas = cv2.resize(frame, (max(1, int(width * scale)), max(1, int(height * scale))),\n"
+          "                                interpolation=cv2.INTER_AREA)\n"
+          "        label.setPixmap(bgr_to_pixmap(canvas))\n")],
+        # 5) 实时帧只画到左格
+        [("replace",
+          "        \"\"\"[canvas-live] 把最新一帧画到视觉检测区。\"\"\"\n",
+          "        \"\"\"[canvas-live] 把最新一帧画到左侧实时格。\"\"\"\n"),
+         ("replace",
+          "            self.image_info.setText('等待相机图像…（若一直没有画面，检查相机网段是否为 192.168.1.100）')\n",
+          "            self.live_caption.setText('实时画面（相机）· 等待图像…'\n"
+          "                                      '（若一直没有画面，检查相机网段是否为 192.168.1.100）')\n"),
+         ("replace",
+          "        self.live_frame = frame\n"
+          "        height, width = frame.shape[:2]\n"
+          "        size = self.image_label.size()\n"
+          "        scale = min(size.width() / width, size.height() / height, 1.0)\n"
+          "        canvas = frame\n"
+          "        if scale < 0.999:\n"
+          "            canvas = cv2.resize(frame, (max(1, int(width * scale)), max(1, int(height * scale))),\n"
+          "                                interpolation=cv2.INTER_AREA)\n"
+          "        self.image_label.setPixmap(bgr_to_pixmap(canvas))\n"
+          "        self.image_info.setText(f'相机实时画面 · {width}×{height}（未写文件）')\n",
+          "        self.live_frame = frame\n"
+          "        self._paint_live_frame()\n"
+          "        size_text = f'{frame.shape[1]}×{frame.shape[0]}（未写文件）'\n"
+          "        # [split-view] 格子窄的时候只留短标题，别把字挤到隔壁那格去\n"
+          "        self.live_caption.setText('实时画面（相机）· ' + size_text\n"
+          "                                  if self.live_column.width() >= 330 else '实时画面（相机）')\n"
+          "        self.live_caption.setToolTip('实时画面（相机）· ' + size_text)\n")],
+        # 6) 抓拍不再冻结实时（左格继续实时，右格换成抓拍的照片）
+        [("replace",
+          "        if live_on:\n"
+          "            self.chk_live.setChecked(False)      # 冻结成照片，避免立刻被实时画面覆盖\n",
+          "")],
+        # 7) 点选孔只发生在右格
+        [("replace",
+          "        \"\"\"[canvas-live] 在图片上点一下 = 选中/取消这个孔（本次要测量的孔）。\"\"\"\n"
+          "        if getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked():\n"
+          "            return\n",
+          "        \"\"\"[split-view] 在右格结果图上点一下 = 选中/取消这个孔（本次要测量的孔）。\"\"\"\n")],
+        # 8) 载入实验记录不再需要先关实时
+        [("replace",
+          "        if getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked():\n"
+          "            self.chk_live.setChecked(False)      # 先关掉实时画面，才能显示载入的照片\n"
+          "        self.paths = [report['image'] for report in reports]\n",
+          "        self.paths = [report['image'] for report in reports]\n")],
+        # 9) 右格渲染：不再被实时挡住（拆成小步，只改各版本都有的那几行）
+        [("replace",
+          "        if getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked():\n"
+          "            return      # [canvas-live] 实时画面由定时器刷新，别被静态渲染覆盖\n",
+          "        \"\"\"[split-view] 只画右格（检测结果）；左格实时画面由定时器单独刷新。\"\"\"\n")],
+        [("replace",
+          "            self.image_label.clear()\n"
+          "            self.image_label.setText('照片未能读取，请重新选择本机照片。' if self.paths else '请选择一组测试照片')\n",
+          "            self.result_caption.setText('检测结果（标定好的孔）')\n"
+          "            self.result_view.clear()\n"
+          "            self.result_view.setText('照片未能读取，请重新选择本机照片。' if self.paths else '请选择一组测试照片')\n")],
+        [("replace",
+          "        size = self.image_label.size()\n",
+          "        size = self.result_view.size()\n")],
+        [("replace",
+          "        self.image_label.setPixmap(bgr_to_pixmap(canvas))\n",
+          "        self.result_view.setPixmap(bgr_to_pixmap(canvas))\n")],
+        [("replace",
+          "        if hasattr(self, 'image_label'):\n"
+          "            self.render_view()\n",
+          "        if hasattr(self, 'result_view'):\n"
+          "            self.render_view()\n"
+          "        self._paint_live_frame()\n")],
+    ]
+    for group in groups:
+        label = group[0][1].strip().splitlines()[0][:26]
+        result, state = _apply_ops(text, group)
+        if state == "missing":
+            missing.append(label)
+        elif state == "done":
+            skipped.append(label)
+        else:
+            text = result
+            applied.append(label)
+
+    # 右格角标：show_index 在不同版本里写法不一样，用 page_label 那一行做锚点。
+    caption_mark = "self._result_caption_base = f'检测结果（标定好的孔）· {Path(path).name}'"
+    caption_new = ("        " + caption_mark + "\n"
+                   "        self.result_caption.setText(self._result_caption_base)\n")
+    page_label_line = "        self.page_label.setText(f'{self.current_index + 1}/{len(self.paths)}')\n"
+    if caption_mark in text:
+        skipped.append("右格角标")
+    elif page_label_line in text:
+        text = text.replace(page_label_line, page_label_line + caption_new, 1)
+        applied.append("右格角标")
+    else:
+        missing.append("右格角标")
+
+    # 实时画面开着时，状态栏不要被"当前照片…"覆盖（点选孔之后最容易看到）
+    live_note_mark = "        # [split-view] 实时画面开着时不要把状态栏改回\"当前照片…\"\n"
+    old_live_note = ("        if not self.batch_running and not self.bridge.busy:\n"
+                     "            if result.get('errors'):\n")
+    if live_note_mark in text:
+        skipped.append("实时状态不被覆盖")
+    elif old_live_note in text:
+        text = text.replace(
+            old_live_note,
+            "        live_on = getattr(self, 'chk_live', None) is not None and self.chk_live.isChecked()\n"
+            "        if not self.batch_running and not self.bridge.busy and not live_on:\n"
+            + live_note_mark
+            + "            if result.get('errors'):\n", 1)
+        applied.append("实时状态不被覆盖")
+    else:
+        missing.append("实时状态不被覆盖")
+
+    if text == original:
+        if missing:
+            return "未匹配: " + "; ".join(missing[:4])
+        return "已是最新（无需修改）"
+    shutil.copy2(gui, gui.with_suffix(".py.bak"))
+    gui.write_text(text, encoding="utf-8")
+    out = ["已改 {} 组（视觉检测区左右分屏）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
+def patch_selection_feedback(engine: Path) -> str:
+    """9z) 点孔要有看得见的反馈；「删除这一组」改成「删除整批记录」。
+
+    用户 2026-10-08 反馈：
+    * 在结果图上点孔只是表格勾了一下，图上没变化，别人不知道选没选上；
+      现在选中的孔会套绿环 + 圆心打白勾，角标也写清"本次要测：H01、H03"。
+    * 记录窗口的「删除这一组」说法别扭，改成「删除整批记录」，确认框里写明这批几张。
+    """
+    gui = engine / "inspection_gui" / "gui.py"
+    records = engine / "inspection_gui" / "records_view.py"
+    data = engine / "experiment_records.py"
+    applied, skipped, missing = [], [], []
+
+    if gui.is_file():
+        text = gui.read_text(encoding="utf-8")
+        original = text
+        groups = [
+            # 1) 没有照片时角标也用同一个基名
+            [("replace",
+              "            self.result_caption.setText('检测结果（标定好的孔）')\n",
+              "            self.result_caption.setText(getattr(self, '_result_caption_base', '检测结果（标定好的孔）'))\n")],
+            # 2) 画完之后把"本次要测哪几个孔"写进角标
+            [("replace",
+              "        self.display_mapping = dict(mapping) if mapping else None\n"
+              "        if mapping:\n"
+              "            for hole in display_result.get('fitted_holes', []):\n",
+              "        self.display_mapping = dict(mapping) if mapping else None\n"
+              "        chosen = sorted(self.measure_targets)\n"
+              "        # [select-mark] 角标写清\"本次要测哪几个孔\"，配合图上绿色圈 + 白勾\n"
+              "        caption_base = getattr(self, '_result_caption_base', '检测结果（标定好的孔）')\n"
+              "        caption_note = '本次要测：' + ('、'.join(chosen) if chosen else '（未选中，点图上的孔即可选中）')\n"
+              "        # [split-view] 格子窄的时候优先留\"本次要测\"，完整信息进提示\n"
+              "        self.result_caption.setText(caption_note if self.result_column.width() < 430\n"
+              "                                    else caption_base + '　｜　' + caption_note)\n"
+              "        self.result_caption.setToolTip(caption_base + '　｜　' + caption_note)\n"
+              "        if mapping:\n"
+              "            for hole in display_result.get('fitted_holes', []):\n")],
+            # 3) 选中的孔：绿环 + 绿点白勾（单独一个方法，哪一版源码都能套上）
+            [("replace",
+              "        self.result_view.setPixmap(bgr_to_pixmap(canvas))\n"
+              "\n"
+              "    def resizeEvent(self, event):\n",
+              "        self._draw_selection_marks(canvas, mapping, display_result)\n"
+              "        self.result_view.setPixmap(bgr_to_pixmap(canvas))\n"
+              "\n"
+              "    def _draw_selection_marks(self, canvas, mapping, display_result):\n"
+              "        \"\"\"[select-mark] 给\"本次要测的孔\"套绿环 + 圆心打白勾，让别人一眼看出选没选上。\n"
+              "\n"
+              "        单独一个方法：不同版本的标注循环写法不一样，这里只依赖圆心和椭圆参数。\n"
+              "        \"\"\"\n"
+              "        if canvas is None or not mapping or not display_result:\n"
+              "            return canvas\n"
+              "        for hole in display_result.get('fitted_holes', []):\n"
+              "            if hole.get('id') not in self.measure_targets:\n"
+              "                continue\n"
+              "            centre_px = hole.get('center_px')\n"
+              "            if not centre_px:\n"
+              "                continue\n"
+              "            cx, cy = _map_pts([centre_px], mapping)[0]\n"
+              "            if not (mapping['ox'] - 40 <= cx <= mapping['ox'] + mapping['tw'] + 40\n"
+              "                    and mapping['oy'] - 40 <= cy <= mapping['oy'] + mapping['th'] + 40):\n"
+              "                continue\n"
+              "            ellipse = hole.get('ellipse')\n"
+              "            if ellipse:\n"
+              "                ec = _map_pts([ellipse['center']], mapping)[0]\n"
+              "                # cv2.ellipse 的 axes 是\"半径\"，这里用拟合椭圆的半轴——圈就正好贴着孔口，\n"
+              "                # 再往里收 10%，画成细环：不往外扩、也不盖住黄色的拟合椭圆。\n"
+              "                axes = (max(3, int(ellipse['width'] * mapping['scale'] * 0.45)),\n"
+              "                        max(3, int(ellipse['height'] * mapping['scale'] * 0.45)))\n"
+              "                cv2.ellipse(canvas, tuple(np.round(ec).astype(int)), axes,\n"
+              "                            ellipse['angle'], 0, 360, (80, 215, 95), 2, cv2.LINE_AA)\n"
+              "            centre = (int(round(cx)), int(round(cy)))\n"
+              "            cv2.circle(canvas, centre, 8, (80, 215, 95), -1)\n"
+              "            cv2.circle(canvas, centre, 8, (255, 255, 255), 2, cv2.LINE_AA)\n"
+              "            cv2.polylines(canvas, [np.array([[centre[0] - 4, centre[1] - 1],\n"
+              "                                             [centre[0] - 1, centre[1] + 3],\n"
+              "                                             [centre[0] + 5, centre[1] - 5]], np.int32)],\n"
+              "                          False, (255, 255, 255), 2, cv2.LINE_AA)\n"
+              "        return canvas\n"
+              "\n"
+              "    def resizeEvent(self, event):\n")],
+            # 3b) 我们这一版的标签也跟着变绿（别人的版本对不上就跳过，不影响绿圈白勾）
+            [("replace",
+              "                text = f\"{hole['id']}  {hole['confidence']:.2f}\"\n",
+              "                selected = hole['id'] in self.measure_targets\n"
+              "                text = (f\">> {hole['id']}  {hole['confidence']:.2f}\" if selected\n"
+              "                        else f\"{hole['id']}  {hole['confidence']:.2f}\")\n"),
+             ("replace",
+              "                tx = int(np.clip(cx + 10, mapping['ox'] + 3, max(mapping['ox'] + 3, mapping['ox'] + mapping['tw'] - width - 8)))\n",
+              "                _dx = 26 if selected else 10     # [select-mark] 选中的孔留出绿点的位置\n"
+              "                tx = int(np.clip(cx + _dx, mapping['ox'] + 3, max(mapping['ox'] + 3, mapping['ox'] + mapping['tw'] - width - 8)))\n"),
+             ("replace",
+              "                cv2.rectangle(canvas, (tx - 4, ty - height - 4), (tx + width + 4, ty + baseline + 4), (20, 35, 56), -1)\n"
+              "                color = (170, 235, 255) if hole.get('reliable_center') else (50, 160, 255)\n",
+              "                cv2.rectangle(canvas, (tx - 4, ty - height - 4), (tx + width + 4, ty + baseline + 4),\n"
+              "                              (55, 170, 75) if selected else (20, 35, 56), -1)\n"
+              "                color = ((255, 255, 255) if selected else\n"
+              "                         ((170, 235, 255) if hole.get('reliable_center') else (50, 160, 255)))\n")],
+            # 4) 点图和勾表格都要立刻重画
+            [("replace",
+              "        \"\"\"点孔后立刻把表格里的勾选状态同步过来\"\"\"\n"
+              "        self.refresh_current_summary()\n",
+              "        \"\"\"点孔后立刻把表格里的勾选状态同步过来\"\"\"\n"
+              "        self.refresh_current_summary()\n"
+              "        self.render_view()      # [select-mark] 图上立刻出现/去掉绿色圈和白勾\n")],
+            # 5) 图例说明选中的样子
+            [("replace",
+              "        legend = QLabel('左格：相机实时画面（只看）　｜　右格：检测结果——青色孔轮廓、黄色拟合椭圆、'\n"
+              "                        '红色十字圆心；直接点右格的孔即可选中/取消（要测量的孔）')\n",
+              "        legend = QLabel('左格：相机实时画面（只看）　｜　右格：检测结果——青色孔轮廓、黄色拟合椭圆、'\n"
+              "                        '红色十字圆心；点右格的孔即可选中/取消，选中的孔会套上绿色圈并打勾（要测量的孔）')\n")],
+            # 5b) 绿圈别画大：贴着孔口 + 图例同步说清楚
+            [("replace",
+              "                        '红色十字圆心；点右格的孔即可选中/取消，选中的孔会套上绿色圈并打勾（要测量的孔）')\n",
+              "                        '红色十字圆心；点右格的孔即可选中/取消，选中的孔椭圆变绿、圆心打勾（要测量的孔）')\n")],
+        ]
+        for group in groups:
+            label = group[0][1].strip().splitlines()[0][:26]
+            result, state = _apply_ops(text, group)
+            if state == "missing":
+                missing.append("gui: " + label)
+            elif state == "done":
+                skipped.append("gui: " + label)
+            else:
+                text = result
+                applied.append("gui: " + label)
+        if text != original:
+            shutil.copy2(gui, gui.with_suffix(".py.bak"))
+            gui.write_text(text, encoding="utf-8")
+
+        # 勾表格也要在图上显示（只有带 measure_target_changed 的版本才有这一步）
+        table_mark = "self.render_view()      # [select-mark] 勾表格也要在图上显示出来"
+        table_line = "        self.log(f'本次测量清单：{chosen}')\n"
+        if table_mark in text:
+            skipped.append("勾表格重画")
+        elif "def measure_target_changed(self)" not in text:
+            skipped.append("勾表格重画（该版本没有这个方法）")
+        elif table_line in text:
+            gui.write_text(text.replace(table_line, table_line + "        " + table_mark + "\n", 1),
+                           encoding="utf-8")
+            applied.append("勾表格重画")
+        else:
+            missing.append("勾表格重画")
+    else:
+        missing.append("gui.py")
+
+    if records.is_file():
+        text = records.read_text(encoding="utf-8")
+        original = text
+        groups = [
+            [("replace",
+              "        delete_button = QPushButton('删除这一组')\n"
+              "        delete_button.setToolTip('从实验记录里删除选中的整组（含该组所有照片的行），删除后无法撤销')\n",
+              "        delete_button = QPushButton('删除整批记录')\n"
+              "        delete_button.setToolTip('删除选中的这一批记录（这批的全部照片行）；删除后无法撤销，磁盘上的原图/结果图/报告不受影响')\n")],
+            [("replace",
+              "            \"孔号按图像位置排序。选中一行后可以：载入到工作区 / 打开原图 / 打开结果图 / 打开检测报告 / 删除这一组。\"\n",
+              "            \"孔号按图像位置排序。选中一行后可以：载入到工作区 / 打开原图 / 打开结果图 / \"\n"
+              "            \"打开检测报告 / 删除整批记录（把这一批的记录一起去掉）。\"\n")],
+            [("replace",
+              "        \"\"\"[records-tools] 删除选中的整组记录（二次确认）。\"\"\"\n",
+              "        \"\"\"[records-tools] 删除选中的这一批记录（二次确认）。\"\"\"\n"),
+             ("replace",
+              "            QMessageBox.information(self, '请先选一行', '请先选中要删除的那一组里的任意一行。')\n",
+              "            QMessageBox.information(self, '请先选一行', '请先选中要删除的那一批里的任意一行。')\n"),
+             ("replace",
+              "        number = row.get('group_number', '?')\n"
+              "        confirm = QMessageBox.question(\n"
+              "            self, '确认删除',\n"
+              "            f'确定要从实验记录中删除「第{number}组」吗？\\n\\n'\n"
+              "            '该组的全部照片记录都会被删除，删除后无法撤销。\\n'\n"
+              "            '（磁盘上的原图、结果图、检测报告文件不会被删除）',\n",
+              "        group_id = row.get('group_id', '')\n"
+              "        number = row.get('group_number', '?')\n"
+              "        batch = len(self.records.reports_of(group_id)) if group_id else 0\n"
+              "        confirm = QMessageBox.question(\n"
+              "            self, '确认删除',\n"
+              "            f'要删除实验记录里的「第{number}组」吗？\\n\\n'\n"
+              "            f'这批共 {batch} 张照片，整批记录都会从实验记录里去掉，删除后无法撤销。\\n'\n"
+              "            '磁盘上的原图、结果图、检测报告文件都会保留（需要的话可以重新检测一遍）。',\n"),
+             ("replace",
+              "        ok, message = self.records.delete_group(row.get('group_id', ''))\n",
+              "        ok, message = self.records.delete_group(group_id)\n")],
+        ]
+        for group in groups:
+            label = group[0][1].strip().splitlines()[0][:26]
+            result, state = _apply_ops(text, group)
+            if state == "missing":
+                missing.append("records_view: " + label)
+            elif state == "done":
+                skipped.append("records_view: " + label)
+            else:
+                text = result
+                applied.append("records_view: " + label)
+        if text != original:
+            shutil.copy2(records, records.with_suffix(".py.bak"))
+            records.write_text(text, encoding="utf-8")
+    else:
+        missing.append("records_view.py")
+
+    if data.is_file():
+        text = data.read_text(encoding="utf-8")
+        original = text
+        old = "                return True, f'第{number}组（{count} 张）已从实验记录中删除；原图与结果文件未删除。'\n"
+        new = "                return True, f'这批记录（第{number}组，{count} 张）已删除；原图与结果文件都还在。'\n"
+        if new in text:
+            skipped.append("experiment_records: 删除说明")
+        elif old in text:
+            data.write_text(text.replace(old, new, 1), encoding="utf-8")
+            applied.append("experiment_records: 删除说明")
+        else:
+            missing.append("experiment_records: 删除说明")
+    else:
+        missing.append("experiment_records.py")
+
+    if not applied:
+        if not missing:
+            return "已是最新（无需修改）"
+        return "未匹配: " + "; ".join(missing[:4])
+    out = ["已改 {} 处（点孔反馈 + 删除措辞）".format(len(applied))]
+    if missing:
+        out.append("未匹配: " + "; ".join(missing[:4]))
+    return "；".join(out)
+
+
 def point_registry(engine: Path) -> str:
     f = engine / "active_models.json"
     if not f.is_file():
@@ -2455,6 +4166,14 @@ def main() -> int:
     print("9p) 实时预览:", patch_camera_preview(engine))
     print("9q) 设备状态:", patch_device_state_sync(engine))
     print("9r) 自动连相机:", patch_auto_connect(engine))
+    print("9s) 记录数据层:", patch_records_data(engine))
+    print("9t) 记录窗口:", patch_records_tools(engine))
+    print("9u) 检测区实时:", patch_canvas_live(engine))
+    print("9v) 设备自适应:", patch_device_autofill(engine))
+    print("9w) 合并入口  :", patch_merge_history(engine))
+    print("9x) 参数不落盘:", patch_no_local_config(engine))
+    print("9y) 视觉分屏  :", patch_split_view(engine))
+    print("9z) 点孔反馈  :", patch_selection_feedback(engine))
     if args.swap_model:
         print("10) 模型注册:", point_registry(engine))
     else:
