@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
+import uuid
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, Slot
@@ -32,6 +34,7 @@ class RecordsDialog(QDialog):
         self.resize(1260, 720)
         self.setMinimumSize(760, 450)
         self.path = Path(records.path if records is not None else path)
+        self.shared_records = records
         self.capture_root = Path(capture_root) if capture_root is not None else self.path.parent / 'data' / 'camera_captures'
         self.capture_rows = []
         self.records = ExperimentRecords.__new__(ExperimentRecords)
@@ -114,6 +117,10 @@ class RecordsDialog(QDialog):
             button.clicked.connect(callback)
             photo_actions.addWidget(button)
         layout.addLayout(photo_actions)
+        self.delete_button = QPushButton('删除选中实验组')
+        self.delete_button.clicked.connect(self.delete_selected_group)
+        layout.addWidget(self.delete_button)
+        self.tabs.currentChanged.connect(lambda index: self.delete_button.setEnabled(index == 0))
         layout.addWidget(QLabel("导出的 CSV 保留全部字段，包括照片、结果图片及模型路径。"))
         self.refresh()
 
@@ -189,6 +196,48 @@ class RecordsDialog(QDialog):
         else:
             index, rows = self.table.currentRow(), self.rows
         return rows[index] if 0 <= index < len(rows) else {}
+
+    def delete_selected_group(self, *_):
+        if self.tabs.currentIndex() != 0:
+            return
+        selected = self.selected_row()
+        if not selected:
+            QMessageBox.information(self, '删除实验组', '请先在实验检测记录中选择一行。')
+            return
+        if getattr(self.parent(), 'batch_running', False):
+            QMessageBox.information(self, '删除实验组', '当前正在检测，请等本组完成后再删除。')
+            return
+        group_label = selected['group']
+        answer = QMessageBox.question(self, '删除实验组',
+            f'删除{group_label}的全部实验记录吗？\n拍摄原图、检测结果文件继续保留。删除前会备份记录。',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            original = self.path.read_bytes()
+            groups = json.loads(original.decode('utf-8'))
+            matching = [g for g in groups if f"第{g['number']}组" == group_label]
+            if len(matching) != 1 or matching[0].get('status') == '检测中':
+                raise ValueError('该实验组已变化或仍在检测，请刷新后重试。')
+            remaining = [g for g in groups if g['id'] != matching[0]['id']]
+            backup_folder = self.path.parent / 'data' / 'record_backups'
+            backup_folder.mkdir(parents=True, exist_ok=True)
+            backup = backup_folder / (datetime.now().strftime('records_%Y%m%d_%H%M%S_') + uuid.uuid4().hex[:8] + '.json')
+            with backup.open('xb') as stream:
+                stream.write(original)
+            if self.path.read_bytes() != original:
+                raise ValueError('记录刚刚发生变化，已取消删除，请刷新后重试。')
+            snapshot = ExperimentRecords.__new__(ExperimentRecords)
+            snapshot.path, snapshot.groups = self.path, remaining
+            snapshot.save()
+            if self.shared_records is not None:
+                self.shared_records.groups = remaining
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            QMessageBox.warning(self, '删除未完成', str(error))
+            return
+        self.refresh()
+        QMessageBox.information(self, '已删除实验组', f'{group_label}已删除，照片文件保留。\n记录备份：{backup}')
 
     def open_original(self, *_):
         self.open_photo_path(self.selected_row().get('image', ''), '拍摄原图')
