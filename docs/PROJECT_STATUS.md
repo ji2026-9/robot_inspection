@@ -17,7 +17,7 @@
 模型通过 GitHub Release 分发。**下一步是"标定 + 接真机"**，这部分还没开始。
 
 > **2026-10-08 更新**：界面统一到融合版软件 `E:\robot_project\inspection_app`，
-> 源码已冻结进本仓库 **`fused_app\`（界面以此为准）**；朋友后来上传的 `engine_bore_local\` 只作引擎侧参考。本轮完成：
+> 源码已冻结进本仓库 **`software\`（界面以此为准）**；朋友后来上传的 `engine_bore_local\` 只作引擎侧参考。本轮完成：
 > ① 工业相机 Orbbec Gemini 335Le 接入（启动自动连接 + 视觉检测区实时画面 + 无损抓拍）；
 > ② 视觉检测区**左右分屏**（左＝实时画面，右＝检测结果），在结果图上**点孔选择本次要测的孔**并给出图上反馈；
 > ③ 实验记录窗口补齐**载入到工作区 / 打开原图·结果图·检测报告 / 删除整批记录**；
@@ -37,7 +37,7 @@
 | 关键库 | torch 2.5.1+cu121、ultralytics 8.4.173、opencv 5.0.0、numpy 2.4.6、PySide6 6.11.2 |
 | 启动软件 | 双击桌面「机械臂孔检测系统」＝融合版 `E:\robot_project\inspection_app\app.py`（`.venv\Scripts\pythonw.exe` 启动） |
 | 排查用 | 用同一条命令但把 `pythonw.exe` 换成 `python.exe`，报错会打在控制台里 |
-| 界面来源 | **本仓库 `fused_app\`（权威源码，我们的界面）**；补丁脚本 `scripts\patch_friend_engine.py`、朋友源码 `engine_bore_local\` 仅作引擎侧参考 |
+| 界面来源 | **本仓库 `software\`（权威源码，我们的界面）**；补丁脚本 `scripts\patch_friend_engine.py`、朋友源码 `engine_bore_local\` 仅作引擎侧参考 |
 | 早期界面 | 我方旧版 PySide6 界面已归档到 `_archive\gui_v1_pyside6\`，不再日常使用 |
 
 ---

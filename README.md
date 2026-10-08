@@ -108,13 +108,13 @@
 
 ### 6.1 图形界面（推荐）
 
-界面源码就在本仓库：**[`fused_app/`](fused_app/README.md)**（我们这套「双机械臂孔检测系统」的完整源码，
+界面源码就在本仓库：**[`software/`](software/README.md)**（我们这套「双机械臂孔检测系统」的完整源码，
 所有本地补丁已应用）。本机运行/交付的那一份在 `E:\robot_project\inspection_app`，
 桌面快捷方式「机械臂孔检测系统」就是启动它：
 
 ```bat
 :: 把源码铺到交付位置（模型见 §6.4）
-xcopy /E /I E:\robot_project\robot_inspection\fused_app E:\robot_project\inspection_app
+xcopy /E /I E:\robot_project\robot_inspection\software E:\robot_project\inspection_app
 :: 启动
 E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\inspection_app\app.py
 ```
@@ -124,7 +124,7 @@ E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\ins
 
 > 本仓库的 `app/` 只是**视觉核心库**（推理 / 拟合 / 编号），没有界面代码；
 > 更早的我方 PySide6 界面已归档到 `_archive/gui_v1_pyside6/`。
-> **界面以 `fused_app/` 为准**（朋友上传的 `engine_bore_local/` 只作引擎侧参考，不覆盖这套界面）；
+> **界面以 `software/` 为准**（朋友上传的 `engine_bore_local/` 只作引擎侧参考，不覆盖这套界面）；
 > 交付、引擎更新与自检流程见 [§6.4](#64-软件怎么交付--引擎怎么更新--怎么自检)。
 
 ### 6.2 命令行推理
@@ -150,13 +150,13 @@ E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\ins
 
 ### 6.4 软件怎么交付 / 引擎怎么更新 / 怎么自检
 
-**① 交付（推荐）：界面以本仓库的 [`fused_app/`](fused_app/README.md) 为准**
+**① 交付（推荐）：界面以本仓库的 [`software/`](software/README.md) 为准**
 
-`fused_app/` 就是我们这套「双机械臂孔检测系统」的**完整源码**（所有本地补丁已应用，实测可跑通全流程）。
+`software/` 就是我们这套「双机械臂孔检测系统」的**完整源码**（所有本地补丁已应用，实测可跑通全流程）。
 交付/使用时把它铺到运行目录，再把模型放进去即可：
 
 ```bat
-xcopy /E /I E:\robot_project\robot_inspection\fused_app E:\robot_project\inspection_app
+xcopy /E /I E:\robot_project\robot_inspection\software E:\robot_project\inspection_app
 :: 模型不进 Git：把 bore_best.pt / part_best.pt / fusion_v1_best.pt 放到 inspection_app\models\
 ::   （GitHub Release `v1.1-model`、朋友模型包，或本机 weights\best.pt 复制改名）
 E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\inspection_app\app.py
@@ -167,11 +167,11 @@ E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\ins
 | 来源 | 作用 |
 | --- | --- |
 | `engine_bore_local/` | 他上传的源码快照，**只作引擎侧参考**；他自带的那套「实时采集 / 测量模式」界面**不覆盖我们的界面** |
-| `scripts/patch_friend_engine.py` | 当初生成 `fused_app/` 的补丁脚本（幂等，每步打印 已改/已是最新/未匹配），用来比对他改了什么 |
+| `scripts/patch_friend_engine.py` | 当初生成 `software/` 的补丁脚本（幂等，每步打印 已改/已是最新/未匹配），用来比对他改了什么 |
 | `scripts/app_addons/` | 我方新增模块（Orbbec 相机驱动 `orbbec_camera.py`、实时预览窗口 `camera_preview.py`） |
 
 ```bat
-:: 把他的新源码铺到临时目录 → 跑补丁 → 与 fused_app\ 逐文件比对，只挑引擎（detect_core/拟合/训练）改动
+:: 把他的新源码铺到临时目录 → 跑补丁 → 与 software\ 逐文件比对，只挑引擎（detect_core/拟合/训练）改动
 git archive origin/feature/fusion engine_bore_local | tar -x -C E:\robot_project\_engine_sync --strip-components=1
 E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robot_inspection\scripts\patch_friend_engine.py --engine E:\robot_project\_engine_sync
 ```
@@ -194,7 +194,7 @@ E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robo
 - **设备参数不落盘**：设备信息只在本次运行有效（相机插上自动识别型号与序列号；机械臂按当前电脑实际 IP 填写），
   换一台电脑不需要清理本机配置。
 
-> 口径说明：**界面以 `fused_app/` 为准**。`engine_bore_local/` 是朋友较新的一版源码，
+> 口径说明：**界面以 `software/` 为准**。`engine_bore_local/` 是朋友较新的一版源码，
 > 里面是他自己的「实时采集 / 测量模式」界面，与本仓库的补丁有若干处对不上（跑补丁会打印「未匹配」）——
 > 这不影响交付版；要吸收他的引擎改进时按上面 ② 的流程做，界面不跟着换。
 
@@ -218,7 +218,7 @@ E:\robot_project\robot_inspection\.venv\Scripts\python.exe E:\robot_project\robo
 ```
 <项目根目录>/
 ├── app/                     视觉核心库（推理 → 掩膜 → 椭圆 → 编号）
-├── fused_app/               **我们这套界面的权威源码**（融合版软件，交付直接用它）
+├── software/                **我们这套界面的权威源码**（正式交付版，交付直接用它）
 ├── scripts/                 训练 / 推理 / 评估 / 数据与实验工具
 │   ├── patch_friend_engine.py   融合版软件的补丁脚本（幂等）
 │   ├── check_inspection_app.py  融合版软件的端到端自检

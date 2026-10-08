@@ -22,7 +22,7 @@
 | [`CAMERA_ORBBEC_20261008.md`](CAMERA_ORBBEC_20261008.md) | **工业相机（Orbbec）接入**：驱动、实时画面/抓拍、网段配置、换电脑恢复步骤 |
 | [`PROJECT_STATUS.md`](PROJECT_STATUS.md) | **项目进度与后续计划**（进度总表 + 未完成项 + 后续方向） |
 | [`app\README.md`](../app/README.md) | **视觉核心库说明**（推理/拟合/编号；界面已统一到 `inspection_app`） |
-| [`fused_app\README.md`](../fused_app/README.md) | **融合版软件源码说明**（我们这套界面的权威版本：怎么交付、怎么跑、怎么自检） |
+| [`software\README.md`](../software/README.md) | **正式版软件源码说明**（我们这套界面的权威版本：怎么交付、怎么跑、怎么自检） |
 | [`configs\README.md`](../configs/README.md) | 配置文件放哪里 |
 
 ## 二、不在 Git 里的报告（本机生成物）

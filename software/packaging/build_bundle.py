@@ -26,6 +26,14 @@ for module in modules:
 shutil.copytree(BASE/'inspection_gui',DEST/'inspection_gui',dirs_exist_ok=True,
                 ignore=lambda folder,names:ignore(folder,names)+[name for name in names if name in ('device_settings.json','robot_verified_info.json')])
 
+# installer.iss 向导页与开始菜单都引用 payload\使用说明.txt，这里一并放进包里
+for extra in ('使用说明.txt',):
+    source = BASE/'packaging'/extra
+    if source.is_file():
+        copy(source, DEST/extra)
+    else:
+        print('WARNING: missing packaging file:', source, flush=True)
+
 for environment in ('.venv','.labelme_env'):
     target = DEST/environment
     target.mkdir(exist_ok=True)

@@ -1,6 +1,6 @@
-# fused_app\ —— 融合版软件源码（当前使用的界面，以此为准）
+# software\ —— 正式版软件源码（当前使用的界面，以此为准）
 
-这里是我们**实际在用的那套界面**（「双机械臂孔检测系统」）的完整源码，
+这里是我们**实际在用的那套界面**（「双机械臂孔检测系统」）的完整源码，也就是正式交付版，
 已经把所有本地补丁（相机接入、视觉检测区左右分屏、点孔选择测量目标、实验记录工具、
 设备参数不落盘……）全部应用进去了。
 
@@ -12,10 +12,10 @@
 
 | 目录 | 是什么 | 和这里的关系 |
 | --- | --- | --- |
-| `fused_app/`（本目录） | 我们这套界面的**权威源码** | 直接把它铺到交付目录即可运行 |
+| `software/`（本目录） | 我们这套界面的**权威源码** | 直接把它铺到交付目录即可运行 |
 | `engine_bore_local/` | 朋友上传的源码快照（**较新**，自带他那套"实时采集 / 测量模式"界面） | 只作**引擎侧参考**；他的新界面不覆盖我们的界面 |
 | `scripts/app_addons/` | 我方新增模块（Orbbec 驱动 `orbbec_camera.py`、实时预览窗口 `camera_preview.py`） | 已包含在本目录里，保留一份便于版本管理 |
-| `scripts/patch_friend_engine.py` | 补丁脚本：从朋友的源码生成这套界面 | 本目录 = 该脚本的**产物快照**；他更新引擎后，用脚本比对本目录再决定改哪里 |
+| `scripts/patch_friend_engine.py` | 补丁脚本：从朋友的源码生成本套界面 | 本目录 = 该脚本的**产物快照**；他更新引擎后，用脚本比对本目录再决定改哪里 |
 | `app/` | 我方视觉核心库（推理 / 拟合 / 编号） | 与本目录的 `detect_core.py` 同源，本目录是完整软件那一份 |
 
 > 换句话说：**要交付/要跑，用本目录；要从他的新源码里取引擎改进，用 `engine_bore_local/` + 补丁脚本，
@@ -36,7 +36,7 @@
 
 ```bat
 :: 1) 把本目录铺到交付位置
-xcopy /E /I E:\robot_project\robot_inspection\fused_app E:\robot_project\inspection_app
+xcopy /E /I E:\robot_project\robot_inspection\software E:\robot_project\inspection_app
 :: 2) 把模型放进 E:\robot_project\inspection_app\models\
 :: 3) 启动
 E:\robot_project\robot_inspection\.venv\Scripts\pythonw.exe E:\robot_project\inspection_app\app.py
