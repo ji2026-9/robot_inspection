@@ -325,6 +325,12 @@ class DevicePage(QWidget):
     def _refresh_feedback(self):
         backend = self._backend
         if backend is None:
+            candidate = _registered_backends.get(self.device_id)
+            if candidate is not None and candidate.is_connected():
+                backend = self._backend = candidate
+                self.address.setText(backend.address)
+                self._set_status(True, '已同步三维窗口的只读反馈连接。')
+        if backend is None:
             self.live_robot_status.setText('实时状态：未连接只读反馈，当前状态未知。')
             self.robot_evidence_label.setText('设备资料：未连接，当前型号和版本未获取。\n设备信息表中的内容仅为连接配置。')
             return
@@ -337,7 +343,8 @@ class DevicePage(QWidget):
             self.robot_evidence_label.setText('设备资料：反馈已中断，不能确认当前连接设备。')
             self._set_status(False, '只读反馈已中断，请重新连接。')
             return
-        data = backend.latest
+        data = backend.snapshot()
+        if data is None:return
         import datetime
         identity = backend.identity
         if identity:
@@ -509,7 +516,7 @@ class DevicesDialog(QDialog):
         _screen = self.screen()
         _height = min(880, _screen.availableGeometry().height() - 30) if _screen else 820
         self.resize(760, _height)
-        self.setMinimumSize(560, 620)
+        self.setMinimumSize(560, min(500, _height))
         self.setModal(False)
         self.setObjectName("inspectionDevices")
         self.setStyleSheet("""

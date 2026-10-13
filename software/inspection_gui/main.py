@@ -9,8 +9,18 @@ from .gui import MainWindow
 
 
 def main(open_records=False, open_simulation=False):
+    # A compatibility context is needed by the lit workstation viewport.
+    from PySide6.QtGui import QSurfaceFormat
+    if QApplication.instance() is None:
+        format = QSurfaceFormat()
+        format.setVersion(2, 1)
+        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
+        format.setDepthBufferSize(24)
+        format.setSamples(4)
+        QSurfaceFormat.setDefaultFormat(format)
     application = QApplication.instance() or QApplication(sys.argv)
     application.setApplicationName('Engine Bore Inspection')
+    application.setStyle('Fusion')
     # [local patch] force the LIGHT colour scheme so the Windows title bar
     # and frame match the light UI instead of staying dark-mode black
     try:

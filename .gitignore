@@ -117,3 +117,13 @@ updates/
 .labelme_env/
 packaging/payload/
 packaging/release/
+
+# Local vendor display assets are not distributed
+software/inspection_gui/assets/local_dobot_cr5.npz
+
+# Runtime-only machine state
+.inspection_gui.lock
+last_photo_dir.txt
+software/experiment_records.json
+software/captures/
+software/Log/

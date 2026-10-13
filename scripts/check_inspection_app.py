@@ -134,12 +134,21 @@ def main():
 
     records_view.QMessageBox = FakeMessageBox
 
+    from PySide6.QtTest import QTest
     app = QApplication.instance() or QApplication([])
     window = gui.MainWindow(records=records)
+    def settle_view():
+        # Qt can enqueue further resize events; wait until the final repaint completed.
+        for _ in range(50):
+            QTest.qWait(20)
+            if not window.render_timer.isActive() and window.display_mapping:
+                return
+        raise RuntimeError('Image redraw did not settle within one second')
+
     window.resize(1300, 860)
     window.show()
     for _ in range(6):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
 
     buttons = {b.text() for b in window.findChildren(gui.QPushButton)}
     check('「其他功能」不再有独立的“打开历史批次”入口', '打开历史批次' not in buttons, str(sorted(buttons)))
@@ -150,7 +159,7 @@ def main():
     # 从实验记录载入工作区（不重新检测、不新增记录）
     window.load_reports(records.reports_of(group_id))
     for _ in range(4):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
     check('载入工作区后照片数正确',
           len(window.paths) == 1 and Path(window.paths[0]).resolve() == image.resolve(),
           f'paths={window.paths}')
@@ -170,7 +179,7 @@ def main():
     window.live_frame = _np.zeros((800, 1280, 3), _np.uint8)
     window._show_live_column()
     for _ in range(3):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
     window._paint_live_frame()
     check('打开实时格后能显示画面',
           not window.live_column.isHidden() and window.live_view.pixmap() is not None)
@@ -178,18 +187,19 @@ def main():
     total_w = window.visual_split.width()
     window.visual_split.setSizes([0, total_w])
     for _ in range(4):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
     check('往左拖到头，实时格不会被拖没', window.live_column.width() >= 150,
           f'live={window.live_column.width()}')
     window.visual_split.setSizes([total_w, 0])
     for _ in range(4):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
     check('往右拖到头，结果格不会被拖没', window.result_column.width() >= 200,
           f'result={window.result_column.width()}')
     window._show_live_column()
     for _ in range(3):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
     window.render_view()
+    settle_view()
     check('实时画面开着时，右格检测结果照常显示', window.result_view.pixmap() is not None)
     window.chk_live.blockSignals(True)
     window.chk_live.setChecked(True)
@@ -212,11 +222,11 @@ def main():
     # 判据：compose 把图居中放，ox/oy 必然等于 (画布尺寸 - 图尺寸) / 2；映射要是旧的就不等。
     window._show_live_column()
     for _ in range(3):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
     total = window.visual_split.width()
     window.visual_split.setSizes([max(150, total - 220), min(220, max(150, total - 150))])
     for _ in range(5):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
     mapping_after = dict(window.display_mapping or {})
     view_size = window.result_view.size()
     check('改分格大小后映射与当前画布对得上',
@@ -230,6 +240,7 @@ def main():
     mapping_now = window.display_mapping
     window.canvas_clicked((cx - mapping_now['crop'][0]) * mapping_now['scale'] + mapping_now['ox'],
                           (cy - mapping_now['crop'][1]) * mapping_now['scale'] + mapping_now['oy'])
+    settle_view()
     check('按新的映射点孔仍能选中（没点偏）', hole['id'] in window.measure_targets,
           f"选中={sorted(window.measure_targets)}")
     window.measure_targets.clear()
@@ -238,10 +249,11 @@ def main():
     window._live_placeholder()
     window.live_column.hide()
     for _ in range(3):
-        app.processEvents()
+        QTest.qWait(35)  # Allow the coalesced redraw timer to finish before inspecting mappings.
 
     # 点图片选孔：把某个孔的图像坐标换算成画布坐标再点
     window.render_view()
+    settle_view()
     mapping = getattr(window, 'display_mapping', None)
     check('画布有坐标映射', bool(mapping), str(mapping))
     if mapping:
@@ -267,6 +279,7 @@ def main():
 
         before = green_pixels()
         window.canvas_clicked(canvas_x, canvas_y)
+        settle_view()
         after = green_pixels()
         check('点孔后进入本次测量清单', hole['id'] in window.measure_targets,
               f"选中={sorted(window.measure_targets)}")
@@ -279,6 +292,7 @@ def main():
         check('确认的测量目标包含该孔', hole['id'] in window.confirmed_targets())
         # 再点一次应该取消
         window.canvas_clicked(canvas_x, canvas_y)
+        settle_view()
         check('再点一次取消该孔', hole['id'] not in window.measure_targets,
               f"选中={sorted(window.measure_targets)}")
         check('取消后绿色标记消失', green_pixels() < after, f'绿色像素={green_pixels()}')
@@ -286,6 +300,7 @@ def main():
               window.result_caption.text())
         # 点空白处不应该误选
         window.canvas_clicked(mapping['ox'] + 2, mapping['oy'] + 2)
+        settle_view()
         check('点空白处不改变测量清单', not window.measure_targets, f"选中={sorted(window.measure_targets)}")
 
     # ---- 实验记录窗口：看图 / 报告 / 载入 / 删除 ----

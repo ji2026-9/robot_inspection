@@ -1,0 +1,3 @@
+PyOpenGL==3.1.10
+# numpy, scipy and PySide6 use the project's existing environment.
+# DracoPy/trimesh are only needed to rebuild optional local display assets.

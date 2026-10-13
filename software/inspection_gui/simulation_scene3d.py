@@ -1,204 +1,322 @@
-"""Interactive 3D mesh projection; illustrative geometry, no hardware control."""
-import math
+"""Lit OpenGL viewport using cached local DobotStudio display meshes.
+
+Display kinematics and assumed workpiece geometry only; no device APIs.
+"""
+import json, math, os, ctypes, threading
+from pathlib import Path
 import numpy as np
-from PySide6.QtCore import Qt, QPointF
-from PySide6.QtGui import QColor, QPainter, QPen, QPolygonF
-from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import Qt, QPointF, QObject, Signal
+from PySide6.QtGui import QColor,QPainter,QPen,QFont,QSurfaceFormat
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
+from .offline_planning import robot_frames,solve_visual_ik
+try:
+    from OpenGL import GL as gl
+except ImportError:
+    gl=None
+
+def translation(x,y,z):
+    t=np.eye(4);t[:3,3]=[x,y,z];return t
+
+def mesh(vertices,faces,color):
+    v=np.asarray(vertices,np.float32);f=np.asarray(faces,np.uint32)
+    n=np.zeros_like(v);fn=np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]])
+    for i in range(3):np.add.at(n,f[:,i],fn)
+    n/=np.maximum(np.linalg.norm(n,axis=1,keepdims=True),1e-9)
+    return {'vertices':v,'normals':n,'faces':f,'color':color}
+
+def box(a,b,color):
+    x,y,z=a;X,Y,Z=b
+    v=[(x,y,z),(X,y,z),(X,Y,z),(x,Y,z),(x,y,Z),(X,y,Z),(X,Y,Z),(x,Y,Z)]
+    quads=[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)]
+    # Separate vertices retain crisp machined edges.
+    vs=[];fs=[]
+    for q in quads:
+        k=len(vs);vs.extend(v[i] for i in q);fs.extend([(k,k+1,k+2),(k,k+2,k+3)])
+    return mesh(vs,fs,color)
+
+def cylinder(radius,length,color,inner=0,segments=48):
+    v=[];f=[]
+    for i in range(segments):
+        a,b=i*2*np.pi/segments,(i+1)*2*np.pi/segments
+        pa,pb=[radius*np.cos(a),radius*np.sin(a)],[radius*np.cos(b),radius*np.sin(b)]
+        k=len(v);v.extend([pa+[0],pb+[0],pb+[length],pa+[length]])
+        f.extend([(k,k+1,k+2),(k,k+2,k+3)])
+        if inner:
+            qa,qb=[inner*np.cos(a),inner*np.sin(a)],[inner*np.cos(b),inner*np.sin(b)]
+            k=len(v);v.extend([qa+[0],qa+[length],qb+[length],qb+[0]])
+            f.extend([(k,k+1,k+2),(k,k+2,k+3)])
+            for zz in (0,length):
+                k=len(v);v.extend([pa+[zz],pb+[zz],qb+[zz],qa+[zz]])
+                f.extend([(k,k+1,k+2),(k,k+2,k+3)])
+        else:
+            for zz in (0,length):
+                k=len(v);v.extend([[0,0,zz],pa+[zz],pb+[zz]]);f.append((k,k+1,k+2))
+    return mesh(v,f,color)
+
+def deck_cell(half_x,half_y,radius,color):
+    v=[];f=[]
+    # Include each rectangle corner direction so boundaries are exact.
+    angles=np.unique(np.r_[np.linspace(0,2*np.pi,65),
+        [math.atan2(y,x)%(2*np.pi) for x in (-half_x,half_x) for y in (-half_y,half_y)]])
+    for a,b in zip(angles[:-1],angles[1:]):
+        def point(t,outer):
+            c,s=math.cos(t),math.sin(t)
+            r=min(half_x/max(abs(c),1e-9),half_y/max(abs(s),1e-9)) if outer else radius
+            return [r*c,r*s,0]
+        k=len(v);v.extend([point(a,True),point(b,True),point(b,False),point(a,False)])
+        f.extend([(k,k+1,k+2),(k,k+2,k+3)])
+    return mesh(v,f,color)
+
+class AssetSignals(QObject):
+    loaded = Signal(object, object, str)
 
 
-class Scene3D(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.phase = 0.0
-        self.yaw, self.pitch, self.zoom = -0.68, 0.52, 1.0
-        self.drag = None
-        self.setMinimumSize(760, 430)
-        self.setCursor(Qt.CursorShape.OpenHandCursor)
+class Scene3D(QOpenGLWidget):
+    def __init__(self,parent=None):
+        super().__init__(parent)
+        fmt=QSurfaceFormat();fmt.setVersion(2,1);fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
+        fmt.setDepthBufferSize(24);fmt.setSamples(4);self.setFormat(fmt)
+        self.setMinimumSize(280,240);self.setMouseTracking(True)
+        self.yaw=-58.;self.pitch=29.;self.distance=2150.;self.pan=np.zeros(3)
+        self.drag=None;self.phase=0.;self.plan=None;self.trajectory=[];self.frame_index=0
+        self.meshes=[];self.parts=[];self.buffers={};self.ready=False;self.render_error=''
+        self.live_frame=None;self.live_mode=False;self.geometry_key=None
+        self.asset_label='正在后台加载显示模型'
+        self.camera_q=np.deg2rad([60,-65,105,50,90,0])
+        self.asset_signals=AssetSignals(self)
+        self.asset_signals.loaded.connect(self._assets_loaded)
+        signals=self.asset_signals
+        def load():
+            models=[];label='程序化备用模型'
+            path=Path(os.environ.get('INSPECTION_ROBOT_MESH',str(Path(__file__).parent/'assets'/'local_dobot_cr5.npz')))
+            try:
+                if path.is_file():
+                    with np.load(path,allow_pickle=False) as a:
+                        for i,meta in enumerate(json.loads(str(a['metadata']))):
+                            models.append({'joint':meta['joint'],'color':meta['color'],
+                                'vertices':np.ascontiguousarray(a[f'v{i}'],dtype=np.float32),
+                                'normals':np.ascontiguousarray(a[f'n{i}'],dtype=np.float32),
+                                'faces':np.ascontiguousarray(a[f'f{i}'],dtype=np.uint32)})
+                    label='本机 DobotStudio CR5 系列显示模型'
+            except (OSError,ValueError,KeyError) as exc:
+                label='显示资源不可用，使用备用模型：'+str(exc)
+            if not models:
+                from .offline_planning import JOINT_OFFSETS
+                for i,joint in enumerate(['base','J1','J2','J3','J4','J5','J6']):
+                    body=cylinder(48 if i<2 else 30,65,[.82,.85,.88]);body['joint']=joint;models.append(body)
+                    if 0<i<6:
+                        offset=JOINT_OFFSETS[i];length=float(np.linalg.norm(offset));axis=offset/length
+                        u=np.cross([0,0,1],axis)
+                        if np.linalg.norm(u)<1e-8:u=np.array([1.,0,0])
+                        u/=np.linalg.norm(u);v=np.cross(axis,u);r=np.column_stack([u,v,axis])
+                        link=cylinder(25,length,[.83,.86,.9]);link['vertices']=np.ascontiguousarray(link['vertices']@r.T,dtype=np.float32)
+                        link['normals']=np.ascontiguousarray(link['normals']@r.T,dtype=np.float32)
+                        link['joint']=joint;models.append(link)
+            q,_=solve_visual_ik([-200,-240,580],[-480,100,0],100)
+            try:signals.loaded.emit(models,q,label)
+            except RuntimeError:pass  # Window closed while loading.
+        threading.Thread(target=load,daemon=True,name='robot-display-assets').start()
 
-    def mousePressEvent(self, event):
-        self.drag = event.position()
+    def _assets_loaded(self,models,q,label):
+        self.meshes=models;self.camera_q=q;self.asset_label=label;self.update()
 
-    def mouseMoveEvent(self, event):
-        if self.drag is not None:
-            delta = event.position() - self.drag
-            self.yaw += delta.x() * 0.006
-            self.pitch = float(np.clip(self.pitch + delta.y() * 0.004, 0.12, 1.25))
-            self.drag = event.position()
-            self.update()
-
-    def mouseReleaseEvent(self, event):
-        self.drag = None
-
-    def wheelEvent(self, event):
-        self.zoom = float(np.clip(self.zoom * (1.1 if event.angleDelta().y() > 0 else 0.9), 0.55, 1.8))
+    def set_live_frame(self,frame,enabled):
+        self.live_mode=bool(enabled);self.live_frame=frame if enabled else None
         self.update()
 
     def reset_view(self):
-        self.yaw, self.pitch, self.zoom = -0.68, 0.52, 1.0
+        self.yaw=-58.;self.pitch=29.;self.distance=2150.;self.pan[:]=0;self.update()
+
+    def view_top(self):
+        self.yaw=-90.;self.pitch=86.;self.distance=1500.;self.update()
+
+    def mousePressEvent(self,e):self.drag=e.position();self.drag_button=e.button()
+    def mouseReleaseEvent(self,e):self.drag=None
+    def mouseMoveEvent(self,e):
+        if self.drag is None:return
+        d=e.position()-self.drag;self.drag=e.position()
+        if self.drag_button==Qt.MouseButton.RightButton:
+            self.pan[0]-=d.x()*self.distance/1100;self.pan[2]+=d.y()*self.distance/1100
+        else:self.yaw+=d.x()*.4;self.pitch=float(np.clip(self.pitch+d.y()*.3,6,87))
+        self.update()
+    def wheelEvent(self,e):
+        self.distance=float(np.clip(self.distance*(.88 if e.angleDelta().y()>0 else 1.12),600,4200));self.update()
+
+    def set_plan(self,plan,trajectory):
+        self.plan=plan;self.trajectory=trajectory;self.frame_index=0
+        key=json.dumps(plan['config'],sort_keys=True) if plan else None
+        if key!=self.geometry_key:
+            self.parts=self._workpiece(plan) if plan else []
+            self.geometry_key=key
         self.update()
 
-    def paintEvent(self, event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.fillRect(self.rect(), QColor('#f4f6f9'))
-        cy, sy = math.cos(self.yaw), math.sin(self.yaw)
-        cp, sp = math.cos(self.pitch), math.sin(self.pitch)
-        self.rotation = np.array([[cy, -sy, 0], [sy*sp, cy*sp, -cp], [sy*cp, cy*cp, sp]])
-        self.scale = min(self.width()/1050, self.height()/680) * self.zoom
-        self.faces = []
-        def project(point):
-            q = self.rotation @ np.asarray(point)
-            factor = 1800 / (1800 + q[2])
-            return QPointF(self.width()/2 + q[0]*self.scale*factor,
-                           self.height()*0.62 + q[1]*self.scale*factor)
-        self.project = project
-        # Worktable, floor grid and base plates.
-        self.box((-470,-285,-45), (470,285,-15), '#e2e7ee')
-        for x in range(-450,451,60):
-            for y in range(-270,271,60):
-                self.cylinder((x,y,-14), (x,y,-12), 3, '#ccd4dd', 6)
-        for x in (-355,355):
-            self.box((x-75,-75,-14), (x+75,75,0), '#c3ccd7')
-        # Four open cylindrical bores in a raised engine block.
-        self.box((-205,-70,0), (205,70,90), '#a99a87', top=False)
-        stage = min(7,int(self.phase))
-        t = self.phase % 1
-        selected = stage-3 if 3 <= stage <= 6 else -1
-        for i,x in enumerate((-150,-50,50,150)):
-            color = '#eab85b' if i == selected else ('#34c8a5' if stage == 7 or (selected >= 0 and i < selected) else '#bac4cd')
-            self.ring(x,0,90,43,35,color)
-            self.cylinder((x,0,35),(x,0,89),35,'#8d98a7',24, caps=False)
-            self.disk(x,0,34,35,'#6f7a89')
-        # Fill deck surface around the four rims without covering openings.
-        self.box((-205,-70,86),(205,-44,90),'#c6b49b')
-        self.box((-205,44,86),(205,70,90),'#c6b49b')
-        for x in (-205,-105,-5,95,195):
-            self.box((x,-44,86),(x+10,44,90),'#c6b49b')
-        # Smooth approach to the illustrative capture / probe pose.
-        parked_camera = np.array([-230.,-95.,300.])
-        capture_camera = np.array([-45.,0.,320.])
-        ease = (1-math.cos(math.pi*min(1,t*3)))/2
-        camera = parked_camera*(1-ease)+capture_camera*ease if stage == 1 else (
-            capture_camera if stage == 2 else (
-                capture_camera*(1-ease)+parked_camera*ease if stage == 3 else parked_camera))
-        target_x = (-150,-50,50,150)[max(0,selected)] if selected >= 0 else 260
-        previous_x = 260 if selected <= 0 else (-150,-50,50,150)[selected-1]
-        if selected >= 0:
-            target_x = previous_x*(1-ease)+target_x*ease
-        target_z = 140-22*math.sin(math.pi*max(0,(t-.33)/.67)) if selected >= 0 else 280
-        if selected >= 0 and t < .33:
-            target_z = 235-95*ease
-        probe = np.array([target_x,0.,target_z])
-        self.arm(-355,camera,'#438afa')
-        self.arm(355,probe,'#657bfd')
-        self.box(tuple(camera+[-23,-18,-18]),tuple(camera+[23,18,18]),'#273d56')
-        self.cylinder(camera+[0,0,-18],camera+[0,0,-48],13,'#2ab6d0',16)
-        self.cylinder(probe,probe+[0,0,-35],8,'#eef3fa',12)
-        self.cylinder(probe+[0,0,-35],probe+[0,0,-65],2,'#f2bd5c',8)
-        self.disk(target_x,0,54 if selected >= 0 else 205,4,'#f6ca76')
-        for depth,poly,color in sorted(self.faces,key=lambda f:f[0]):
-            # [local patch] thin edge so light parts stay readable
-            p.setPen(QPen(QColor(120,132,150,80),0.6))
-            p.setBrush(color)
-            p.drawPolygon(QPolygonF([project(v) for v in poly]))
-        if stage in (1,2):
-            p.setPen(QPen(QColor('#40daf1'),1.5,Qt.PenStyle.DashLine))
-            for v in [(-205,-70,90),(205,-70,90),(205,70,90),(-205,70,90)]:
-                p.drawLine(project(camera+[0,0,-48]),project(v))
-        p.setPen(QColor('#33415a'))
-        p.drawText(20,30,'双 CR5A 风格机械臂 · 三维流程展示')
-        p.setPen(QColor('#6b7a90'))
-        p.drawText(20,53,'拖动旋转视角 · 滚轮缩放 · 示意模型／非实机轨迹')
-        def _inside(q, right=104, bottom=18):
-            # [local patch] keep scene labels inside the viewport
-            x = min(max(q.x(), 16.0), max(16.0, self.width() - right))
-            y = min(max(q.y(), 30.0), max(30.0, self.height() - bottom))
-            return QPointF(x, y)
-        for label,point in [('A · 工业相机',(-355,-100,15)),('B · 测针',(355,-100,15))]:
-            p.setPen(QColor('#2563eb'))
-            p.drawText(_inside(project(point), 104), label)
-        for i,x in enumerate((-150,-50,50,150)):
-            p.setPen(QColor('#b45309'))
-            p.drawText(_inside(project((x,-43,105)), 46), f'H{i+1:02}')
+    def initializeGL(self):
+        self.buffers={};self.ready=False
+        self.context().aboutToBeDestroyed.connect(self.cleanup_gl)
+        if gl is None:self.render_error='缺少 PyOpenGL，请安装 requirements-simulation.txt';return
+        try:
+            gl.glEnable(gl.GL_DEPTH_TEST);gl.glEnable(gl.GL_NORMALIZE);gl.glEnable(gl.GL_MULTISAMPLE)
+            gl.glEnable(gl.GL_LIGHTING);gl.glEnable(gl.GL_LIGHT0);gl.glEnable(gl.GL_LIGHT1)
+            gl.glEnable(gl.GL_COLOR_MATERIAL);gl.glColorMaterial(gl.GL_FRONT_AND_BACK,gl.GL_AMBIENT_AND_DIFFUSE)
+            gl.glLightModelfv(gl.GL_LIGHT_MODEL_AMBIENT,[.40,.40,.43,1])
+            gl.glLightModeli(gl.GL_LIGHT_MODEL_TWO_SIDE,1)
+            gl.glLightfv(gl.GL_LIGHT0,gl.GL_DIFFUSE,[.70,.70,.68,1]);gl.glLightfv(gl.GL_LIGHT1,gl.GL_DIFFUSE,[.25,.28,.34,1])
+            gl.glMaterialfv(gl.GL_FRONT_AND_BACK,gl.GL_SPECULAR,[.3,.3,.3,1]);gl.glMaterialf(gl.GL_FRONT_AND_BACK,gl.GL_SHININESS,38)
+            self.ready=True
+        except Exception as exc:self.render_error=str(exc)
 
-    def face(self,poly,color):
-        poly = np.asarray(poly,dtype=float)
-        normal = np.cross(poly[1]-poly[0],poly[2]-poly[0])
-        normal /= max(1e-9,np.linalg.norm(normal))
-        light = 0.76 + 0.22*abs(float(normal @ np.array([.3,-.4,.86])))
-        c = QColor(color)
-        c = QColor(int(c.red()*light),int(c.green()*light),int(c.blue()*light))
-        depth = float((self.rotation @ poly.mean(axis=0))[2])
-        self.faces.append((depth,poly,c))
+    def cleanup_gl(self):
+        self.makeCurrent()
+        if gl is not None:
+            for entry in self.buffers.values():
+                gl.glDeleteLists(entry['list'],1);gl.glDeleteBuffers(3,entry['ids'])
+        self.buffers.clear();self.ready=False;self.doneCurrent()
 
-    def box(self,a,b,color,top=True):
-        x,y,z=a; X,Y,Z=b
-        v=[(x,y,z),(X,y,z),(X,Y,z),(x,Y,z),(x,y,Z),(X,y,Z),(X,Y,Z),(x,Y,Z)]
-        for ids in [(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)]+([(4,5,6,7)] if top else []):
-            self.face([v[i] for i in ids],color)
+    def _prune_buffers(self):
+        keep={id(m) for m in self.meshes}
+        keep.update(id(m) for m,_ in self.parts)
+        keep.update(id(m) for m,_ in getattr(self,'camera_parts',[]))
+        keep.update(id(m) for m,_ in getattr(self,'probe_parts',[]))
+        for key in list(self.buffers):
+            if key not in keep:
+                entry=self.buffers.pop(key)
+                gl.glDeleteLists(entry['list'],1);gl.glDeleteBuffers(3,entry['ids'])
 
-    def cylinder(self,a,b,r,color,n=16,caps=True):
-        a,b=np.asarray(a,dtype=float),np.asarray(b,dtype=float)
-        axis=b-a; axis/=max(np.linalg.norm(axis),1e-9)
-        u=np.cross(axis,[0,0,1] if abs(axis[2])<.9 else [0,1,0]); u/=np.linalg.norm(u)
-        v=np.cross(axis,u)
-        offsets=[r*(math.cos(i*2*math.pi/n)*u+math.sin(i*2*math.pi/n)*v) for i in range(n)]
-        for i in range(n):
-            j=(i+1)%n
-            self.face([a+offsets[i],a+offsets[j],b+offsets[j],b+offsets[i]],color)
-        if caps:
-            self.face([a+o for o in offsets],color)
-            self.face([b+o for o in offsets],color)
+    def _display(self,m):
+        key=id(m)
+        if key in self.buffers:
+            gl.glCallList(self.buffers[key]['list']);return
+        if key not in self.buffers:
+            ids=gl.glGenBuffers(3)
+            for bid,field,target,dtype in zip(ids,('vertices','normals','faces'),
+                    (gl.GL_ARRAY_BUFFER,gl.GL_ARRAY_BUFFER,gl.GL_ELEMENT_ARRAY_BUFFER),
+                    (np.float32,np.float32,np.uint32)):
+                data=np.ascontiguousarray(m[field],dtype=dtype)
+                gl.glBindBuffer(target,int(bid));gl.glBufferData(target,data.nbytes,data,gl.GL_STATIC_DRAW)
+            self.buffers[key]={'ids':ids,'mesh':m,'count':np.asarray(m['faces']).size,'list':gl.glGenLists(1)}
+        entry=self.buffers[key];v,n,f=entry['ids']
+        gl.glEnableClientState(gl.GL_VERTEX_ARRAY);gl.glEnableClientState(gl.GL_NORMAL_ARRAY)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER,int(v));gl.glVertexPointer(3,gl.GL_FLOAT,0,ctypes.c_void_p(0))
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER,int(n));gl.glNormalPointer(gl.GL_FLOAT,0,ctypes.c_void_p(0))
+        gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER,int(f))
+        # The driver compiles indexed arrays directly; no Python triangle loop.
+        gl.glNewList(entry['list'],gl.GL_COMPILE)
+        gl.glDrawElements(gl.GL_TRIANGLES,entry['count'],gl.GL_UNSIGNED_INT,ctypes.c_void_p(0))
+        gl.glEndList()
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER,0);gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER,0)
+        gl.glDisableClientState(gl.GL_NORMAL_ARRAY);gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
+        gl.glCallList(entry['list'])
 
-    def disk(self,x,y,z,r,color):
-        self.face([(x+r*math.cos(i*math.pi/12),y+r*math.sin(i*math.pi/12),z) for i in range(24)],color)
+    def _draw(self,m,t,shadow=False):
+        gl.glPushMatrix();gl.glMultMatrixf(np.asarray(t.T,np.float32))
+        if shadow:gl.glColor3f(.82,.84,.87)
+        else:gl.glColor3fv(m['color'])
+        self._display(m);gl.glPopMatrix()
 
-    def ring(self,x,y,z,outer,inner,color):
-        for i in range(32):
-            angles=[i*math.pi/16,(i+1)*math.pi/16]
-            self.face([(x+r*math.cos(t),y+r*math.sin(t),z) for r,t in
-                       [(outer,angles[0]),(outer,angles[1]),(inner,angles[1]),(inner,angles[0])]],color)
+    def _workpiece(self,p):
+        c=p['config'];pitch=c['bore_pitch_mm'];width=c['block_width_mm'];r=c['bore_diameter_mm']/2;z=c['deck_height_mm'];bottom=z-c['block_height_mm']
+        parts=[]
+        def put(m,t=np.eye(4)):parts.append((m,t))
+        # Fixture and cast housing sides, open deck and genuinely hollow bores.
+        put(box((-270,-120,80),(270,120,bottom),[.34,.39,.44]))
+        for x in (-235,235):put(box((x-12,-90,0),(x+12,90,80),[.47,.51,.55]))
+        half=2*pitch
+        put(box((-half,-width/2,bottom),(half,-width/2+12,z-5),[.25,.29,.30]))
+        put(box((-half,width/2-12,bottom),(half,width/2,z-5),[.25,.29,.30]))
+        for x in (-half,half-12):put(box((x,-width/2,bottom),(x+12,width/2,z-5),[.3,.34,.35]))
+        for h in p['holes']:
+            x=h['center_world_mm'][0]
+            put(deck_cell(pitch/2,width/2,r+2,[.72,.72,.68]),translation(x,0,z))
+            put(cylinder(r+2,c['block_height_mm']-15,[.48,.51,.52],inner=r),translation(x,0,bottom+15))
+            put(cylinder(r,1,[.09,.12,.14]),translation(x,0,bottom+14))
+            put(cylinder(r+4,2,[.79,.79,.74],inner=r+1),translation(x,0,z-2))
+            for yy in (-width/2+12,width/2-12):
+                for xx in (-pitch*.32,pitch*.32):
+                    put(cylinder(5.5,1.2,[.10,.13,.15]),translation(x+xx,yy,z+.1))
+            for yy in (-width/2-5,width/2-12):
+                put(box((x-12,yy,bottom+8),(x+12,yy+17,z-16),[.3,.34,.35]))
+        self.camera_parts=[(box((-62,-14.5,50),(62,14.5,100),[.15,.19,.23]),np.eye(4)),
+             (box((-52,-40,0),(52,-32,95),[.07,.36,.61]),np.eye(4))]
+        for x in (-47.5,0,23.75,47.5):self.camera_parts.append((cylinder(6,1.5,[.04,.08,.12]),translation(x,0,100)))
+        self.probe_parts=[(cylinder(21,65,[.63,.68,.72]),np.eye(4)),(cylinder(5,78,[.78,.79,.80]),translation(0,0,65)),(cylinder(c['probe_ball_diameter_mm']/2,2,[.85,.15,.24]),translation(0,0,143))]
+        return parts
 
-    def joint(self,center,radius,ring_color,half=30,bulge=5):
-        # [local patch] CR5A-style joint hub with two blue rings
-        c=np.asarray(center,dtype=float)
-        self.cylinder(c+[0,-half,0],c+[0,half,0],radius,'#e6eaee',24)
-        self.cylinder(c+[0,-half,0],c+[0,-half+5,0],radius+bulge,ring_color,24)
-        self.cylinder(c+[0,half-5,0],c+[0,half,0],radius+bulge,ring_color,24)
-        self.cylinder(c+[0,-half-3,0],c+[0,-half,0],radius*0.55,'#93a0ae',20)
-        self.cylinder(c+[0,half,0],c+[0,half+3,0],radius*0.55,'#93a0ae',20)
+    def paintGL(self):
+        if not self.ready:return
+        self._prune_buffers()
+        # QPainter's overlay changes GL state; restore it on every frame.
+        gl.glUseProgram(0);gl.glDisable(gl.GL_SCISSOR_TEST);gl.glDisable(gl.GL_CULL_FACE)
+        gl.glDepthMask(True);gl.glEnable(gl.GL_DEPTH_TEST);gl.glDepthFunc(gl.GL_LESS)
+        gl.glEnable(gl.GL_NORMALIZE);gl.glEnable(gl.GL_LIGHTING)
+        gl.glEnable(gl.GL_LIGHT0);gl.glEnable(gl.GL_LIGHT1);gl.glEnable(gl.GL_COLOR_MATERIAL)
+        gl.glClearColor(.966,.977,.987,1);gl.glClear(gl.GL_COLOR_BUFFER_BIT|gl.GL_DEPTH_BUFFER_BIT)
+        gl.glViewport(0,0,int(self.width()*self.devicePixelRatioF()),int(self.height()*self.devicePixelRatioF()))
+        aspect=self.width()/max(1,self.height());gl.glMatrixMode(gl.GL_PROJECTION);gl.glLoadIdentity()
+        n=10;half=n*math.tan(math.radians(37)/2);gl.glFrustum(-half*aspect,half*aspect,-half,half,n,8000)
+        yaw,pitch=np.deg2rad([self.yaw,self.pitch]);target=np.array([0,0,340])+self.pan
+        eye=target+self.distance*np.array([math.cos(yaw)*math.cos(pitch),math.sin(yaw)*math.cos(pitch),math.sin(pitch)])
+        z=(eye-target);z/=np.linalg.norm(z);x=np.cross([0,0,1],z);x/=np.linalg.norm(x);y=np.cross(z,x)
+        view=np.eye(4);view[:3,:3]=[x,y,z];view[:3,3]=-view[:3,:3]@eye
+        gl.glMatrixMode(gl.GL_MODELVIEW);gl.glLoadMatrixf(view.T.astype(np.float32));self.view=view
+        gl.glLightfv(gl.GL_LIGHT0,gl.GL_POSITION,[-900,-1000,1700,1]);gl.glLightfv(gl.GL_LIGHT1,gl.GL_POSITION,[900,800,1500,1])
+        gl.glDisable(gl.GL_LIGHTING)
+        gl.glColor3f(.94,.95,.97);gl.glBegin(gl.GL_QUADS)
+        for v in [(-2500,-2500,-2),(2500,-2500,-2),(2500,2500,-2),(-2500,2500,-2)]:gl.glVertex3f(*v)
+        gl.glEnd();gl.glColor3f(.85,.88,.91);gl.glLineWidth(1);gl.glBegin(gl.GL_LINES)
+        for k in range(-2000,2001,100):
+            gl.glVertex3f(k,-2000,0);gl.glVertex3f(k,2000,0);gl.glVertex3f(-2000,k,0);gl.glVertex3f(2000,k,0)
+        gl.glEnd()
+        frame=self.trajectory[min(self.frame_index,len(self.trajectory)-1)] if self.trajectory and not self.live_mode else None
+        qb=np.deg2rad(self.live_frame['joints']) if self.live_mode and self.live_frame else (frame['joints'] if frame else np.deg2rad([130,-50,100,40,90,0]))
+        robots=[robot_frames(self.camera_q,(-480,100,0)),robot_frames(qb,(480,100,0))]
+        if self.live_mode and not self.live_frame:robots=robots[:1]
+        shadow=np.eye(4);shadow[0,2]=-.35;shadow[1,2]=.15;shadow[2,:]=[0,0,0,1.2]
+        for m,t in self.parts:self._draw(m,shadow@t,True)
+        for frames in robots:
+            for m in self.meshes:self._draw(m,shadow@frames[m['joint']],True)
+        gl.glEnable(gl.GL_LIGHTING)
+        for m,t in self.parts:self._draw(m,t)
+        for frames in robots:
+            for m in self.meshes:self._draw(m,frames[m['joint']])
+        for m,t in getattr(self,'camera_parts',[]):self._draw(m,robots[0]['J6']@t)
+        if not self.live_mode:
+            for m,t in getattr(self,'probe_parts',[]):self._draw(m,robots[1]['J6']@t)
+        gl.glDisable(gl.GL_LIGHTING);gl.glLineWidth(2.3)
+        if self.live_mode and self.live_frame and self.live_frame['user_index']==0:
+            # Controller TCP in user 0; workstation base placement remains assumed.
+            pose=self.live_frame['pose'];point=np.array(pose[:3])+[480,100,0]
+            from scipy.spatial.transform import Rotation
+            rotation=Rotation.from_euler('xyz',pose[3:],degrees=True).as_matrix()
+            gl.glPointSize(9);gl.glColor3f(.85,.15,.35);gl.glBegin(gl.GL_POINTS);gl.glVertex3fv(point);gl.glEnd()
+            gl.glBegin(gl.GL_LINES)
+            for i,color in enumerate(([1,0,0],[0,.7,0],[0,.3,1])):
+                gl.glColor3fv(color);gl.glVertex3fv(point);gl.glVertex3fv(point+rotation[:,i]*65)
+            gl.glEnd()
+        if self.plan and not self.live_mode:
+            gl.glColor3f(.08,.61,.74);gl.glBegin(gl.GL_LINE_STRIP)
+            for item in self.plan['waypoints']:gl.glVertex3fv(item['tip_world_mm'])
+            gl.glEnd()
+            for hole in self.plan['holes']:
+                if not hole['selected']:continue
+                active=frame and frame['hole_id']==hole['id']
+                gl.glColor3fv([1,.55,.1] if active else [.1,.74,.52]);gl.glBegin(gl.GL_LINE_LOOP)
+                xx,yy,zz=hole['center_world_mm'];rr=self.plan['config']['bore_diameter_mm']/2-3
+                for t in np.linspace(0,2*np.pi,65):gl.glVertex3f(xx+rr*np.cos(t),yy+rr*np.sin(t),zz+1.5)
+                gl.glEnd()
+        gl.glEnable(gl.GL_LIGHTING)
 
-    def taper(self,a,b,r1,r2,color,n=24,caps=True):
-        # [local patch] cone-shaped link (the old arm used straight tubes)
-        a,b=np.asarray(a,dtype=float),np.asarray(b,dtype=float)
-        axis=b-a; axis/=max(float(np.linalg.norm(axis)),1e-9)
-        u=np.cross(axis,[0,0,1] if abs(axis[2])<.9 else [0,1,0]); u/=np.linalg.norm(u)
-        v=np.cross(axis,u)
-        o1=[r1*(math.cos(i*2*math.pi/n)*u+math.sin(i*2*math.pi/n)*v) for i in range(n)]
-        o2=[r2*(math.cos(i*2*math.pi/n)*u+math.sin(i*2*math.pi/n)*v) for i in range(n)]
-        for i in range(n):
-            j=(i+1)%n
-            self.face([a+o1[i],a+o1[j],b+o2[j],b+o2[i]],color)
-        if caps:
-            self.face([a+o for o in o1],color)
-            self.face([b+o for o in o2],color)
-
-    def arm(self,base,target,color):
-        # [local patch] CR5A-style arm: pedestal, tapered links, blue joint rings,
-        # dark tool flange (geometry is still illustrative, not real kinematics)
-        side=1 if base<0 else -1
-        p1=np.array([base,0.,132.])
-        p2=np.array([base+side*78,66.,352.])
-        p3=target+np.array([-side*82,36,64])
-        self.cylinder((base,0,0),(base,0,12),58,'#c5cbd3',32)
-        self.cylinder((base,0,12),(base,0,58),46,'#eef1f4',32)
-        self.cylinder((base,0,58),(base,0,70),51,color,32)
-        self.joint(p1,40,color,30)
-        self.taper(p1,p2,37,27,'#eef2f5',26)
-        self.joint(p2,33,color,26)
-        self.taper(p2,p3,28,21,'#e7ebef',26)
-        d=(target-p3); L=max(float(np.linalg.norm(d)),1e-6); d=d/L
-        for k,off in enumerate((0.0,26.0,50.0)):
-            self.joint(p3+d*off,20-k*2,color,15,3)
-        self.cylinder(target-d*14,target-d*4,17,'#d3d9df',20)
-        self.cylinder(target-d*4,target+d*3,11,'#31363d',20)
+    def paintEvent(self,event):
+        super().paintEvent(event)
+        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setPen(QColor('#1c3653'));p.setFont(QFont('Microsoft YaHei',10))
+        p.drawText(18,28,'实时姿态' if self.live_mode and self.live_frame else ('等待实时反馈' if self.live_mode else '路径预览'))
+        if self.render_error:p.setPen(QColor('#b45309'));p.drawText(18,50,self.render_error)
+        if self.plan and hasattr(self,'view'):
+            aspect=self.width()/max(1,self.height());f=1/math.tan(math.radians(37)/2)
+            for h in self.plan['holes']:
+                v=self.view@np.r_[h['center_world_mm'],1];v[1]+=22
+                if v[2]<-10:
+                    xx=self.width()/2+v[0]/(-v[2])*f/aspect*self.width()/2
+                    yy=self.height()/2-v[1]/(-v[2])*f*self.height()/2
+                    p.setPen(QColor('#b46513' if h['selected'] else '#63788c'));p.drawText(QPointF(xx,yy),h['id'])
+        p.end()

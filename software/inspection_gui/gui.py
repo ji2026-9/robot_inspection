@@ -32,6 +32,7 @@ BASE = Path(__file__).resolve().parents[1]
 # 磁盘上已有的旧文件也不会删除。
 
 STYLE = r"""
+QWidget { color: #22324a; }
 QMainWindow, QDialog { background: #eef2f7; color: #22324a; }
 QLabel { color: #22324a; }
 #topBar { background: #0f3d78; }
@@ -72,7 +73,7 @@ QHeaderView::section { background: #eef3fa; color: #17457f; padding: 7px;
 QProgressBar { border: 1px solid #d8e2ee; border-radius: 7px; background: #f4f7fb;
                text-align: center; color: #17457f; min-height: 18px; }
 QProgressBar::chunk { background: #2f7fd6; border-radius: 6px; }
-QScrollArea { border: none; background: transparent; }
+QScrollArea, QScrollArea > QWidget, QScrollArea > QWidget > QWidget { border: none; background: #eef2f7; }
 #diagPanel { background: #ffffff; border: 1px solid #dde5ee; border-radius: 10px; }
 QLabel#diagTitle { color: #17457f; font-weight: 600; }
 QPlainTextEdit#log { background: #f8fafd; color: #33415a;
@@ -154,7 +155,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(STYLE)
         screen = QApplication.primaryScreen().availableGeometry()
         self.resize(min(1510, screen.width() - 60), min(930, screen.height() - 60))
-        self.setMinimumSize(1000, 680)
+        self.setMinimumSize(900, 550)
         self.records = records if records is not None else ExperimentRecords()
         self.detector = HoleDetector()
         self.bridge = TrainingBridge(self)
@@ -185,6 +186,8 @@ class MainWindow(QMainWindow):
             _pictures = Path.home() / 'Pictures'
             self.last_dir = str(_pictures) if _pictures.is_dir() else str(BASE)
         self.batch_running = False
+        self.render_timer=QTimer(self);self.render_timer.setSingleShot(True);self.render_timer.setInterval(25)
+        self.render_timer.timeout.connect(self._render_view_now)
         self._build_ui()
         self.refresh_model_summary()
         # [local patch] start with a CLEAN workspace. History is only shown
@@ -288,19 +291,18 @@ class MainWindow(QMainWindow):
         self.btn_devices = QPushButton('设备连接')
         self.btn_records = QPushButton('实验记录')
         self.btn_models = QPushButton('模型与数据管理')
-        self.btn_simulation = QPushButton('模拟测量动画')
+        self.btn_simulation = QPushButton('三维定位与路径预览')
         self.btn_results = QPushButton('打开结果文件夹')
         # [fusion-sync] 来自朋友分支的“测量就绪检查”
         self.btn_readiness = QPushButton('测量就绪检查')
         self.btn_readiness.setToolTip('列出相机 / 机械臂 / 标定 / 测孔清单的完成情况，未完成的项不会隐藏。')
         # [merge-history] 「打开历史批次」已并入「实验记录」；
         # 「相机实时预览」已并入视觉检测区的「相机实时画面 / 抓拍」。
-        for _index, _button in enumerate((self.btn_devices, self.btn_records,
-                                          self.btn_models, self.btn_simulation,
-                                          self.btn_results,
-                                          self.btn_readiness)):
-            _button.setMinimumHeight(32)
-            others_layout.addWidget(_button, _index // 2, _index % 2)
+        positions=((self.btn_devices,0,0,1),(self.btn_records,0,1,1),
+                   (self.btn_models,1,0,2),(self.btn_simulation,2,0,2),
+                   (self.btn_results,3,0,2),(self.btn_readiness,4,0,2))
+        for button,row,column,span in positions:
+            button.setMinimumHeight(32);others_layout.addWidget(button,row,column,1,span)
         left_layout.addWidget(others)
         # 每张卡片给一个真实最小高度：诊断信息展开时左栏改为滚动，
         # 而不是把卡片压成一条看不清的细缝。   # [compact-left]
@@ -313,10 +315,13 @@ class MainWindow(QMainWindow):
         left.setWidgetResizable(True)
         left.setWidget(left_inner)
         left.setFrameShape(QFrame.Shape.NoFrame)
-        left.setFixedWidth(266)   # [compact-left]
+        left.setMinimumWidth(240);left.setMaximumWidth(310)   # [compact-left]
         left.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         left.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        body_layout.addWidget(left)
+        self.workspace_split=QSplitter(Qt.Orientation.Horizontal)
+        self.workspace_split.setChildrenCollapsible(False);self.workspace_split.setHandleWidth(7)
+        body_layout.addWidget(self.workspace_split)
+        self.workspace_split.addWidget(left)
 
         visual = QGroupBox('视觉检测区')
         visual_layout = QVBoxLayout(visual)
@@ -348,9 +353,9 @@ class MainWindow(QMainWindow):
         result_layout = QVBoxLayout(self.result_column)
         result_layout.setContentsMargins(0, 0, 0, 0)
         result_layout.setSpacing(4)
-        self.result_caption = QLabel('检测结果（标定好的孔）')
+        self.result_caption = QLabel('检测结果（像素孔位）')
         self.result_caption.setObjectName('paneCaption')
-        self._result_caption_base = '检测结果（标定好的孔）'
+        self._result_caption_base = '检测结果（像素孔位）'
         self.result_view = PanePhoto('请选择一组测试照片')
         self.result_view.setObjectName('canvas')
         self.result_view.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -370,7 +375,7 @@ class MainWindow(QMainWindow):
         self.live_column.hide()          # [split-view] 默认不显示实时，结果图先占满整格
         visual_layout.addWidget(self.visual_split, 1)
         self.image_label = self.result_view      # [split-view] 兼容旧调用，指向结果格
-        image_tools = QHBoxLayout()
+        image_tools = QGridLayout()
         self.image_info = QLabel('尚未选择照片')
         # [canvas-live] 视觉检测区里直接看实时、直接抓拍
         self.chk_live = QCheckBox('相机实时画面')
@@ -386,22 +391,25 @@ class MainWindow(QMainWindow):
         self.sld_zoom.setValue(100)
         self.sld_zoom.setMaximumWidth(150)
         self.lbl_zoom = QLabel('100%')
-        image_tools.addWidget(self.image_info, 1)
-        image_tools.addWidget(self.chk_live)
-        image_tools.addWidget(self.btn_snap)
-        image_tools.addWidget(self.chk_fit)
-        image_tools.addWidget(QLabel('缩放'))
-        image_tools.addWidget(self.sld_zoom)
-        image_tools.addWidget(self.lbl_zoom)
+        image_tools.addWidget(self.image_info,0,0,1,4)
+        image_tools.addWidget(self.chk_live,1,0,1,2)
+        image_tools.addWidget(self.btn_snap,1,2)
+        image_tools.addWidget(self.chk_fit,1,3)
+        image_tools.addWidget(QLabel('缩放'),2,0)
+        image_tools.addWidget(self.sld_zoom,2,1,1,2)
+        image_tools.addWidget(self.lbl_zoom,2,3)
+        image_tools.setColumnStretch(1,1)
         visual_layout.addLayout(image_tools)
         legend = QLabel('左格：相机实时画面（只看）　｜　右格：检测结果——青色孔轮廓、黄色拟合椭圆、'
                         '红色十字圆心；点右格的孔即可选中/取消，选中的孔椭圆变绿、圆心打勾（要测量的孔）')
         legend.setObjectName('legend')
         visual_layout.addWidget(legend)
-        body_layout.addWidget(visual, 1)
+        legend.setWordWrap(True)
+        self.image_info.setWordWrap(True)
+        self.workspace_split.addWidget(visual)
 
         right = QWidget()
-        right.setFixedWidth(424)  # [local patch] table needs room
+        right.setMinimumWidth(280);right.setMaximumWidth(460)  # [local patch] table needs room
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(10)
@@ -455,7 +463,8 @@ class MainWindow(QMainWindow):
         self.coordinate_note.setWordWrap(True)
         task_layout.addWidget(self.coordinate_note)
         right_layout.addWidget(task_box, 1)
-        body_layout.addWidget(right)
+        self.workspace_split.addWidget(right)
+        self.workspace_split.setStretchFactor(1,1);self.workspace_split.setSizes([266,780,380])
 
         # ---- 模型与数据管理弹窗（保留原功能）----
         self.model_dialog = QDialog(self)
@@ -480,6 +489,7 @@ class MainWindow(QMainWindow):
         bar = QHBoxLayout()
         self.connection_line = QLabel('工业相机：未连接　｜　拍照机械臂 A：未连接　｜　测量机械臂 B：未连接')
         self.connection_line.setObjectName('deviceLine')
+        self.connection_line.setWordWrap(True)
         diagnostics_toggle = QPushButton('▶ 诊断信息')
         diagnostics_toggle.setObjectName('flat')
         diagnostics_toggle.setCheckable(True)
@@ -510,6 +520,7 @@ class MainWindow(QMainWindow):
         self.logbox = QPlainTextEdit()
         self.logbox.setObjectName('log')
         self.logbox.setReadOnly(True)
+        self.logbox.setMaximumBlockCount(1000)
         self.logbox.setFixedHeight(92)   # [compact-diag]
         diagnostics_layout.addWidget(self.logbox, 1)
         self.diagnostics.hide()
@@ -967,7 +978,7 @@ class MainWindow(QMainWindow):
         self.page_label.setText(f'{self.current_index + 1}/{len(self.paths)}')
         dimensions = f' · {self.display_photo.shape[1]}×{self.display_photo.shape[0]}' if self.display_photo is not None else ''
         self.image_info.setText(Path(path).name + dimensions)
-        self._result_caption_base = f'检测结果（标定好的孔）· {Path(path).name}'
+        self._result_caption_base = f'检测结果（像素孔位）· {Path(path).name}'
         self.result_caption.setText(self._result_caption_base)
         self.refresh_current_summary()
         self.render_view()
@@ -1029,10 +1040,15 @@ class MainWindow(QMainWindow):
                 self.set_status('当前照片检测完成')
 
     def render_view(self, *_):
+        # Coalesce splitter/resize events; invalidate the click mapping until repainted.
+        self.display_mapping=None
+        if hasattr(self,'render_timer'):self.render_timer.start()
+
+    def _render_view_now(self):
         """[split-view] 只画右格（检测结果）；左格实时画面由定时器单独刷新。"""
         self.lbl_zoom.setText(f'{self.sld_zoom.value()}%')
         if self.display_photo is None:
-            self.result_caption.setText(getattr(self, '_result_caption_base', '检测结果（标定好的孔）'))
+            self.result_caption.setText(getattr(self, '_result_caption_base', '检测结果（像素孔位）'))
             self.result_view.clear()
             self.result_view.setText('照片未能读取，请重新选择本机照片。' if self.paths else '请选择一组测试照片')
             return
@@ -1050,7 +1066,7 @@ class MainWindow(QMainWindow):
         self.display_mapping = dict(mapping) if mapping else None
         chosen = sorted(self.measure_targets)
         # [select-mark] 角标写清"本次要测哪几个孔"，配合图上绿色圈 + 白勾
-        caption_base = getattr(self, '_result_caption_base', '检测结果（标定好的孔）')
+        caption_base = getattr(self, '_result_caption_base', '检测结果（像素孔位）')
         caption_note = '本次要测：' + ('、'.join(chosen) if chosen else '（未选中，点图上的孔即可选中）')
         # [split-view] 格子窄的时候优先留"本次要测"，完整信息进提示
         self.result_caption.setText(caption_note if self.result_column.width() < 430
@@ -1218,6 +1234,7 @@ class MainWindow(QMainWindow):
     def show_simulation(self):
         if not hasattr(self, 'simulation_dialog'):
             self.simulation_dialog = SimulationDialog(self)
+        self.simulation_dialog.set_detection(self.current_result, self.confirmed_targets())
         self.simulation_dialog.show()
         self.simulation_dialog.raise_()
         self.simulation_dialog.activateWindow()
@@ -1297,6 +1314,9 @@ class MainWindow(QMainWindow):
             page = dialog.pages.get(device)
             if page is None:
                 return
+            page._backend = self._device_backends().get(device) if connected else None
+            if device == 'robot_b' and connected:
+                page.address.setText(page._backend.address)
             if connected and hasattr(page, 'adopt_runtime_identity'):
                 # 换电脑也能用：把探测到的真实型号/序列号填进界面
                 page.adopt_runtime_identity(self._device_backends().get(device))
@@ -1336,6 +1356,8 @@ class MainWindow(QMainWindow):
                 worker.wait(5000)
             except RuntimeError:
                 pass
+        if hasattr(self,'simulation_dialog'):self.simulation_dialog.shutdown()
+        self.render_timer.stop()
         self.bridge.detach()
         from .devices_view import _registered_backends
         for backend in _registered_backends.values():
