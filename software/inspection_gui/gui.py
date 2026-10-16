@@ -1230,7 +1230,8 @@ class MainWindow(QMainWindow):
         for button in (self.btn_devices,self.btn_records,self.btn_models,self.btn_simulation,self.btn_probe):button.hide()
         self.utility_group.setTitle('辅助工具');self.utility_group.setMinimumHeight(0)
         for key,label,factory in (
-            ('simulation','三维预览',self._simulation_page),('control','实机控制',self._control_page),
+            ('simulation','三维预览',self._simulation_page),('wall','安全墙',self._wall_page),('control','实机控制',self._control_page),
+            ('target','坐标到点',self._target_page),
             ('probe','测头任务',self._probe_page),('sphere','白球分析',self._sphere_page),
             ('stop','停止测试',self._stop_page),('devices','设备连接',self._devices_page),
             ('records','实验记录',self._records_page),('models','模型管理',lambda:self.model_dialog)):
@@ -1265,6 +1266,17 @@ class MainWindow(QMainWindow):
             self.simulation_dialog.workbench_router=self.workbench.open_page
         self.simulation_dialog.set_detection(self.current_result,self.confirmed_targets())
         return self.simulation_dialog
+
+    def _target_page(self):
+        from .coordinate_target_view import CoordinateTargetDialog
+        if not hasattr(self,'_coordinate_target_page'):self._coordinate_target_page=CoordinateTargetDialog(self._probe_page())
+        return self._coordinate_target_page
+
+    def _wall_page(self):
+        from .safety_wall_view import SafetyWallWorkbench
+        if not hasattr(self,'_safety_wall_page'):
+            self._safety_wall_page=SafetyWallWorkbench(self._probe_page(),self)
+        return self._safety_wall_page
 
     def _control_page(self):
         from .manual_control_view import ManualControlDialog

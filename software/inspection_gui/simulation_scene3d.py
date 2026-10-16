@@ -81,6 +81,8 @@ class Scene3D(QOpenGLWidget):
         self.drag=None;self.phase=0.;self.plan=None;self.trajectory=[];self.frame_index=0
         self.meshes=[];self.parts=[];self.buffers={};self.ready=False;self.render_error=''
         self.live_frame=None;self.live_mode=False;self.geometry_key=None
+        self.safety_wall=None;self.wall_test_result=None;self.wall_test_joints=None
+        self.axis_labels=[]
         self.probe_only=False;self.manual_active=False;self.manual_task=None;self.manual_frames=[];self.manual_index=0;self.manual_seed=None;self.pose_audit=None
         self.asset_label='正在后台加载显示模型'
         self.camera_q=np.deg2rad([60,-65,105,50,90,0])
@@ -107,6 +109,59 @@ class Scene3D(QOpenGLWidget):
         self.manual_active=task is not None
         if self.manual_active:self.live_mode=False
         self.update()
+
+    def set_safety_wall(self,data):
+        from .safety_wall import validate_wall
+        self.safety_wall=validate_wall(data);self.wall_test_result=None;self.wall_test_joints=None;self.update()
+
+    def set_wall_test_result(self,result):
+        self.wall_test_result=result
+        self.wall_test_joints=np.asarray(result['joints_rad'],float) if result is not None else None
+        self.update()
+
+
+    def _draw_safety_wall(self):
+        if not self.probe_only or not self.safety_wall or not self.safety_wall['visible']:return
+        from .safety_wall import wall_vertices
+        wall=self.safety_wall;vertices=wall_vertices(wall)
+        gl.glPushAttrib(gl.GL_ENABLE_BIT|gl.GL_CURRENT_BIT|gl.GL_LINE_BIT|gl.GL_COLOR_BUFFER_BIT|gl.GL_DEPTH_BUFFER_BIT)
+        try:
+            gl.glDisable(gl.GL_LIGHTING);gl.glDisable(gl.GL_CULL_FACE)
+            gl.glEnable(gl.GL_BLEND);gl.glBlendFunc(gl.GL_SRC_ALPHA,gl.GL_ONE_MINUS_SRC_ALPHA)
+            gl.glDepthMask(False);gl.glColor4f(1.,.48,.12,.18);gl.glBegin(gl.GL_QUADS)
+            for point in vertices:gl.glVertex3fv(point)
+            gl.glEnd();gl.glDepthMask(True)
+            gl.glLineWidth(2.);gl.glColor4f(.95,.43,.08,1.);gl.glBegin(gl.GL_LINE_LOOP)
+            for point in vertices:gl.glVertex3fv(point)
+            gl.glEnd()
+            gl.glEnable(gl.GL_LINE_STIPPLE);gl.glLineStipple(2,0x00FF)
+            gl.glBegin(gl.GL_LINE_LOOP)
+            for point in wall_vertices(wall,boundary=True):gl.glVertex3fv(point)
+            gl.glEnd();gl.glDisable(gl.GL_LINE_STIPPLE)
+            angle=math.radians(wall['yaw_deg']);normal=np.array([math.cos(angle),math.sin(angle),0.])
+            center=normal*wall['distance_mm'];center[2]=wall['bottom_mm']+wall['height_mm']/2
+            gl.glColor3f(.9,.15,.12);gl.glBegin(gl.GL_LINES)
+            gl.glVertex3fv(center);gl.glVertex3fv(center+normal*140);gl.glEnd()
+        finally:gl.glPopAttrib()
+
+    def _draw_axes(self,origin,rotation,length,label):
+        """Draw axes and collect identical endpoints for screen text."""
+        origin=np.asarray(origin,float);rotation=np.asarray(rotation,float)
+        endpoints=[origin+rotation[:,i]*length for i in range(3)]
+        gl.glLineWidth(2.5);gl.glBegin(gl.GL_LINES)
+        for endpoint,color in zip(endpoints,((1,0,0),(0,.7,0),(0,.3,1))):
+            gl.glColor3fv(color);gl.glVertex3fv(origin);gl.glVertex3fv(endpoint)
+        gl.glEnd();gl.glLineWidth(2.3)
+        self.axis_labels.append(dict(origin=origin.copy(),endpoints=endpoints,label=label))
+
+    def _project_axis_label(self,point):
+        if not hasattr(self,'view'):return None
+        v=self.view@np.r_[point,1]
+        if v[2]>=-10:return None
+        aspect=self.width()/max(1,self.height());factor=1/math.tan(math.radians(37)/2)
+        return QPointF(self.width()/2+v[0]/(-v[2])*factor/aspect*self.width()/2,
+                       self.height()/2-v[1]/(-v[2])*factor*self.height()/2)
+
 
     def reset_view(self):
         self.yaw=-58.;self.pitch=29.;self.distance=2200. if self.probe_only else 2150.;self.pan[:]=0;self.update()
@@ -191,10 +246,10 @@ class Scene3D(QOpenGLWidget):
         gl.glDisableClientState(gl.GL_NORMAL_ARRAY);gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
         gl.glCallList(entry['list'])
 
-    def _draw(self,m,t,shadow=False):
+    def _draw(self,m,t,shadow=False,color=None):
         gl.glPushMatrix();gl.glMultMatrixf(np.asarray(t.T,np.float32))
         if shadow:gl.glColor3f(.82,.84,.87)
-        else:gl.glColor3fv(m['color'])
+        else:gl.glColor3fv(m['color'] if color is None else color)
         self._display(m);gl.glPopMatrix()
 
     def _workpiece(self,p):
@@ -227,6 +282,7 @@ class Scene3D(QOpenGLWidget):
 
     def paintGL(self):
         if not self.ready:return
+        self.axis_labels=[]
         self._prune_buffers()
         # QPainter's overlay changes GL state; restore it on every frame.
         gl.glUseProgram(0);gl.glDisable(gl.GL_SCISSOR_TEST);gl.glDisable(gl.GL_CULL_FACE)
@@ -250,14 +306,19 @@ class Scene3D(QOpenGLWidget):
         for k in range(-2000,2001,100):
             gl.glVertex3f(k,-2000,0);gl.glVertex3f(k,2000,0);gl.glVertex3f(-2000,k,0);gl.glVertex3f(2000,k,0)
         gl.glEnd()
+        if self.probe_only:self._draw_axes((0,0,0),np.eye(3),150,'底座B')
+        else:
+            self._draw_axes((-480,100,0),np.eye(3),110,'底座A（示意）')
+            self._draw_axes((480,100,0),np.eye(3),110,'底座B（显示平移）')
         frame=self.trajectory[min(self.frame_index,len(self.trajectory)-1)] if self.trajectory and not self.live_mode else None
         manual=self.manual_frames[min(self.manual_index,len(self.manual_frames)-1)] if self.manual_active and self.manual_frames else None
         moving=manual is not None and manual.get('ik_valid',False) and 'joints' in manual
         qb=manual['joints'] if moving else (np.deg2rad(self.manual_seed['joints_deg']) if self.manual_active and self.manual_seed else (np.deg2rad(self.live_frame['joints']) if self.live_mode and self.live_frame else (frame['joints'] if frame else np.deg2rad([130,-50,100,40,90,0]))))
         robots=[robot_frames(self.camera_q,(-480,100,0)),robot_frames(qb,(480,100,0))]
+        if self.probe_only and self.wall_test_joints is not None:qb=self.wall_test_joints
         if self.live_mode and not self.live_frame:robots=robots[:1]
         if self.probe_only:
-            robots=[robot_frames(qb,(0,0,0))] if moving or (self.live_mode and self.live_frame) or (self.manual_active and self.manual_seed) else []
+            robots=[robot_frames(qb,(0,0,0))] if self.wall_test_joints is not None or moving or (self.live_mode and self.live_frame) or (self.manual_active and self.manual_seed) else []
         shadow=np.eye(4);shadow[0,2]=-.35;shadow[1,2]=.15;shadow[2,:]=[0,0,0,1.2]
         for m,t in self.parts:self._draw(m,shadow@t,True)
         for frames in robots:
@@ -265,30 +326,33 @@ class Scene3D(QOpenGLWidget):
         gl.glEnable(gl.GL_LIGHTING)
         for m,t in self.parts:self._draw(m,t)
         for frames in robots:
-            for m in self.meshes:self._draw(m,frames[m['joint']])
+            hits={p['part'] for p in (self.wall_test_result or {}).get('parts',[]) if p['collision']} if self.probe_only else set()
+            for m in self.meshes:self._draw(m,frames[m['joint']],color=[1.,.12,.08] if m['joint'] in hits else None)
         if not self.probe_only:
             for m,t in getattr(self,'camera_parts',[]):self._draw(m,robots[0]['J6']@t)
         if not self.live_mode and not self.probe_only:
             for m,t in getattr(self,'probe_parts',[]):self._draw(m,robots[1]['J6']@t)
+        self._draw_safety_wall()
         gl.glDisable(gl.GL_LIGHTING);gl.glLineWidth(2.3)
-        if self.live_mode and self.live_frame and self.live_frame['user_index']==0:
+        if self.probe_only and self.wall_test_result and self.wall_test_result.get('tool_segment_mm'):
+            gl.glColor3f(1.,.12,.08);gl.glLineWidth(5);gl.glBegin(gl.GL_LINES)
+            for point in self.wall_test_result['tool_segment_mm']:gl.glVertex3fv(point)
+            gl.glEnd();gl.glLineWidth(2.3)
+        if self.wall_test_joints is None and self.live_mode and self.live_frame and self.live_frame['user_index']==0:
             # Controller TCP in user 0; workstation base placement remains assumed.
             pose=self.live_frame['pose'];point=np.array(pose[:3])+(np.zeros(3) if self.probe_only else [480,100,0])
             from scipy.spatial.transform import Rotation
             rotation=Rotation.from_euler('xyz',pose[3:],degrees=True).as_matrix()
             gl.glPointSize(9);gl.glColor3f(.85,.15,.35);gl.glBegin(gl.GL_POINTS);gl.glVertex3fv(point);gl.glEnd()
-            gl.glBegin(gl.GL_LINES)
-            for i,color in enumerate(([1,0,0],[0,.7,0],[0,.3,1])):
-                gl.glColor3fv(color);gl.glVertex3fv(point);gl.glVertex3fv(point+rotation[:,i]*65)
-            gl.glEnd()
-        if self.probe_only and self.live_frame and self.live_mode and self.pose_audit:
+            self._draw_axes(point,rotation,65,f"测头TCP T{self.live_frame['tool_index']}（实时）")
+        if self.wall_test_joints is None and self.probe_only and self.live_frame and self.live_mode and self.pose_audit:
             report=self.pose_audit
             if np.allclose(self.live_frame['joints'],report['joints_deg'],atol=.1):
                 actual=np.array(report['controller_flange'][:3]);visual=np.array(report['visual_flange_matrix'])[:3,3]
                 gl.glPointSize(10);gl.glBegin(gl.GL_POINTS)
                 gl.glColor3f(.05,.65,.75);gl.glVertex3fv(actual);gl.glColor3f(1,.48,.1);gl.glVertex3fv(visual);gl.glEnd()
                 gl.glColor3f(.55,.65,.72);gl.glBegin(gl.GL_LINES);gl.glVertex3fv(actual);gl.glVertex3fv(self.live_frame['pose'][:3]);gl.glEnd()
-        if self.manual_active and self.manual_task:
+        if self.wall_test_joints is None and self.manual_active and self.manual_task:
             gl.glColor3f(.08,.61,.74);gl.glBegin(gl.GL_LINE_STRIP)
             for point in self.manual_task['waypoints']:gl.glVertex3fv(point['tcp_pose'][:3])
             gl.glEnd()
@@ -301,10 +365,7 @@ class Scene3D(QOpenGLWidget):
                     flange=robot_frames(qb,(0,0,0))['flange'][:3,3]
                     gl.glColor3f(.95,.6,.12);gl.glLineWidth(4);gl.glBegin(gl.GL_LINES);gl.glVertex3fv(flange);gl.glVertex3fv(point);gl.glEnd();gl.glLineWidth(2.3)
                 gl.glPointSize(10);gl.glColor3f(.9,.25,.35);gl.glBegin(gl.GL_POINTS);gl.glVertex3fv(point);gl.glEnd()
-                gl.glBegin(gl.GL_LINES)
-                for i,color in enumerate(([1,0,0],[0,.7,0],[0,.3,1])):
-                    gl.glColor3fv(color);gl.glVertex3fv(point);gl.glVertex3fv(point+f['rotation'][:,i]*55)
-                gl.glEnd()
+                self._draw_axes(point,f['rotation'],55,'TCP（虚拟预览）')
         if self.plan and not self.live_mode:
             gl.glColor3f(.08,.61,.74);gl.glBegin(gl.GL_LINE_STRIP)
             for item in self.plan['waypoints']:gl.glVertex3fv(item['tip_world_mm'])
@@ -325,6 +386,17 @@ class Scene3D(QOpenGLWidget):
         joint_preview=self.manual_active and self.manual_task and 'joint_preview_report' in self.manual_task
         p.drawText(18,28,('虚拟机械臂跟随 · 不控制实机' if joint_preview else 'TCP 几何预览 · 关节待求解') if self.manual_active else ('实时姿态' if self.live_mode and self.live_frame else ('等待实时反馈' if self.live_mode else '路径预览')))
         if self.render_error:p.setPen(QColor('#b45309'));p.drawText(18,50,self.render_error)
+        if self.probe_only and self.safety_wall and self.safety_wall['visible']:
+            p.setPen(QColor('#b45309'));p.drawText(18,72,'安全墙草稿 · 运动拦截未启用 | 底座 X红 / Y绿 / Z蓝')
+        if self.probe_only and self.wall_test_result:
+            p.setPen(QColor('#b42318'));p.drawText(18,94,'虚拟碰撞快照 · 非实时姿态 · 不控制实机')
+        for axes in self.axis_labels:
+            for endpoint,name,color in zip(axes['endpoints'],('X','Y','Z'),('#dc2626','#159447','#2563eb')):
+                position=self._project_axis_label(endpoint)
+                if position is not None:
+                    p.setPen(QColor(color));p.drawText(position+QPointF(5,-4),name)
+            position=self._project_axis_label(axes['origin'])
+            if position is not None:p.setPen(QColor('#43546b'));p.drawText(position+QPointF(6,17),axes['label'])
         if self.plan and hasattr(self,'view'):
             aspect=self.width()/max(1,self.height());f=1/math.tan(math.radians(37)/2)
             for h in self.plan['holes']:

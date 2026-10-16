@@ -68,7 +68,9 @@ class ManualControlDialog(QDialog):
         self.unlock_button.clicked.connect(self.unlock);session.addWidget(self.unlock_button)
         self.session_budget=QLabel('60 秒 / 累计 5 mm；普通停止不重置额度。')
         self.session_budget.setWordWrap(True);self.session_budget.setObjectName('muted');session.addWidget(self.session_budget)
-        left.addWidget(session_card);left.addStretch(1)
+        left.addWidget(session_card)
+        self.coordinate_button=QPushButton('输入目标坐标 · 带安全墙预演');self.coordinate_button.clicked.connect(self.open_coordinate_target)
+        left.addWidget(self.coordinate_button);left.addStretch(1)
         explanation=QToolButton();explanation.setText('查看控制说明');explanation.setCheckable(True)
         self.explanation=QLabel('连接控制只检查 TCP 状态。重量仅作人工确认记录，不会写入控制器。工具与负载需已正确配置、已使能。软件停止有延迟，实体急停须可用。')
         self.explanation.setObjectName('muted');self.explanation.setWordWrap(True);self.explanation.hide()
@@ -123,6 +125,12 @@ class ManualControlDialog(QDialog):
         self.step.currentTextChanged.connect(self.invalidate_plan);self.speed.currentTextChanged.connect(self.invalidate_plan)
         self.checks[0].toggled.connect(self.confirmation_changed);self.payload.valueChanged.connect(self.confirmation_changed)
         self.timer=QTimer(self);self.timer.setInterval(50);self.timer.timeout.connect(self.refresh);self.refresh()
+
+    def open_coordinate_target(self):
+        if hasattr(self.workspace,'workbench_router'):return self.workspace.workbench_router('target')
+        from .coordinate_target_view import CoordinateTargetDialog
+        if not hasattr(self,'coordinate_dialog'):self.coordinate_dialog=CoordinateTargetDialog(self.workspace)
+        self.coordinate_dialog.show();return self.coordinate_dialog
 
     def confirmation_changed(self):
         state=self.controller.snapshot()

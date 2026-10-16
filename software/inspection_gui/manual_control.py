@@ -55,7 +55,7 @@ class ControlChannel:
         target = plan['target']
         if len(target)!=6 or not all(math.isfinite(x) for x in target):
             raise ValueError('目标坐标无效')
-        if type(plan['speed']) is not int or not 1<=plan['speed']<=20 or not .01<=plan['distance']<=100:
+        if type(plan['speed']) is not int or not 1<=plan['speed']<=20 or not .01<=plan['distance']<=2000:
             raise ValueError('移动参数超出范围')
         if plan['user']!=0 or type(plan['tool']) is not int or not 0<=plan['tool']<=255:
             raise ValueError('坐标系编号无效')
@@ -295,12 +295,45 @@ class ManualControl:
                 config=self.configuration,generation=self.connection_generation,permit=self.permit,created=self.clock())
             return copy.deepcopy(self.plan)
 
+    def preview_target(self, target, speed=5):
+        """Full 6-DOF MovL target under the same permit as manual moves.
+
+        The target is in base user-0 coordinates. Motion stays locked behind the
+        manual-control unlock (human confirmation) and the runtime monitors.
+        """
+        with self.lock:
+            f=self._fresh()
+            if self.phase!='ready' or not self.permit or self.clock()>=self.expires:
+                raise ValueError('运动锁定或授权到期，请先在实机控制界面启用本轮控制')
+            if not self.interactive:
+                raise ValueError('坐标到点需要点动式交互授权，请重新启用本轮控制')
+            if (not isinstance(target,(list,tuple)) or len(target)!=6
+                or not all(type(x) in (int,float) and math.isfinite(x) for x in target)):
+                raise ValueError('目标位姿需要6个有限数值')
+            if f['user_index']!=0:
+                raise ValueError('目标必须使用基座用户坐标系0')
+            if type(speed) is not int or not 1<=speed<=10:
+                raise ValueError('坐标到点速度范围1–10 mm/s')
+            distance=math.dist(f['pose'][:3],target[:3])
+            if not .01<=distance<=2000:
+                raise ValueError('目标距离超出0.01–2000 mm，请分段设置')
+            if self.config(f)!=self.configuration:
+                raise ValueError('工具或用户配置已变化')
+            self.plan=dict(id=uuid.uuid4().hex,kind='target',target=list(target),start=f['pose'][:],
+                speed=speed,distance=distance,user=0,tool=f['tool_index'],
+                config=self.configuration,generation=self.connection_generation,permit=self.permit,created=self.clock())
+            return copy.deepcopy(self.plan)
+
     def execute(self, plan_id):
         with self.lock:
             if self.phase!='ready':raise ValueError('已有移动或停止请求未结束')
             self._validate_plan(plan_id)
             self._record('move_requested',plan=self.plan)
-            self.tasks.put_nowait(copy.deepcopy(self.plan));self.hold_until=self.clock()+.2
+            self.tasks.put_nowait(copy.deepcopy(self.plan))
+            if self.plan.get('kind')=='target':
+                self.hold_until=self.clock()+max(30.,self.plan['distance']/self.plan['speed']*2+20.)
+            else:
+                self.hold_until=self.clock()+.2
             self.phase='queued';self.reason='等待发送单条定距移动'
             self.wake_event.set()
 
@@ -371,6 +404,25 @@ class ManualControl:
             self.resume_context=None
             self.stop_state='unconfirmed';self.phase='fault';self.reason='无法确认停止，请使用实体急停：'+str(exc)
 
+    def _monitor_target(self, f, p):
+        """Corridor check for a full 6-DOF MovL target move."""
+        start=p['start'];target=p['target'];cur=f['pose']
+        sx,sy,sz=start[:3];tx,ty,tz=target[:3];cx,cy,cz=cur[:3]
+        dx,dy,dz=tx-sx,ty-sy,tz-sz
+        length2=dx*dx+dy*dy+dz*dz
+        if length2<1e-9:
+            lateral=math.dist((cx,cy,cz),(sx,sy,sz))
+        else:
+            t=((cx-sx)*dx+(cy-sy)*dy+(cz-sz)*dz)/length2
+            t=max(0.,min(1.,t))
+            lateral=math.dist((cx,cy,cz),(sx+t*dx,sy+t*dy,sz+t*dz))
+        orientation=max(abs((cur[i]-start[i]+180)%360-180) for i in range(3,6))
+        if lateral>.2 or orientation>.5:
+            raise ValueError('反馈偏离目标直线路径或姿态')
+        if (self.clock()>self.accepted_at and f['mode']==5 and not f['running']
+            and f.get('pose_stable') and math.dist(cur[:3],target[:3])<=.05):
+            self.phase='ready';self.plan=None;self.reason='反馈到达目标；下一步需重新预览'
+
     def observe(self, frame, generation, external_monitor=False):
         with self.lock:
             self.latest=copy.deepcopy(frame);self.generation=generation;self.external_monitor=external_monitor
@@ -415,19 +467,22 @@ class ManualControl:
                     raise ValueError('运行模式异常或距起点超过5 mm')
                 if self.phase=='moving' and self.accepted_at is not None:
                     p=self.active_plan
-                    axis=('X','Y','Z').index(p['axis'])
-                    along=f['pose'][axis]-p['start'][axis]
-                    if jogging:outside=not -.2<=along*p['sign']<=100
-                    else:outside=not min(p['start'][axis],p['target'][axis])-.2<=f['pose'][axis]<=max(p['start'][axis],p['target'][axis])+.2
-                    if (any(abs(f['pose'][i]-p['start'][i])>.2 for i in range(3) if i!=axis)
-                        or any(abs((f['pose'][i]-p['start'][i]+180)%360-180)>.5 for i in range(3,6))
-                        or outside):
-                        raise ValueError('反馈偏离预览方向或姿态')
-                    if jogging and along*p['sign']>=p.get('max_distance_mm',100):
-                        self.request_stop('已到本次点动距离上限',recoverable=True,auto_rearm=True);return
-                    if (not jogging and self.clock()>self.accepted_at and f['mode']==5 and not f['running']
-                        and f.get('pose_stable') and math.dist(f['pose'][:3],p['target'][:3])<=.05):
-                        self.phase='ready';self.plan=None;self.reason='反馈到达目标；下一步需重新预览'
+                    if p.get('kind')=='target':
+                        self._monitor_target(f,p)
+                    else:
+                        axis=('X','Y','Z').index(p['axis'])
+                        along=f['pose'][axis]-p['start'][axis]
+                        if jogging:outside=not -.2<=along*p['sign']<=100
+                        else:outside=not min(p['start'][axis],p['target'][axis])-.2<=f['pose'][axis]<=max(p['start'][axis],p['target'][axis])+.2
+                        if (any(abs(f['pose'][i]-p['start'][i])>.2 for i in range(3) if i!=axis)
+                            or any(abs((f['pose'][i]-p['start'][i]+180)%360-180)>.5 for i in range(3,6))
+                            or outside):
+                            raise ValueError('反馈偏离预览方向或姿态')
+                        if jogging and along*p['sign']>=p.get('max_distance_mm',100):
+                            self.request_stop('已到本次点动距离上限',recoverable=True,auto_rearm=True);return
+                        if (not jogging and self.clock()>self.accepted_at and f['mode']==5 and not f['running']
+                            and f.get('pose_stable') and math.dist(f['pose'][:3],p['target'][:3])<=.05):
+                            self.phase='ready';self.plan=None;self.reason='反馈到达目标；下一步需重新预览'
             except (ValueError,KeyError,TypeError) as exc:
                 self.request_stop(str(exc))
 
@@ -472,6 +527,7 @@ class ManualControl:
                     except ValueError as exc:
                         self.plan=None;self.phase='ready';self.reason=str(exc);continue
                     if plan.get('kind')=='jog':duration=30
+                    elif plan.get('kind')=='target':duration=max(30.,plan['distance']/plan['speed']*2+20.)
                     elif self.interactive:
                         scale=self.latest.get('speed_percent',100)
                         scale=scale if type(scale) is int and 1<=scale<=100 else 100

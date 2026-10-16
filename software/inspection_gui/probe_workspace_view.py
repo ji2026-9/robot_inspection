@@ -71,6 +71,7 @@ class ProbeWorkspaceDialog(QDialog):
         self.connect_button=QPushButton('连接只读反馈');self.connect_button.clicked.connect(self.connect_feedback)
         self.connection_state=QLabel('等待反馈');self.connection_state.setWordWrap(True)
         connection.addWidget(self.address);connection.addWidget(self.connect_button);connection.addWidget(self.connection_state,1)
+        wall_button=QPushButton('安全墙');wall_button.clicked.connect(self.open_safety_wall);connection.addWidget(wall_button)
         control=QPushButton('实机控制 · 默认锁定');control.clicked.connect(self.open_manual_control);connection.addWidget(control);root.addLayout(connection)
         split=QSplitter(Qt.Orientation.Horizontal);split.setChildrenCollapsible(False);root.addWidget(split,1)
         self.tabs=QTabWidget();self.tabs.setMinimumWidth(360);self.tabs.setMaximumWidth(450);split.addWidget(self.tabs)
@@ -89,6 +90,18 @@ class ProbeWorkspaceDialog(QDialog):
         self.timer=QTimer(self);self.timer.setInterval(33);self.timer.timeout.connect(self.tick)
         self.refresh_timer=QTimer(self);self.refresh_timer.setInterval(200);self.refresh_timer.timeout.connect(self.refresh_feedback)
         self.refresh_positions();self.invalidate_preview();self.tab_changed(0)
+        if hasattr(self.scene,'set_safety_wall'):
+            from .safety_wall import load_wall
+            try:self.scene.set_safety_wall(load_wall(self.storage_path.parent/'safety_wall.json'))
+            except (ValueError,OSError,TypeError) as error:self.message('安全墙草稿未加载：'+str(error),True)
+
+    def open_safety_wall(self):
+        if hasattr(self,'workbench_router'):return self.workbench_router('wall')
+        from .safety_wall_view import SafetyWallDialog
+        if not hasattr(self,'_safety_wall_dialog'):
+            self._safety_wall_dialog=SafetyWallDialog(self,self.storage_path.parent/'safety_wall.json')
+            self._safety_wall_dialog.wall_changed.connect(self.scene.set_safety_wall)
+        self._safety_wall_dialog.show();return self._safety_wall_dialog
 
     def _build_probe_trigger(self):
         layout=self.page('测头采点');card,box=self.card('RMP60 · DI_1 只读监测')

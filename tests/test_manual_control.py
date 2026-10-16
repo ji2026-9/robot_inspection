@@ -140,6 +140,38 @@ class ManualTests(unittest.TestCase):
         c.used_distance=0;c.anchor[0]=95
         with self.assertRaises(ValueError):c.preview('X',.1)
 
+    def test_preview_target_bounds_and_requires_interactive(self):
+        c=self.connected()
+        with self.assertRaises(ValueError):c.preview_target([101.,200.,300.,180.,0.,0.])
+        c.unlock(True,1)  # interactive=False
+        with self.assertRaises(ValueError):c.preview_target([101.,200.,300.,180.,0.,0.])
+        c.close();c.worker.join(1)
+        c=self.connected();c.unlock(True,1,interactive=True)
+        for target,speed in [([1,2,3,180,0],5),([101.,200.,300.,180.,0.,0.],0),
+                             ([101.,200.,300.,180.,0.,0.],11),([1e9,0,0,0,0,0],5)]:
+            with self.assertRaises(ValueError):c.preview_target(target,speed)
+        p=c.preview_target([101.,200.,300.,180.,0.,0.],5)
+        self.assertEqual(p['kind'],'target');self.assertEqual(p['target'],[101.,200.,300.,180.,0.,0.])
+        self.assertEqual(p['distance'],1.0);self.assertEqual(p['speed'],5)
+
+    def test_target_move_monitors_corridor_and_stops_on_deviation(self):
+        c=self.connected();c.unlock(True,1,interactive=True)
+        p=c.preview_target([105.,200.,300.,180.,0.,0.],5);c.execute(p['id'])
+        self.assertTrue(wait(lambda:c.accepted_at is not None))
+        self.now[0]+=.02;f=frame(self.now[0]);f['pose'][1]+=.5;c.observe(f,1)
+        self.assertTrue(wait(lambda:'Stop()' in self.channels[-1].calls))
+        self.assertFalse(c.snapshot()['unlocked'])
+        self.assertEqual(sum(isinstance(x,dict) for x in self.channels[-1].calls),1)
+
+    def test_target_arrival_moves_to_ready_without_holding(self):
+        c=self.connected();c.unlock(True,1,interactive=True)
+        p=c.preview_target([105.,200.,300.,180.,0.,0.],5);c.execute(p['id'])
+        self.assertTrue(wait(lambda:c.accepted_at is not None))
+        self.now[0]+=.02;f=frame(self.now[0]);f['pose']=p['target'][:]
+        c.observe(f,1)
+        self.assertEqual(c.snapshot()['phase'],'ready')
+        self.assertTrue(c.snapshot()['unlocked'])
+
     def test_move_response_failure_not_retried(self):
         c=self.ready()
         def fail(plan):self.channels[-1].calls.append('failed move');raise TimeoutError('lost reply')
