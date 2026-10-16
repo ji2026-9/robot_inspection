@@ -313,12 +313,13 @@ class Scene3D(QOpenGLWidget):
         frame=self.trajectory[min(self.frame_index,len(self.trajectory)-1)] if self.trajectory and not self.live_mode else None
         manual=self.manual_frames[min(self.manual_index,len(self.manual_frames)-1)] if self.manual_active and self.manual_frames else None
         moving=manual is not None and manual.get('ik_valid',False) and 'joints' in manual
-        qb=manual['joints'] if moving else (np.deg2rad(self.manual_seed['joints_deg']) if self.manual_active and self.manual_seed else (np.deg2rad(self.live_frame['joints']) if self.live_mode and self.live_frame else (frame['joints'] if frame else np.deg2rad([130,-50,100,40,90,0]))))
+        seed_joints=np.deg2rad(self.manual_seed['joints_deg']) if self.manual_seed else None
+        qb=manual['joints'] if moving else (seed_joints if seed_joints is not None else (np.deg2rad(self.live_frame['joints']) if self.live_mode and self.live_frame else (frame['joints'] if frame else np.deg2rad([130,-50,100,40,90,0]))))
         robots=[robot_frames(self.camera_q,(-480,100,0)),robot_frames(qb,(480,100,0))]
         if self.probe_only and self.wall_test_joints is not None:qb=self.wall_test_joints
         if self.live_mode and not self.live_frame:robots=robots[:1]
         if self.probe_only:
-            robots=[robot_frames(qb,(0,0,0))] if self.wall_test_joints is not None or moving or (self.live_mode and self.live_frame) or (self.manual_active and self.manual_seed) else []
+            robots=[robot_frames(qb,(0,0,0))] if self.wall_test_joints is not None or moving or (self.live_mode and self.live_frame) or seed_joints is not None else []
         shadow=np.eye(4);shadow[0,2]=-.35;shadow[1,2]=.15;shadow[2,:]=[0,0,0,1.2]
         for m,t in self.parts:self._draw(m,shadow@t,True)
         for frames in robots:

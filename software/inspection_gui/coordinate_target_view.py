@@ -1,5 +1,5 @@
 """Coordinate entry, wall-aware preview and locked real execution request."""
-import copy,threading,time
+import copy,math,threading,time
 from pathlib import Path
 import numpy as np
 from PySide6.QtCore import Qt,QTimer,Signal
@@ -13,6 +13,7 @@ class CoordinateTargetDialog(QDialog):
     ready=Signal(object,str,int)
     def __init__(self,workspace):
         super().__init__(workspace);self.workspace=workspace;self.plan=None;self.revision=0;self.busy=False;self.meshes=None
+        self.seed=None;self.seed_placeholder=False
         self.setWindowTitle('坐标到点 · 安全墙预演');self.resize(1250,820)
         root=QVBoxLayout(self);split=QSplitter(Qt.Horizontal);root.addWidget(split,1)
         controls=QWidget();left=QVBoxLayout(controls);scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(controls);scroll.setMinimumWidth(370);split.addWidget(scroll)
@@ -41,10 +42,11 @@ class CoordinateTargetDialog(QDialog):
         self.slider=QSlider(Qt.Horizontal);self.slider.setRange(0,0);self.slider.valueChanged.connect(self.seek);root.addWidget(self.slider)
         self.progress=QLabel('预演尚未生成 · 不控制实机');root.addWidget(self.progress)
         self.timer=QTimer(self);self.timer.setInterval(33);self.timer.timeout.connect(self.advance)
+        self.pose_timer=QTimer(self);self.pose_timer.setInterval(300);self.pose_timer.timeout.connect(self.refresh_pose)
         self.ready.connect(self._preview_finished)
         for field in (*self.fields,self.radius):field.valueChanged.connect(self.invalidate)
         self.hold_orientation.toggled.connect(self.orientation_changed);self.tool_confirm.toggled.connect(self.invalidate)
-        self.orientation_changed()
+        self.seed_from_feedback();self.orientation_changed()
         try:self.show_wall(load_wall(self.workspace.storage_path.parent/'safety_wall.json'))
         except (ValueError,OSError,TypeError) as error:self.detail.setPlainText('安全墙读取失败：'+str(error))
 
@@ -55,8 +57,26 @@ class CoordinateTargetDialog(QDialog):
     def invalidate(self,*args):
         self.revision+=1;self.plan=None;self.timer.stop();self.play.setText('播放预演');self.play.setEnabled(False)
         self.execute.setEnabled(False);self.collision_pose.setEnabled(False)
-        self.scene.set_wall_test_result(None);self.scene.set_manual_preview(None,[],None);self.slider.setRange(0,0)
-        self.detail.setPlainText('输入已变化，旧结果作废；请重新生成并检查。实机执行保持锁定。')
+        self.scene.set_wall_test_result(None);self.scene.set_manual_preview(None,[],self.seed);self.slider.setRange(0,0)
+        note='（未收到新鲜只读反馈，机械臂按示意姿态显示，不代表实机当前位姿）' if self.seed_placeholder else ''
+        self.detail.setPlainText('输入已变化，旧结果作废；请重新生成并检查。实机执行保持锁定。'+note)
+
+    def _current_joints(self):
+        frame=self.workspace.backend().snapshot()
+        joints=frame.get('joints') if isinstance(frame,dict) else None
+        if (not isinstance(joints,(list,tuple)) or len(joints)!=6
+            or not all(type(v) in (int,float) and math.isfinite(v) for v in joints)):return None
+        return [float(v) for v in joints]
+
+    def seed_from_feedback(self):
+        joints=self._current_joints()
+        self.seed_placeholder=joints is None
+        self.seed={'joints_deg':joints if joints is not None else [130.,-50.,100.,40.,90.,0.]}
+        self.scene.set_manual_preview(None,[],self.seed)
+
+    def refresh_pose(self):
+        if self.plan is not None:return
+        self.seed_from_feedback()
 
     def show_wall(self,wall):
         displayed=dict(wall);displayed['visible']=bool(wall['direction_confirmed']);self.scene.set_safety_wall(displayed)
@@ -65,6 +85,7 @@ class CoordinateTargetDialog(QDialog):
         try:
             frame=validate_start(self.workspace.backend().snapshot())
             for field,value in zip(self.fields,frame['pose']):field.setValue(value)
+            self.seed_from_feedback()
             self.detail.setPlainText('已读取目标初值；可修改XYZ，再生成带墙预演。')
         except (ValueError,TypeError,KeyError) as error:self.detail.setPlainText(str(error))
 
@@ -148,5 +169,11 @@ class CoordinateTargetDialog(QDialog):
         except (ValueError,PermissionError,OSError,RuntimeError) as error:
             self.detail.setPlainText('未执行：'+str(error))
 
-    def hideEvent(self,event):self.timer.stop();super().hideEvent(event)
-    def closeEvent(self,event):self.revision+=1;self.timer.stop();super().closeEvent(event)
+    def showEvent(self,event):
+        super().showEvent(event);self.refresh_pose();self.pose_timer.start()
+
+    def hideEvent(self,event):
+        self.timer.stop();self.pose_timer.stop();super().hideEvent(event)
+
+    def closeEvent(self,event):
+        self.revision+=1;self.timer.stop();self.pose_timer.stop();super().closeEvent(event)

@@ -65,17 +65,22 @@ class TargetTests(unittest.TestCase):
         from inspection_gui import coordinate_target_view as view
         app=QApplication.instance() or QApplication([])
         class Scene(QWidget):
+            seeds=[]
             def set_safety_wall(self,*args):pass
             def set_wall_test_result(self,*args):pass
-            def set_manual_preview(self,*args):pass
+            def set_manual_preview(self,task,frames,seed):self.seeds.append((task,seed))
         class Workspace(QWidget):
             def backend(self):return SimpleNamespace(snapshot=sample,generation=1)
         with tempfile.TemporaryDirectory() as folder,patch.object(view,'Scene3D',Scene),patch('socket.create_connection',side_effect=AssertionError('No real motion')):
             workspace=Workspace();workspace.storage_path=Path(folder)/'positions.json'
             dialog=view.CoordinateTargetDialog(workspace)
             self.assertTrue(dialog.hold_orientation.isChecked());self.assertFalse(dialog.execute.isEnabled())
+            # The arm must be visible before any preview is generated.
+            self.assertTrue(dialog.scene.seeds);self.assertIsNone(dialog.scene.seeds[-1][0])
+            self.assertEqual(dialog.scene.seeds[-1][1]['joints_deg'],sample()['joints'])
             dialog.read_current();self.assertAlmostEqual(dialog.fields[0].value(),sample()['pose'][0],places=3)
             dialog.fields[0].setValue(123);self.assertIsNone(dialog.plan);self.assertFalse(dialog.execute.isEnabled())
+            self.assertEqual(dialog.scene.seeds[-1][1]['joints_deg'],sample()['joints'])
             dialog.close();workspace.close();app.processEvents()
 
 if __name__=='__main__':unittest.main(verbosity=2)
