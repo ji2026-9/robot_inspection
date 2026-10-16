@@ -14,6 +14,7 @@ class CoordinateTargetDialog(QDialog):
     def __init__(self,workspace):
         super().__init__(workspace);self.workspace=workspace;self.plan=None;self.revision=0;self.busy=False;self.meshes=None
         self.seed=None;self.seed_placeholder=False
+        self.execute_ready=False;self.enabled_here=False
         self.setWindowTitle('坐标到点 · 安全墙预演');self.resize(1250,820)
         root=QVBoxLayout(self);split=QSplitter(Qt.Horizontal);root.addWidget(split,1)
         controls=QWidget();left=QVBoxLayout(controls);scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(controls);scroll.setMinimumWidth(370);split.addWidget(scroll)
@@ -32,12 +33,21 @@ class CoordinateTargetDialog(QDialog):
         self.play=QPushButton('播放预演');self.play.clicked.connect(self.toggle_play);self.play.setEnabled(False);left.addWidget(self.play)
         self.reset=QPushButton('回到预演起点');self.reset.clicked.connect(lambda:self.slider.setValue(0));left.addWidget(self.reset)
         self.collision_pose=QPushButton('查看碰墙姿态');self.collision_pose.clicked.connect(self.show_collision);self.collision_pose.setEnabled(False);left.addWidget(self.collision_pose)
-        self.execute=QPushButton('实机执行 · 先解锁手动控制');self.execute.setEnabled(False);self.execute.clicked.connect(self.try_execute);left.addWidget(self.execute)
         row=QHBoxLayout();row.addWidget(QLabel('执行速度'));self.execute_speed=QDoubleSpinBox()
         self.execute_speed.setRange(1,10);self.execute_speed.setDecimals(0);self.execute_speed.setValue(5);self.execute_speed.setSuffix(' mm/s')
         row.addWidget(self.execute_speed);row.addStretch(1);left.addLayout(row)
+        section=QLabel('本轮实机授权');section.setStyleSheet('font-weight:600;color:#24415f');left.addWidget(section)
+        self.control_state=QLabel('实机控制：未连接');self.control_state.setWordWrap(True);left.addWidget(self.control_state)
+        self.session_confirm=QCheckBox('本次工具与现场已核对');left.addWidget(self.session_confirm)
+        session_note=QLabel('包含负载与重心、工具坐标及实体急停；人员已离开运动范围。');session_note.setWordWrap(True);left.addWidget(session_note)
+        row=QHBoxLayout();row.addWidget(QLabel('工具总重量'));self.payload=QDoubleSpinBox()
+        self.payload.setRange(0,5);self.payload.setDecimals(3);self.payload.setSuffix(' kg');row.addWidget(self.payload);row.addStretch(1);left.addLayout(row)
+        row=QHBoxLayout();self.connect_control=QPushButton('连接实机控制');self.connect_control.clicked.connect(self.connect_control_channel)
+        row.addWidget(self.connect_control);self.enable_control=QPushButton('启用本轮控制');self.enable_control.clicked.connect(self.enable_control_session)
+        row.addWidget(self.enable_control);left.addLayout(row)
+        self.execute=QPushButton('实机执行');self.execute.setEnabled(False);self.execute.clicked.connect(self.try_execute);left.addWidget(self.execute)
         self.detail=QPlainTextEdit();self.detail.setReadOnly(True);self.detail.setMinimumHeight(190);left.addWidget(self.detail)
-        self.detail.setPlainText('尚未生成。实机执行锁定：实物几何、连续碰撞与控制器实际插补轨迹尚未验证。原有手动点动不受本预演检查保护。')
+        self.detail.setPlainText('流程：勾选现场确认并启用本轮控制 → 填坐标和包络半径 → 生成带墙预演 → 实机执行。实机执行只检查显示模型采样路径，不等于实物几何已验证。')
         self.scene=Scene3D();self.scene.probe_only=True;self.scene.distance=2200;split.addWidget(self.scene);split.setSizes([400,820]);split.setStretchFactor(1,1)
         self.slider=QSlider(Qt.Horizontal);self.slider.setRange(0,0);self.slider.valueChanged.connect(self.seek);root.addWidget(self.slider)
         self.progress=QLabel('预演尚未生成 · 不控制实机');root.addWidget(self.progress)
@@ -46,9 +56,11 @@ class CoordinateTargetDialog(QDialog):
         self.ready.connect(self._preview_finished)
         for field in (*self.fields,self.radius):field.valueChanged.connect(self.invalidate)
         self.hold_orientation.toggled.connect(self.orientation_changed);self.tool_confirm.toggled.connect(self.invalidate)
+        self.session_confirm.toggled.connect(self.session_changed);self.payload.valueChanged.connect(self.session_changed)
         self.seed_from_feedback();self.orientation_changed()
         try:self.show_wall(load_wall(self.workspace.storage_path.parent/'safety_wall.json'))
         except (ValueError,OSError,TypeError) as error:self.detail.setPlainText('安全墙读取失败：'+str(error))
+        self.refresh_control_state()
 
     def orientation_changed(self,*args):
         for field in self.fields[3:]:field.setEnabled(not self.hold_orientation.isChecked())
@@ -56,7 +68,7 @@ class CoordinateTargetDialog(QDialog):
 
     def invalidate(self,*args):
         self.revision+=1;self.plan=None;self.timer.stop();self.play.setText('播放预演');self.play.setEnabled(False)
-        self.execute.setEnabled(False);self.collision_pose.setEnabled(False)
+        self.execute_ready=False;self.execute.setEnabled(False);self.collision_pose.setEnabled(False)
         self.scene.set_wall_test_result(None);self.scene.set_manual_preview(None,[],self.seed);self.slider.setRange(0,0)
         note='（未收到新鲜只读反馈，机械臂按示意姿态显示，不代表实机当前位姿）' if self.seed_placeholder else ''
         self.detail.setPlainText('输入已变化，旧结果作废；请重新生成并检查。实机执行保持锁定。'+note)
@@ -75,8 +87,65 @@ class CoordinateTargetDialog(QDialog):
         self.scene.set_manual_preview(None,[],self.seed)
 
     def refresh_pose(self):
+        self.refresh_control_state()
         if self.plan is not None:return
         self.seed_from_feedback()
+
+    def backend_control(self):
+        backend=self.workspace.backend()
+        if getattr(backend,'manual_control',None) is None:
+            from .manual_control import ManualControl
+            backend.manual_control=ManualControl(self.workspace.storage_path.parent/'manual_control_logs')
+        return backend,backend.manual_control
+
+    def refresh_control_state(self):
+        state=None
+        try:
+            control=getattr(self.workspace.backend(),'manual_control',None);state=control.snapshot() if control is not None else None
+        except (AttributeError,TypeError):state=None
+        connected=bool(state['connected']) if state else False
+        unlocked=bool(state['unlocked']) if state and connected else False
+        unconfirmed=bool(state and state['safety']['stop_state']=='unconfirmed')
+        if state is None:text='实机控制：未连接 · 点“连接实机控制”'
+        else:
+            text=('实机控制：已连接' if connected else '实机控制：未连接')+(' · 本轮已启用' if unlocked else ' · 本轮未启用')
+            text+=' · '+state['reason']
+            if unconfirmed:text+=' · 无法确认停止，请使用实体急停'
+        self.control_state.setText(text)
+        self.control_state.setStyleSheet('color:'+('#b42318' if unconfirmed else '#214f7d')+';font-weight:600;')
+        self.connect_control.setEnabled(not connected)
+        self.enable_control.setEnabled(connected and not unlocked)
+        self.enable_control.setText('本轮已启用' if unlocked else '启用本轮控制')
+        for widget in (self.session_confirm,self.payload):widget.setEnabled(not unlocked)
+        self.execute.setEnabled(bool(self.execute_ready and unlocked))
+
+    def connect_control_channel(self):
+        try:
+            backend,control=self.backend_control();frame=backend.snapshot()
+            if not frame or not backend.address:raise ValueError('请先在设备连接页连上只读反馈')
+            control.observe(frame,backend.generation);control.connect(backend.address,backend.generation)
+            self.detail.setPlainText('正在检查 TCP 控制模式（不使能、不运动）。连接成功后勾选现场确认并启用本轮控制。')
+        except (ValueError,OSError,RuntimeError) as error:self.detail.setPlainText('未连接：'+str(error))
+        self.refresh_control_state()
+
+    def enable_control_session(self):
+        try:
+            backend,control=self.backend_control()
+            if not self.session_confirm.isChecked():raise ValueError('请先勾选本轮工具与现场确认')
+            frame=backend.snapshot()
+            if frame:control.observe(frame,backend.generation)
+            control.unlock(True,self.payload.value(),interactive=True);self.enabled_here=True
+            self.detail.setPlainText('本轮控制已启用；生成带墙预演后点“实机执行”即可到点。')
+        except (ValueError,OSError) as error:self.detail.setPlainText('未启用：'+str(error))
+        self.refresh_control_state()
+
+    def session_changed(self,*args):
+        control=getattr(self.workspace.backend(),'manual_control',None)
+        if control is not None:
+            state=control.snapshot()
+            if state['unlocked'] or state['resumable']:
+                control.request_stop('现场确认或工具重量发生变化');self.enabled_here=False
+        self.refresh_control_state()
 
     def show_wall(self,wall):
         displayed=dict(wall);displayed['visible']=bool(wall['direction_confirmed']);self.scene.set_safety_wall(displayed)
@@ -125,10 +194,10 @@ class CoordinateTargetDialog(QDialog):
         text+=(f'\n执行门槛：采样间隙需 ≥ {EXECUTION_MIN_CLEARANCE_MM:.0f} mm（当前{"达标" if clearance_ok else "未达标"}）')
         text+='\n仍需人工确认：'+'；'.join(plan['execution_blockers'])
         if clearance_ok:
-            text+='\n可执行：需先在“实机控制”界面连接并启用本轮控制（核对工具、负载与现场），再点击实机执行。'
+            text+='\n可执行：连接实机控制并启用本轮控制（勾选现场确认、填写工具总重量）后，点“实机执行”即可到点。'
         else:
             text+='\n实机执行保持禁止。'
-        self.detail.setPlainText(text);self.execute.setEnabled(clearance_ok)
+        self.detail.setPlainText(text);self.execute_ready=clearance_ok;self.refresh_control_state()
         if plan['collision']['collision']:self.show_collision()
 
     def show_collision(self):
@@ -152,22 +221,23 @@ class CoordinateTargetDialog(QDialog):
 
     def try_execute(self):
         try:
-            if not self.plan:raise ValueError('没有有效预演')
+            if not self.plan:raise ValueError('没有有效预演，请先点“生成姿态路径并检查安全墙”')
             backend=self.workspace.backend()
             approval=request_execution(self.plan,backend.snapshot(),
                 load_wall(self.workspace.storage_path.parent/'safety_wall.json'),backend.generation)
             control=getattr(backend,'manual_control',None)
-            if control is None:raise ValueError('实机控制通道不可用，请先打开“实机控制”界面')
+            if control is None:raise ValueError('请先点“连接实机控制”')
             state=control.snapshot()
-            if not state.get('connected'):raise ValueError('请先在“实机控制”界面连接控制通道')
+            if not state.get('connected'):raise ValueError('请先点“连接实机控制”')
             if not state.get('unlocked') or state.get('phase')!='ready':
-                raise ValueError('请先在“实机控制”界面勾选现场确认、填写负载并启用本轮控制')
+                raise ValueError('请勾选现场确认、填写工具总重量并点“启用本轮控制”')
             speed=int(self.execute_speed.value())
             move=control.preview_target(approval['target_pose'],speed)
             control.execute(move['id'])
             self.detail.setPlainText('已发送目标移动指令；DI_1 触发、偏离路径、超时或按下停止都会中断。')
         except (ValueError,PermissionError,OSError,RuntimeError) as error:
             self.detail.setPlainText('未执行：'+str(error))
+        self.refresh_control_state()
 
     def showEvent(self,event):
         super().showEvent(event);self.refresh_pose();self.pose_timer.start()
@@ -176,4 +246,11 @@ class CoordinateTargetDialog(QDialog):
         self.timer.stop();self.pose_timer.stop();super().hideEvent(event)
 
     def closeEvent(self,event):
-        self.revision+=1;self.timer.stop();self.pose_timer.stop();super().closeEvent(event)
+        self.revision+=1;self.timer.stop();self.pose_timer.stop()
+        if self.enabled_here:
+            try:
+                control=getattr(self.workspace.backend(),'manual_control',None)
+                if control is not None and control.snapshot()['unlocked']:control.request_stop('关闭坐标到点窗口')
+            except (AttributeError,TypeError,OSError):pass
+            self.enabled_here=False
+        super().closeEvent(event)

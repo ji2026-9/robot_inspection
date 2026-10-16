@@ -82,5 +82,30 @@ class TargetTests(unittest.TestCase):
             dialog.fields[0].setValue(123);self.assertIsNone(dialog.plan);self.assertFalse(dialog.execute.isEnabled())
             self.assertEqual(dialog.scene.seeds[-1][1]['joints_deg'],sample()['joints'])
             dialog.close();workspace.close();app.processEvents()
+    def test_execute_requires_unlocked_control_in_this_window(self):
+        os.environ['QT_QPA_PLATFORM']='offscreen'
+        from PySide6.QtWidgets import QApplication,QWidget
+        from inspection_gui import coordinate_target_view as view
+        app=QApplication.instance() or QApplication([])
+        class Scene(QWidget):
+            def set_safety_wall(self,*args):pass
+            def set_wall_test_result(self,*args):pass
+            def set_manual_preview(self,*args):pass
+        class Control:
+            def __init__(self,connected,unlocked,stop='none'):
+                self._state=dict(connected=connected,unlocked=unlocked,phase='ready',reason='测试',
+                    resumable=False,safety=dict(stop_state=stop))
+            def snapshot(self):return copy.deepcopy(self._state)
+        class Workspace(QWidget):
+            def __init__(self,control):super().__init__();self.control=control
+            def backend(self):return SimpleNamespace(snapshot=sample,generation=1,manual_control=self.control)
+        with tempfile.TemporaryDirectory() as folder,patch.object(view,'Scene3D',Scene),patch('socket.create_connection',side_effect=AssertionError('No real motion')):
+            for connected,unlocked,expected in ((False,False,False),(True,False,False),(True,True,True)):
+                workspace=Workspace(Control(connected,unlocked));workspace.storage_path=Path(folder)/'positions.json'
+                dialog=view.CoordinateTargetDialog(workspace)
+                dialog.execute_ready=True;dialog.refresh_control_state()
+                self.assertEqual(dialog.execute.isEnabled(),expected,(connected,unlocked))
+                self.assertEqual(dialog.enable_control.isEnabled(),connected and not unlocked)
+                dialog.close();workspace.close();app.processEvents()
 
 if __name__=='__main__':unittest.main(verbosity=2)
