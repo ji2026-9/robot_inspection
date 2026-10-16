@@ -5,6 +5,7 @@ import copy,json,threading,time
 import numpy as np
 from scipy.spatial.transform import Rotation
 from PySide6.QtCore import Qt,QTimer,QObject,Signal
+from .stepper import DoubleParameter
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QGridLayout,QLabel,QPushButton,
     QWidget,QFrame,QSplitter,QTabWidget,QScrollArea,QLineEdit,QTableWidget,QTableWidgetItem,
     QHeaderView,QAbstractItemView,QCheckBox,QDoubleSpinBox,QSlider,QFileDialog,QInputDialog,QPlainTextEdit)
@@ -45,8 +46,8 @@ class WorkspaceSignals(QObject):
 
 
 class ProbeWorkspaceDialog(QDialog):
-    def __init__(self,parent=None,storage_path=None):
-        super().__init__(parent);self.setWindowTitle('测头臂工作区 · 记录、预览与实机控制');self.setStyleSheet(STYLE)
+    def __init__(self,parent=None,storage_path=None,*,embedded=False):
+        super().__init__(parent,Qt.Widget if embedded else Qt.Dialog);self.setWindowTitle('测头臂工作区 · 记录、预览与实机控制');self.setStyleSheet(STYLE)
         area=self.screen().availableGeometry();self.resize(min(1250,area.width()-40),min(840,area.height()-40));self.setMinimumSize(800,540)
         self.storage_path=Path(storage_path) if storage_path else Path(__file__).resolve().parents[1]/'data'/'probe_workspace'/'positions.json'
         self.library=None;self.storage_error=''
@@ -111,12 +112,14 @@ class ProbeWorkspaceDialog(QDialog):
         layout.addStretch();self.refresh_probe_table()
 
     def open_sphere_analysis(self):
+        if hasattr(self,'workbench_router'):return self.workbench_router('sphere')
         from .sphere_analysis_view import SphereAnalysisDialog
         dialog=getattr(self,'_sphere_analysis_dialog',None)
         if dialog is None:self._sphere_analysis_dialog=dialog=SphereAnalysisDialog(self)
         dialog.show();dialog.raise_();dialog.activateWindow();return dialog
 
     def open_stop_monitor(self):
+        if hasattr(self,'workbench_router'):return self.workbench_router('stop')
         control=getattr(self.backend(),'manual_control',None)
         if control is not None and control.snapshot()['connected']:
             self.message('请先在实机控制界面断开控制，再开启独立停止测试，避免控制端口冲突。',True);return
@@ -126,6 +129,7 @@ class ProbeWorkspaceDialog(QDialog):
         dialog.show();dialog.raise_();dialog.activateWindow();return dialog
 
     def open_manual_control(self):
+        if hasattr(self,'workbench_router'):return self.workbench_router('control')
         from .manual_control_view import ManualControlDialog
         dialog=getattr(self,'_manual_control_dialog',None)
         if dialog is None:self._manual_control_dialog=dialog=ManualControlDialog(self)
@@ -207,7 +211,9 @@ class ProbeWorkspaceDialog(QDialog):
         self.positions_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers);self.positions_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.positions_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection);self.positions_table.verticalHeader().hide()
         self.positions_table.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
-        for i in (1,2):self.positions_table.horizontalHeader().setSectionResizeMode(i,QHeaderView.ResizeMode.ResizeToContents)
+        for i in (1,2):
+            self.positions_table.horizontalHeader().setSectionResizeMode(i,QHeaderView.ResizeMode.Interactive)
+            self.positions_table.setColumnWidth(i,180 if i==1 else 130)
         self.positions_table.setMinimumHeight(180);self.positions_table.itemSelectionChanged.connect(self.position_selected);layout.addWidget(self.positions_table)
         self.saved_detail=QLabel('选择记录查看原始坐标');self.saved_detail.setWordWrap(True);self.saved_detail.setMinimumHeight(100);layout.addWidget(self.saved_detail)
         actions=QGridLayout()
@@ -222,11 +228,11 @@ class ProbeWorkspaceDialog(QDialog):
         button=QPushButton('以当前位置为起点');button.clicked.connect(self.use_current_start);box.addWidget(button);layout.addWidget(card)
         card,box=self.card('目标位姿 · B 基座坐标');self.target_fields={};grid=QGridLayout();grid.setSpacing(8)
         for i,axis in enumerate(('X','Y','Z','Rx','Ry','Rz')):
-            field=QDoubleSpinBox();field.setDecimals(2);field.setRange(-5000 if i<3 else -360,5000 if i<3 else 360)
+            field=DoubleParameter();field.setDecimals(2);field.setSingleStep(.1);field.setRange(-5000 if i<3 else -360,5000 if i<3 else 360)
             field.setSuffix(' mm' if i<3 else ' °');field.valueChanged.connect(self.target_changed)
             cell=QVBoxLayout();cell.addWidget(self.note(axis));cell.addWidget(field);grid.addLayout(cell,i//2,i%2);self.target_fields[axis]=field
         box.addLayout(grid);layout.addWidget(card)
-        self.clearance=QDoubleSpinBox();self.clearance.setRange(1,1000);self.clearance.setValue(50);self.clearance.setSuffix(' mm');self.clearance.valueChanged.connect(self.target_changed)
+        self.clearance=DoubleParameter();self.clearance.setRange(1,1000);self.clearance.setValue(50);self.clearance.setSuffix(' mm');self.clearance.valueChanged.connect(self.target_changed)
         row=QHBoxLayout();row.addWidget(QLabel('预览退让距离'));row.addWidget(self.clearance);layout.addLayout(row)
         self.task_name=QLineEdit('手动任务');self.task_name.setMaxLength(64);self.task_name.textChanged.connect(self.target_changed);layout.addWidget(self.task_name)
         self.preview_button=QPushButton('生成 TCP 轨迹预览');self.preview_button.setObjectName('primary');self.preview_button.clicked.connect(self.build_manual);layout.addWidget(self.preview_button)
@@ -258,7 +264,7 @@ class ProbeWorkspaceDialog(QDialog):
         box.addLayout(row);layout.addWidget(card)
         self.vision_start_label=QLabel('起点：示例位置（非实机）· 示例工具 0');self.vision_start_label.setWordWrap(True);layout.addWidget(self.vision_start_label)
         self.vision_current_button=QPushButton('使用实机当前位姿作为起点');self.vision_current_button.clicked.connect(self.use_vision_current);layout.addWidget(self.vision_current_button)
-        self.vision_clearance=QDoubleSpinBox();self.vision_clearance.setRange(1,500);self.vision_clearance.setValue(50);self.vision_clearance.setSuffix(' mm');self.vision_clearance.valueChanged.connect(self.vision_changed)
+        self.vision_clearance=DoubleParameter();self.vision_clearance.setRange(1,500);self.vision_clearance.setValue(50);self.vision_clearance.setSuffix(' mm');self.vision_clearance.valueChanged.connect(self.vision_changed)
         row=QHBoxLayout();row.addWidget(QLabel('接近 / 退回距离'));row.addWidget(self.vision_clearance);layout.addLayout(row)
         self.vision_build_button=QPushButton('生成模拟视觉路径');self.vision_build_button.setObjectName('primary');self.vision_build_button.clicked.connect(self.build_vision);layout.addWidget(self.vision_build_button)
         self.vision_summary=QLabel('请先载入四孔示例，或导入模拟孔坐标及转换参数。');self.vision_summary.setWordWrap(True);layout.addWidget(self.vision_summary)
@@ -360,6 +366,7 @@ class ProbeWorkspaceDialog(QDialog):
     def refresh_feedback(self):
         backend=self.backend();frame=backend.snapshot()
         self.refresh_probe_feedback(frame)
+        if not self.isVisible():return
         if frame:
             configuration=(frame['user_index'],frame['tool_index'],tuple(frame.get('tool_offset',[])),tuple(frame.get('user_offset',[])))
             if self.feedback_configuration is not None and configuration!=self.feedback_configuration:
@@ -681,8 +688,15 @@ class ProbeWorkspaceDialog(QDialog):
             except (ValueError,OSError) as exc:self.message(str(exc),True)
 
     def showEvent(self,event):
-        super().showEvent(event);self.closed=False;self.refresh_timer.start();self.refresh_feedback()
+        super().showEvent(event);self.closed=False;self.refresh_timer.setInterval(200);self.refresh_timer.start();self.refresh_feedback()
         if not self.auto_attempted and not self.backend().is_connected():self.auto_attempted=True;QTimer.singleShot(0,self.connect_feedback)
+
+    def hideEvent(self,event):
+        self.timer.stop();self.play_button.setText('播放 TCP 轨迹')
+        # Keep trigger journaling for dependent analysis pages. The hardware
+        # stop path still processes EVERY feedback frame independently.
+        self.refresh_timer.setInterval(500)
+        super().hideEvent(event)
 
     def closeEvent(self,event):
         if hasattr(self,'_manual_control_dialog'):self._manual_control_dialog.close()

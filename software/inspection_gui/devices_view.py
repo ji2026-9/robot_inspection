@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Protocol
 
 from PySide6.QtCore import Qt, Signal, QTimer
+from .stepper import IntegerParameter
 from .dobot_feedback import DobotFeedback
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -228,7 +229,7 @@ class DevicePage(QWidget):
         self.transport.setCurrentText(settings["transport"])
         self.address = QLineEdit(settings["address"])
         self.address.setPlaceholderText("例如：192.168.1.10")
-        self.port = QSpinBox()
+        self.port = IntegerParameter()
         self.port.setRange(0, 65535)
         self.port.setSpecialValueText("未填写")
         self.port.setValue(settings["port"])

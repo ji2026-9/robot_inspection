@@ -10,8 +10,9 @@ ExperimentRecords 对象，避免两边数据不一致。
 from __future__ import annotations
 
 from pathlib import Path
+import json,threading,time
 
-from PySide6.QtCore import Qt, QUrl, Slot
+from PySide6.QtCore import Qt, QUrl, Slot,QObject,Signal,QTimer
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QAbstractItemView, QDialog, QFileDialog, QHBoxLayout, QHeaderView,
@@ -20,6 +21,10 @@ from PySide6.QtWidgets import (
 )
 
 from experiment_records import COLUMNS, RECORD_FILE, ExperimentRecords
+
+
+class RecordSignals(QObject):
+    loaded=Signal(int,object,object,object,str)
 
 
 class RecordsDialog(QDialog):
@@ -32,8 +37,9 @@ class RecordsDialog(QDialog):
 
     def __init__(self, parent: QWidget | None = None,
                  records: ExperimentRecords | None = None,
-                 path: str | Path = RECORD_FILE):
+                 path: str | Path = RECORD_FILE,*,deferred=False):
         super().__init__(parent)
+        self.owner=parent
         self.setWindowTitle("实验记录")
         _screen = self.screen()
         self.resize(min(1400, _screen.availableGeometry().width() - 60),
@@ -48,6 +54,9 @@ class RecordsDialog(QDialog):
             self.records.path = Path(path)
             self.records.groups = []
         self.path = Path(self.records.path)
+        self.deferred=deferred;self.loading=False;self._read_generation=0
+        self._read_signals=RecordSignals(self);self._read_signals.loaded.connect(self._loaded)
+        self._table_timer=QTimer(self);self._table_timer.setInterval(0);self._table_timer.timeout.connect(self._fill_chunk)
         self.rows: list[dict] = []
         self.visible_columns = COLUMNS[:15]
 
@@ -56,7 +65,7 @@ class RecordsDialog(QDialog):
         self.summary = QLabel("正在读取实验记录…")
         tools.addWidget(self.summary, 1)
         refresh_button = QPushButton("刷新记录")
-        refresh_button.clicked.connect(self.refresh)
+        refresh_button.clicked.connect(lambda:self.refresh_async() if self.deferred else self.refresh())
         tools.addWidget(refresh_button)
         export_button = QPushButton("导出全部记录（Excel / WPS）")
         export_button.clicked.connect(self.export_csv)
@@ -114,8 +123,9 @@ class RecordsDialog(QDialog):
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(34)
         header = self.table.horizontalHeader()
-        # [local patch] fit every column instead of clipping the right ones
-        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        # Auto-sizing after every inserted cell repeatedly scans the whole
+        # history (quadratic cost). Keep readable widths, allow manual resizing.
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setStretchLastSection(True)
         for index, (key, _) in enumerate(self.visible_columns):
             self.table.setColumnWidth(index, {
@@ -126,7 +136,8 @@ class RecordsDialog(QDialog):
         self.table.cellDoubleClicked.connect(self.open_result)
         layout.addWidget(self.table, 1)
         layout.addWidget(QLabel("导出的 CSV 保留全部字段，包括照片、结果图片及模型路径。"))
-        self.refresh()
+        if self.deferred:QTimer.singleShot(0,self.refresh_if_changed)
+        else:self.refresh()
 
     @Slot()
     def open_results_folder(self):
@@ -134,7 +145,65 @@ class RecordsDialog(QDialog):
         folder.mkdir(exist_ok=True)
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
 
+    def refresh_if_changed(self):
+        try:
+            stat=self.path.stat();signature=(stat.st_mtime_ns,stat.st_size)
+        except OSError:signature=None
+        if getattr(self,'_display_signature',object())==signature:return True
+        if self.deferred:return self.refresh_async()
+        return self.refresh()
+
+    def refresh_async(self):
+        if self.loading:return True
+        self.loading=True;self._read_generation+=1;generation=self._read_generation
+        self.summary.setText('正在后台读取记录…');path=self.path;signals=self._read_signals
+        def work():
+            try:
+                before=path.stat() if path.exists() else None
+                snapshot=ExperimentRecords.__new__(ExperimentRecords);snapshot.path=path
+                snapshot.groups=json.loads(path.read_text(encoding='utf-8')) if before else []
+                rows=snapshot.rows();signature=(before.st_mtime_ns,before.st_size) if before else None
+                groups=snapshot.groups;error=''
+            except (OSError,ValueError,KeyError,TypeError) as exc:groups=[];rows=[];signature=None;error=str(exc)
+            try:signals.loaded.emit(generation,groups,rows,signature,error)
+            except RuntimeError:pass
+        threading.Thread(target=work,daemon=True,name='experiment-record-reader').start()
+        return True
+
+    def _loaded(self,generation,groups,rows,signature,error):
+        if generation!=self._read_generation:return
+        self.loading=False
+        if error:self.summary.setText('记录读取失败，原内容保留：'+error);return
+        try:
+            stat=self.path.stat();current=(stat.st_mtime_ns,stat.st_size)
+        except OSError:current=None
+        if current!=signature:
+            QTimer.singleShot(50,self.refresh_async);return
+        self._table_timer.stop();self.records.groups=groups;self.rows=rows;self._display_signature=signature
+        self.table.clearContents();self.table.setRowCount(len(rows));self._fill_cursor=0;self._group_count=len(groups)
+        self._fill_chunk()
+        if self._fill_cursor<len(self.rows):self._table_timer.start()
+
+    def _fill_chunk(self):
+        started=time.perf_counter();self.table.setUpdatesEnabled(False)
+        try:
+            end=min(self._fill_cursor+80,len(self.rows))
+            while self._fill_cursor<end:
+                row_index=self._fill_cursor;row=self.rows[row_index]
+                for column_index,(key,_) in enumerate(self.visible_columns):
+                    value=str(row.get(key,''));item=QTableWidgetItem(value);item.setToolTip(value)
+                    if key in {'count','fit_count','hole1','hole2','hole3','hole4','mean','minimum','part'}:
+                        item.setTextAlignment(Qt.AlignCenter)
+                    self.table.setItem(row_index,column_index,item)
+                self._fill_cursor+=1
+                if time.perf_counter()-started>.008:break
+        finally:self.table.setUpdatesEnabled(True)
+        complete=self._fill_cursor>=len(self.rows)
+        self.summary.setText(f'累计 {self._group_count} 组，{len(self.rows)} 张图片'+('' if complete else f' · 正在显示 {self._fill_cursor}/{len(self.rows)}'))
+        if complete:self._table_timer.stop()
+
     def refresh(self) -> bool:
+        self._read_generation+=1;self.loading=False;self._table_timer.stop()
         try:
             # 重新读盘，成功后 self.records 就是磁盘上的真实内容（读失败时原有内容不变）。
             groups = self.records.refresh_from_disk()
@@ -163,7 +232,21 @@ class RecordsDialog(QDialog):
         self.table.verticalScrollBar().setValue(vertical_position)
         self.table.horizontalScrollBar().setValue(horizontal_position)
         self.summary.setText(f"累计 {len(groups)} 组，{len(rows)} 张图片")
+        self._fill_cursor=len(rows);self._group_count=len(groups)
+        try:
+            stat=self.path.stat();self._display_signature=(stat.st_mtime_ns,stat.st_size)
+        except OSError:self._display_signature=None
         return True
+
+    def showEvent(self,event):
+        super().showEvent(event);self._table_timer.setInterval(0)
+        if getattr(self,'_fill_cursor',len(self.rows))<len(self.rows):self._table_timer.start()
+
+    def hideEvent(self,event):
+        self._table_timer.setInterval(25);super().hideEvent(event)
+
+    def closeEvent(self,event):
+        self._read_generation+=1;self.loading=False;self._table_timer.stop();super().closeEvent(event)
 
     @Slot()
     def export_csv(self) -> None:
@@ -217,11 +300,12 @@ class RecordsDialog(QDialog):
         if not reports:
             QMessageBox.information(self, '无法载入', '这一组里没有可显示的照片记录。')
             return
-        main = self.parent()
+        main = self.owner
         if main is None or not hasattr(main, 'load_reports'):
             QMessageBox.information(self, '无法载入', '当前主界面不支持载入，请用主界面的「选择照片」。')
             return
         main.load_reports(reports)
+        if hasattr(main,'workbench'):main.workbench.open_page('visual')
         if hasattr(main, 'log'):
             main.log(f'已从实验记录载入第{row.get("group_number", "?")}组：{len(reports)} 张'
                      '（未重新检测、未新增记录）。')

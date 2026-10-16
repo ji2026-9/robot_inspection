@@ -6,6 +6,7 @@
 from datetime import datetime
 import json
 from PySide6.QtCore import QThread,Signal
+from .stepper import DoubleParameter
 from PySide6.QtWidgets import QDialog,QVBoxLayout,QFormLayout,QLabel,QDoubleSpinBox,QComboBox,QPushButton,QMessageBox
 
 # [no-local-config] 本次运行中填写的期望参数（不落盘）。
@@ -33,7 +34,7 @@ class CameraParametersDialog(QDialog):
         super().__init__(parent);self.backend=backend;self.worker=None;self.actual=None
         self.setWindowTitle('工业相机采集参数');self.resize(570,350)
         layout=QVBoxLayout(self);self.status=QLabel('以下是期望设置。尚未读取设备参数，保存不会代表已经生效。');self.status.setWordWrap(True);layout.addWidget(self.status)
-        form=QFormLayout();self.exposure=QDoubleSpinBox();self.exposure.setRange(1,10000000);self.exposure.setSuffix(' μs');self.gain=QDoubleSpinBox();self.gain.setRange(0,100);self.gain.setSuffix(' dB')
+        form=QFormLayout();self.exposure=DoubleParameter();self.exposure.setRange(1,10000000);self.exposure.setSingleStep(100);self.exposure.setSuffix(' μs');self.gain=DoubleParameter();self.gain.setRange(0,100);self.gain.setSingleStep(.1);self.gain.setSuffix(' dB')
         self.trigger=QComboBox()
         for title,value in [('连续采集','continuous'),('软件触发','software'),('硬件触发','hardware')]:self.trigger.addItem(title,value)
         form.addRow('期望曝光时间',self.exposure);form.addRow('期望增益',self.gain);form.addRow('期望触发模式',self.trigger);layout.addLayout(form)

@@ -189,6 +189,7 @@ class MainWindow(QMainWindow):
         self.render_timer=QTimer(self);self.render_timer.setSingleShot(True);self.render_timer.setInterval(25)
         self.render_timer.timeout.connect(self._render_view_now)
         self._build_ui()
+        self._build_workbench()
         self.refresh_model_summary()
         # [local patch] start with a CLEAN workspace. History is only shown
         # when the user opens 实验记录 and loads a group back into the workspace.
@@ -285,6 +286,7 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(photos)
 
         others = QGroupBox('其他功能')
+        self.utility_group=others
         others_layout = QGridLayout(others)          # 两列   # [compact-left]
         others_layout.setSpacing(6)
         others_layout.setContentsMargins(10, 6, 10, 8)   # [compact-left]
@@ -467,19 +469,10 @@ class MainWindow(QMainWindow):
         self.workspace_split.addWidget(right)
         self.workspace_split.setStretchFactor(1,1);self.workspace_split.setSizes([266,780,380])
 
-        # ---- 模型与数据管理弹窗（保留原功能）----
-        self.model_dialog = QDialog(self)
-        self.model_dialog.setWindowTitle('模型与数据管理')
-        self.model_dialog.resize(560, 230)
-        management = QVBoxLayout(self.model_dialog)
-        note = QLabel('添加照片并标注 → 训练候选模型 → 查看验证结果\n'
-                      '正式模型仍按验证结果选择，验证通过后才启用。')
-        note.setWordWrap(True)
-        management.addWidget(note)
-        self.btn_dataset = QPushButton('添加训练数据 / 自动更新')
-        self.btn_validation = QPushButton('训练验证结果')
-        management.addWidget(self.btn_dataset)
-        management.addWidget(self.btn_validation)
+        from .model_management_view import ModelManagementPage
+        self.model_dialog=ModelManagementPage(self.bridge,self)
+        self.btn_dataset=self.model_dialog.dataset_button
+        self.btn_validation=self.model_dialog.validation_button
 
         # ---- 底部状态栏 ----
         bottom = QFrame()
@@ -761,6 +754,7 @@ class MainWindow(QMainWindow):
 
     def update_live_frame(self):
         """[canvas-live] 把最新一帧画到左侧实时格。"""
+        if hasattr(self,'workbench') and not self.workbench.pages['visual'].isVisible():return
         worker = getattr(self, 'live_worker', None)
         if worker is None:
             return
@@ -904,7 +898,7 @@ class MainWindow(QMainWindow):
         try:
             from dataset_update import active_models
             self.active_models = active_models()
-            self.model_label.setText('正式模型 · 已通过验证')
+            self.model_label.setText('当前检测模型')
             self.model_label.setToolTip(f"版本：{self.active_models.get('version', '')}\n孔：{self.active_models['bore']}\npart：{self.active_models['part']}")
         except (OSError, ValueError, KeyError):
             self.active_models = {'bore': str(BASE / 'models' / 'engine_part_bore_100.pt')}
@@ -914,8 +908,8 @@ class MainWindow(QMainWindow):
         idle = not self.batch_running and not self.bridge.busy
         self.btn_select.setEnabled(idle)
         self.btn_detect.setEnabled(idle and bool(self.paths))
-        self.btn_dataset.setEnabled(not self.batch_running)
-        self.btn_validation.setEnabled(not self.batch_running)
+        self.btn_dataset.setEnabled(not self.batch_running and not self.bridge.busy)
+        self.btn_validation.setEnabled(not self.batch_running and not self.bridge.busy)
         self.previous_button.setEnabled(bool(self.paths) and self.current_index > 0)
         self.next_button.setEnabled(bool(self.paths) and self.current_index + 1 < len(self.paths))
 
@@ -1048,6 +1042,7 @@ class MainWindow(QMainWindow):
 
     def _render_view_now(self):
         """[split-view] 只画右格（检测结果）；左格实时画面由定时器单独刷新。"""
+        if hasattr(self,'workbench') and not self.workbench.pages['visual'].isVisible():return
         self.lbl_zoom.setText(f'{self.sld_zoom.value()}%')
         if self.display_photo is None:
             self.result_caption.setText(getattr(self, '_result_caption_base', '检测结果（像素孔位）'))
@@ -1226,32 +1221,94 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def show_records(self):
-        if self.records_dialog is None:
-            self.records_dialog = RecordsDialog(self, records=self.records)
-        self.records_dialog.refresh()
-        self.records_dialog.show()
-        self.records_dialog.raise_()
-        self.records_dialog.activateWindow()
+        page=self.workbench.open_page('records')
+        if page:page.refresh_if_changed()
+
+    def _build_workbench(self):
+        from .workbench import Workbench
+        visual=self.takeCentralWidget();self.workbench=Workbench(visual,self);self.setCentralWidget(self.workbench)
+        for button in (self.btn_devices,self.btn_records,self.btn_models,self.btn_simulation,self.btn_probe):button.hide()
+        self.utility_group.setTitle('辅助工具');self.utility_group.setMinimumHeight(0)
+        for key,label,factory in (
+            ('simulation','三维预览',self._simulation_page),('control','实机控制',self._control_page),
+            ('probe','测头任务',self._probe_page),('sphere','白球分析',self._sphere_page),
+            ('stop','停止测试',self._stop_page),('devices','设备连接',self._devices_page),
+            ('records','实验记录',self._records_page),('models','模型管理',lambda:self.model_dialog)):
+            self.workbench.register(key,label,factory)
+        self.workbench.tabs.currentChanged.connect(self._refresh_work_page)
+        self.workbench.page_ready.connect(lambda key,page:self._refresh_work_page(self.workbench.keys.index(key)))
+        # Select Qt's GL composition before the main native window is shown.
+        # Otherwise adding the first 3D page recreates the visible window/FBOs.
+        if QApplication.platformName()!='offscreen':
+            from PySide6.QtOpenGLWidgets import QOpenGLWidget
+            self._gl_anchor=QOpenGLWidget(self.workbench)
+            self._gl_anchor.setGeometry(-8,-8,1,1);self._gl_anchor.show()
+
+    def _refresh_work_page(self,index):
+        if index<0:return
+        key=self.workbench.keys[index];page=self.workbench.pages.get(key)
+        if page is None:return
+        if key=='simulation':page.set_detection(self.current_result,self.confirmed_targets())
+        elif key=='records':page.refresh_if_changed()
+        elif key=='visual':self.render_view()
+
+    def _probe_page(self):
+        from .probe_workspace_view import ProbeWorkspaceDialog
+        if not hasattr(self,'_probe_workspace_dialog'):
+            self._probe_workspace_dialog=ProbeWorkspaceDialog(self,embedded=True)
+            self._probe_workspace_dialog.workbench_router=self.workbench.open_page
+        return self._probe_workspace_dialog
+
+    def _simulation_page(self):
+        if not hasattr(self,'simulation_dialog'):
+            self.simulation_dialog=SimulationDialog(self,embedded=True)
+            self.simulation_dialog.workbench_router=self.workbench.open_page
+        self.simulation_dialog.set_detection(self.current_result,self.confirmed_targets())
+        return self.simulation_dialog
+
+    def _control_page(self):
+        from .manual_control_view import ManualControlDialog
+        workspace=self._probe_page()
+        if not hasattr(workspace,'_manual_control_dialog'):workspace._manual_control_dialog=ManualControlDialog(workspace)
+        return workspace._manual_control_dialog
+
+    def _sphere_page(self):
+        from .sphere_analysis_view import SphereAnalysisDialog
+        workspace=self._probe_page()
+        if not hasattr(workspace,'_sphere_analysis_dialog'):workspace._sphere_analysis_dialog=SphereAnalysisDialog(workspace)
+        return workspace._sphere_analysis_dialog
+
+    def _stop_page(self):
+        from .probe_stop_view import ProbeStopDialog
+        workspace=self._probe_page()
+        if not hasattr(workspace,'_probe_stop_dialog'):workspace._probe_stop_dialog=ProbeStopDialog(workspace)
+        return workspace._probe_stop_dialog
+
+    def _records_page(self):
+        if self.records_dialog is None:self.records_dialog=RecordsDialog(self,records=self.records,deferred=True)
+        return self.records_dialog
+
+    def _devices_page(self):
+        from .devices_view import DevicesDialog
+        if not hasattr(self,'_inspection_devices_dialog'):
+            self._inspection_devices_dialog=DevicesDialog(self)
+            self._inspection_devices_dialog.connection_status_changed.connect(self.device_status_changed)
+            self._inspection_devices_dialog._main_status_bound=True
+        return self._inspection_devices_dialog
 
     def show_simulation(self):
-        if not hasattr(self, 'simulation_dialog'):
-            self.simulation_dialog = SimulationDialog(self)
-        self.simulation_dialog.set_detection(self.current_result, self.confirmed_targets())
-        self.simulation_dialog.show()
-        self.simulation_dialog.raise_()
-        self.simulation_dialog.activateWindow()
+        page=self.workbench.open_page('simulation')
+        if page:page.set_detection(self.current_result,self.confirmed_targets())
 
     def show_probe_workspace(self):
-        from .probe_workspace_view import show_probe_workspace
-        show_probe_workspace(self)
+        return self.workbench.open_page('probe')
 
     def show_model_management(self):
-        self.model_dialog.show()
-        self.model_dialog.raise_()
-        self.model_dialog.activateWindow()
+        self.workbench.open_page('models')
 
     def show_device_panel(self):
-        dialog = show_devices(self)
+        dialog = self.workbench.open_page('devices')
+        if dialog is None:return
         if not getattr(dialog, '_main_status_bound', False):
             dialog.connection_status_changed.connect(self.device_status_changed)
             dialog._main_status_bound = True
@@ -1364,6 +1421,7 @@ class MainWindow(QMainWindow):
                 pass
         if hasattr(self,'simulation_dialog'):self.simulation_dialog.shutdown()
         if hasattr(self,'_probe_workspace_dialog'):self._probe_workspace_dialog.shutdown()
+        if hasattr(self,'workbench'):self.workbench.shutdown()
         self.render_timer.stop()
         self.bridge.detach()
         from .devices_view import _registered_backends

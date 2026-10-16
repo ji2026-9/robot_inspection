@@ -1,7 +1,7 @@
 """Start the integrated Qt shell without preloading detection models."""
 import sys
 from pathlib import Path
-from PySide6.QtCore import QTimer, QLockFile
+from PySide6.QtCore import QTimer, QLockFile, Qt
 from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -12,6 +12,7 @@ def main(open_records=False, open_simulation=False):
     # A compatibility context is needed by the lit workstation viewport.
     from PySide6.QtGui import QSurfaceFormat
     if QApplication.instance() is None:
+        QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
         format = QSurfaceFormat()
         format.setVersion(2, 1)
         format.setProfile(QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)

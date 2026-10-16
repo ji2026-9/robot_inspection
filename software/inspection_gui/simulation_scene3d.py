@@ -87,36 +87,13 @@ class Scene3D(QOpenGLWidget):
         self.asset_signals=AssetSignals(self)
         self.asset_signals.loaded.connect(self._assets_loaded)
         signals=self.asset_signals
-        def load():
-            models=[];label='程序化备用模型'
-            path=Path(os.environ.get('INSPECTION_ROBOT_MESH',str(Path(__file__).parent/'assets'/'local_dobot_cr5.npz')))
+        from .scene_assets import display_assets
+        path=Path(os.environ.get('INSPECTION_ROBOT_MESH',str(Path(__file__).parent/'assets'/'local_dobot_cr5.npz')))
+        def finished(future):
             try:
-                if path.is_file():
-                    with np.load(path,allow_pickle=False) as a:
-                        for i,meta in enumerate(json.loads(str(a['metadata']))):
-                            models.append({'joint':meta['joint'],'color':meta['color'],
-                                'vertices':np.ascontiguousarray(a[f'v{i}'],dtype=np.float32),
-                                'normals':np.ascontiguousarray(a[f'n{i}'],dtype=np.float32),
-                                'faces':np.ascontiguousarray(a[f'f{i}'],dtype=np.uint32)})
-                    label='本机 DobotStudio CR5 系列显示模型'
-            except (OSError,ValueError,KeyError) as exc:
-                label='显示资源不可用，使用备用模型：'+str(exc)
-            if not models:
-                from .offline_planning import JOINT_OFFSETS
-                for i,joint in enumerate(['base','J1','J2','J3','J4','J5','J6']):
-                    body=cylinder(48 if i<2 else 30,65,[.82,.85,.88]);body['joint']=joint;models.append(body)
-                    if 0<i<6:
-                        offset=JOINT_OFFSETS[i];length=float(np.linalg.norm(offset));axis=offset/length
-                        u=np.cross([0,0,1],axis)
-                        if np.linalg.norm(u)<1e-8:u=np.array([1.,0,0])
-                        u/=np.linalg.norm(u);v=np.cross(axis,u);r=np.column_stack([u,v,axis])
-                        link=cylinder(25,length,[.83,.86,.9]);link['vertices']=np.ascontiguousarray(link['vertices']@r.T,dtype=np.float32)
-                        link['normals']=np.ascontiguousarray(link['normals']@r.T,dtype=np.float32)
-                        link['joint']=joint;models.append(link)
-            q,_=solve_visual_ik([-200,-240,580],[-480,100,0],100)
-            try:signals.loaded.emit(models,q,label)
-            except RuntimeError:pass  # Window closed while loading.
-        threading.Thread(target=load,daemon=True,name='robot-display-assets').start()
+                models,q,label=future.result();signals.loaded.emit(models,q,label)
+            except RuntimeError:pass
+        self.asset_future=display_assets(path);self.asset_future.add_done_callback(finished)
 
     def _assets_loaded(self,models,q,label):
         self.meshes=models;self.camera_q=q;self.asset_label=label;self.update()

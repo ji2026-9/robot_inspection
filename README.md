@@ -1,6 +1,6 @@
 # 工业箱体孔位智能检测系统
 
-> **2026-10-16 当前版**：测头工作区、采点与白球分析、三维关节预览、TCP 定距控制及软件保护已同步。另一台电脑请先阅读 [下载运行说明](docs/GETTING_STARTED_20261016.md)，完整项目与现用模型见 [v1.3.1 修正版发布页](https://github.com/ji2026-9/robot_inspection/releases/tag/v1.3.1-button-fixes)。实机运动停止距离尚未验证。
+> **2026-10-16 当前版 v1.4**：统一工作台、数值增减按钮、长按点动、停止优先修复、页面性能优化和新版模型管理已同步。另一台电脑请先阅读 [下载运行说明](docs/GETTING_STARTED_20261016.md)，完整项目与当前模型见 [v1.4 发布页](https://github.com/ji2026-9/robot_inspection/releases/tag/v1.4-workbench)。156项离线自动测试通过；实机运动停止距离尚未验证。
 
 > **2026-10-13 更新**：当前软件源码已同步至 `software/`，新增 CR5A 只读实时位姿、三维/路径性能优化及卡片式界面。完整软件（含现用模型、种子数据和结果记录）见 [v1.2 发布页](https://github.com/ji2026-9/robot_inspection/releases/tag/v1.2-readonly-pose)。详细变化与验证见 [更新说明](docs/UPDATE_20261013.md)。
 

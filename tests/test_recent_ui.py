@@ -137,13 +137,17 @@ class RecentUITests(unittest.TestCase):
 
     def test_expired_manual_preview_disables_execute(self):
         p=ManualControlDialog(self.w);self.windows.append(p)
+        p.motion_mode.setCurrentIndex(1)
         p.controller.factory=FakeChannel;p.connect_control()
         self.assertTrue(wait(lambda:p.controller.snapshot()['connected']))
         p.controller.observe(self.w.b.snapshot(),1)
         for c in p.checks:c.setChecked(True)
         p.payload.setValue(1)
+        p.controller.observe(self.w.b.snapshot(),1);p.refresh()
         with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.Yes):p.unlock_button.click()
+        self.assertTrue(p.controller.snapshot()['unlocked'])
         # User can click the directional preview once explicitly unlocked.
+        p.controller.observe(self.w.b.snapshot(),1);p.refresh()
         p.directions[1].click();self.assertIsNotNone(p.plan_id)
         p.controller.plan['created']-=11;p.refresh()
         self.assertFalse(p.execute_button.isEnabled());self.assertIn('过期',p.target.text())

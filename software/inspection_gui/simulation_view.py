@@ -5,6 +5,7 @@ import copy,json,threading,time
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from PySide6.QtCore import Qt,QTimer,QObject,Signal
+from .stepper import DoubleParameter
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,
     QWidget,QFrame,QFormLayout,QDoubleSpinBox,QCheckBox,QSlider,QFileDialog,
     QMessageBox,QTableWidget,QTableWidgetItem,QHeaderView,QSplitter,QScrollArea,QComboBox,QLineEdit,QApplication,QGridLayout)
@@ -16,8 +17,8 @@ class PlanSignals(QObject):
     connected=Signal(bool,str)
 
 class SimulationDialog(QDialog):
-    def __init__(self,parent=None):
-        super().__init__(parent);self.setWindowTitle('双机械臂 · 实时位姿与路径预览')
+    def __init__(self,parent=None,*,embedded=False):
+        super().__init__(parent,Qt.Widget if embedded else Qt.Dialog);self.setWindowTitle('双机械臂 · 实时位姿与路径预览')
         self.setStyleSheet('''QDialog,QWidget{background:#f7f9fc;color:#263b51;}
             QLabel{background:transparent;} QPushButton{background:#fff;color:#204e79;border:1px solid #c5d4e3;border-radius:5px;padding:7px 12px;}
             QPushButton:hover{background:#eaf3fd;} QPushButton:disabled{color:#9aa8b6;}
@@ -107,7 +108,7 @@ class SimulationDialog(QDialog):
                 ('approach_mm','孔外接近距离',10,150),('insertion_mm','进入深度',5,100),
                 ('probe_ball_diameter_mm','测球直径',2,25)]
         for key,text,lo,hi in fields:
-            spin=QDoubleSpinBox();spin.setRange(lo,hi);spin.setDecimals(1);spin.setValue(getattr(self.config,key));spin.setSuffix(' mm');spin.valueChanged.connect(self.schedule_rebuild)
+            spin=DoubleParameter();spin.setRange(lo,hi);spin.setDecimals(1);spin.setSingleStep(.1);spin.setValue(getattr(self.config,key));spin.setSuffix(' mm');spin.valueChanged.connect(self.schedule_rebuild)
             form.addRow(text,spin);self.spins[key]=spin
         left.addLayout(form)
         info=QLabel('工件参考：训练照片中的四缸孔箱体。尺寸尚未实测。\n孔号沿本次照片顺序对应模拟槽位，不代表永久物理身份。');info.setWordWrap(True);left.addWidget(info)
@@ -129,7 +130,7 @@ class SimulationDialog(QDialog):
         for button in (self.play,self.reset_button,self.export):controls.addWidget(button)
         controls.addStretch()
         self.speed_label=QLabel('速度');controls.addWidget(self.speed_label)
-        self.speed=QDoubleSpinBox();self.speed.setRange(.25,3);self.speed.setValue(1);self.speed.setSingleStep(.25);self.speed.setSuffix(' ×');self.speed.setFixedWidth(100);controls.addWidget(self.speed)
+        self.speed=DoubleParameter();self.speed.setRange(.25,3);self.speed.setValue(1);self.speed.setSingleStep(.25);self.speed.setSuffix(' ×');self.speed.setFixedWidth(158);controls.addWidget(self.speed)
         root.addWidget(self.playback_controls)
         views=QHBoxLayout();views.addStretch()
         view_label=QLabel('视角');view_label.setObjectName('muted');views.addWidget(view_label)
@@ -144,6 +145,7 @@ class SimulationDialog(QDialog):
         self.asset_note.setStyleSheet('color:#6f7f90;font-size:11px;');root.addWidget(self.asset_note)
 
     def show_probe_workspace(self):
+        if hasattr(self,'workbench_router'):return self.workbench_router('probe')
         from .probe_workspace_view import show_probe_workspace
         show_probe_workspace(self.parentWidget() or self)
 
@@ -152,7 +154,7 @@ class SimulationDialog(QDialog):
                         'selected':selected_ids,'example':result is None},sort_keys=True,default=str)
         if key==self.input_key and self.plan is not None:return
         self.input_key=key
-        self.timer.stop();self.result=copy.deepcopy(result) if result is not None else None
+        self.timer.stop();self.result=copy.deepcopy({k:result[k] for k in ('image_path','fitted_holes') if k in result}) if result is not None else None
         self.selected=list(selected_ids or []) if result is not None else [f'H{i:02}' for i in range(1,5)]
         available={h['id'] for h in (result or {}).get('fitted_holes',[]) if h.get('reliable_center')} if result is not None else set(self.selected)
         self.loading_selection=True
@@ -202,7 +204,13 @@ class SimulationDialog(QDialog):
         self.status.setText('正在生成选中孔的三维进退路径…')
         plan=copy.deepcopy(self.plan);cancel=threading.Event();self.cancel=cancel;signals=self.signals
         def work():
-            try:frames,errors=compile_trajectory(plan,14,cancel.is_set);error=None
+            try:
+                frames,errors=compile_trajectory(plan,14,cancel.is_set);error=None
+                for frame in frames:
+                    if cancel.is_set():return
+                    t=robot_frames(frame['joints'],(480,100,0))['J6']
+                    actual=t[:3,3]+t[:3,2]*plan['config']['tool_length_mm']
+                    frame['display_residual_mm']=float(np.linalg.norm(actual-frame['tip']))
             except Exception as exc:frames=[];errors=[];error=str(exc)
             if not cancel.is_set():
                 try:signals.finished.emit(generation,frames,errors,error)
@@ -218,10 +226,7 @@ class SimulationDialog(QDialog):
         self.trajectory=frames;self.scene.set_plan(self.plan,frames)
         self.progress.setEnabled(not self.live_enabled);self.progress.setRange(0,len(frames)-1);self.progress.setValue(0)
         self.play.setEnabled(not self.live_enabled);self.export.setEnabled(not self.live_enabled)
-        positional=[]
-        for f in frames:
-            t=robot_frames(f['joints'],(480,100,0))['J6'];actual=t[:3,3]+t[:3,2]*self.config.tool_length_mm
-            positional.append(float(np.linalg.norm(actual-f['tip'])))
+        positional=[f.get('display_residual_mm',0.) for f in frames]
         self.plan['display_model_tip_residual_max_mm']=max(positional)
         self.quality.setText(f'选中 {len(self.plan["selected_ids"])} 个孔 · {len(frames)} 帧\n显示模型末端拟合残差 {max(positional):.3f} mm\n该残差不是实机定位或检测精度。')
         self.seek(0)
@@ -327,6 +332,10 @@ class SimulationDialog(QDialog):
         if _registered_backends['robot_b'].is_connected():self.mode.setCurrentIndex(1);self.refresh_feedback()
         elif not self.auto_attempted:
             self.auto_attempted=True;QTimer.singleShot(0,self.connect_feedback)
+
+    def hideEvent(self,event):
+        self.timer.stop();self.feedback_timer.stop();self.play.setText('继续预览' if self.trajectory else '开始预览')
+        super().hideEvent(event)
 
     def closeEvent(self,event):
         self.closed=True;self.timer.stop();self.debounce.stop();self.feedback_timer.stop()

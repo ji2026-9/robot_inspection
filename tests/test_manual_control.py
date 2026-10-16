@@ -31,6 +31,9 @@ class FakeChannel:
     def __init__(self,address):self.calls=[];self.closed=False
     def check(self):self.calls.append('RobotMode()')
     def move(self,plan):self.calls.append(copy.deepcopy(plan));return 'mock MovL'
+    def jog(self,plan,cancelled):
+        if cancelled():return None
+        self.calls.append(copy.deepcopy(plan));return 'mock MoveJog'
     def stop(self):self.calls+=['MoveJog()','Stop()'];return ['MoveJog()','Stop()']
     def close(self):self.closed=True
 
@@ -186,7 +189,7 @@ class WireTests(unittest.TestCase):
         client,server=socket.socketpair();seen=[]
         def serve():
             with server:
-                for _ in range(4):
+                for _ in range(3):
                     command=server.recv(4096);seen.append(command)
                     payload=b'5' if command==b'RobotMode()' else b''
                     reply=b'0,{'+payload+b'},'+command+b';'
@@ -197,7 +200,8 @@ class WireTests(unittest.TestCase):
             c.move(dict(target=[1.,2.,3.,180.,0.,0.],speed=1,distance=.1,user=0,tool=1))
             c.stop();c.close()
         thread.join(1);self.assertEqual(factory.call_count,1)
-        self.assertEqual(seen[0],b'RobotMode()');self.assertEqual(seen[-2:],[b'MoveJog()',b'Stop()'])
+        self.assertEqual(seen[0],b'RobotMode()');self.assertEqual(seen[-1],b'Stop()')
+        self.assertNotIn(b'MoveJog()',seen)
         self.assertIn(b'a=1,speed=1,cp=0',seen[1]);self.assertNotIn(b'Enable',b''.join(seen))
 
     def test_control_mode_and_occupied_plaintext_are_failures(self):
