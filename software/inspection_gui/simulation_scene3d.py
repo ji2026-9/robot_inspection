@@ -81,6 +81,7 @@ class Scene3D(QOpenGLWidget):
         self.drag=None;self.phase=0.;self.plan=None;self.trajectory=[];self.frame_index=0
         self.meshes=[];self.parts=[];self.buffers={};self.ready=False;self.render_error=''
         self.live_frame=None;self.live_mode=False;self.geometry_key=None
+        self.probe_only=False;self.manual_active=False;self.manual_task=None;self.manual_frames=[];self.manual_index=0;self.manual_seed=None;self.pose_audit=None
         self.asset_label='正在后台加载显示模型'
         self.camera_q=np.deg2rad([60,-65,105,50,90,0])
         self.asset_signals=AssetSignals(self)
@@ -124,8 +125,14 @@ class Scene3D(QOpenGLWidget):
         self.live_mode=bool(enabled);self.live_frame=frame if enabled else None
         self.update()
 
+    def set_manual_preview(self,task,frames,seed):
+        self.manual_task=task;self.manual_frames=frames;self.manual_index=0;self.manual_seed=seed
+        self.manual_active=task is not None
+        if self.manual_active:self.live_mode=False
+        self.update()
+
     def reset_view(self):
-        self.yaw=-58.;self.pitch=29.;self.distance=2150.;self.pan[:]=0;self.update()
+        self.yaw=-58.;self.pitch=29.;self.distance=2200. if self.probe_only else 2150.;self.pan[:]=0;self.update()
 
     def view_top(self):
         self.yaw=-90.;self.pitch=86.;self.distance=1500.;self.update()
@@ -253,7 +260,7 @@ class Scene3D(QOpenGLWidget):
         gl.glViewport(0,0,int(self.width()*self.devicePixelRatioF()),int(self.height()*self.devicePixelRatioF()))
         aspect=self.width()/max(1,self.height());gl.glMatrixMode(gl.GL_PROJECTION);gl.glLoadIdentity()
         n=10;half=n*math.tan(math.radians(37)/2);gl.glFrustum(-half*aspect,half*aspect,-half,half,n,8000)
-        yaw,pitch=np.deg2rad([self.yaw,self.pitch]);target=np.array([0,0,340])+self.pan
+        yaw,pitch=np.deg2rad([self.yaw,self.pitch]);target=np.array([0,0,450 if self.probe_only else 340])+self.pan
         eye=target+self.distance*np.array([math.cos(yaw)*math.cos(pitch),math.sin(yaw)*math.cos(pitch),math.sin(pitch)])
         z=(eye-target);z/=np.linalg.norm(z);x=np.cross([0,0,1],z);x/=np.linalg.norm(x);y=np.cross(z,x)
         view=np.eye(4);view[:3,:3]=[x,y,z];view[:3,3]=-view[:3,:3]@eye
@@ -267,9 +274,13 @@ class Scene3D(QOpenGLWidget):
             gl.glVertex3f(k,-2000,0);gl.glVertex3f(k,2000,0);gl.glVertex3f(-2000,k,0);gl.glVertex3f(2000,k,0)
         gl.glEnd()
         frame=self.trajectory[min(self.frame_index,len(self.trajectory)-1)] if self.trajectory and not self.live_mode else None
-        qb=np.deg2rad(self.live_frame['joints']) if self.live_mode and self.live_frame else (frame['joints'] if frame else np.deg2rad([130,-50,100,40,90,0]))
+        manual=self.manual_frames[min(self.manual_index,len(self.manual_frames)-1)] if self.manual_active and self.manual_frames else None
+        moving=manual is not None and manual.get('ik_valid',False) and 'joints' in manual
+        qb=manual['joints'] if moving else (np.deg2rad(self.manual_seed['joints_deg']) if self.manual_active and self.manual_seed else (np.deg2rad(self.live_frame['joints']) if self.live_mode and self.live_frame else (frame['joints'] if frame else np.deg2rad([130,-50,100,40,90,0]))))
         robots=[robot_frames(self.camera_q,(-480,100,0)),robot_frames(qb,(480,100,0))]
         if self.live_mode and not self.live_frame:robots=robots[:1]
+        if self.probe_only:
+            robots=[robot_frames(qb,(0,0,0))] if moving or (self.live_mode and self.live_frame) or (self.manual_active and self.manual_seed) else []
         shadow=np.eye(4);shadow[0,2]=-.35;shadow[1,2]=.15;shadow[2,:]=[0,0,0,1.2]
         for m,t in self.parts:self._draw(m,shadow@t,True)
         for frames in robots:
@@ -278,13 +289,14 @@ class Scene3D(QOpenGLWidget):
         for m,t in self.parts:self._draw(m,t)
         for frames in robots:
             for m in self.meshes:self._draw(m,frames[m['joint']])
-        for m,t in getattr(self,'camera_parts',[]):self._draw(m,robots[0]['J6']@t)
-        if not self.live_mode:
+        if not self.probe_only:
+            for m,t in getattr(self,'camera_parts',[]):self._draw(m,robots[0]['J6']@t)
+        if not self.live_mode and not self.probe_only:
             for m,t in getattr(self,'probe_parts',[]):self._draw(m,robots[1]['J6']@t)
         gl.glDisable(gl.GL_LIGHTING);gl.glLineWidth(2.3)
         if self.live_mode and self.live_frame and self.live_frame['user_index']==0:
             # Controller TCP in user 0; workstation base placement remains assumed.
-            pose=self.live_frame['pose'];point=np.array(pose[:3])+[480,100,0]
+            pose=self.live_frame['pose'];point=np.array(pose[:3])+(np.zeros(3) if self.probe_only else [480,100,0])
             from scipy.spatial.transform import Rotation
             rotation=Rotation.from_euler('xyz',pose[3:],degrees=True).as_matrix()
             gl.glPointSize(9);gl.glColor3f(.85,.15,.35);gl.glBegin(gl.GL_POINTS);gl.glVertex3fv(point);gl.glEnd()
@@ -292,6 +304,30 @@ class Scene3D(QOpenGLWidget):
             for i,color in enumerate(([1,0,0],[0,.7,0],[0,.3,1])):
                 gl.glColor3fv(color);gl.glVertex3fv(point);gl.glVertex3fv(point+rotation[:,i]*65)
             gl.glEnd()
+        if self.probe_only and self.live_frame and self.live_mode and self.pose_audit:
+            report=self.pose_audit
+            if np.allclose(self.live_frame['joints'],report['joints_deg'],atol=.1):
+                actual=np.array(report['controller_flange'][:3]);visual=np.array(report['visual_flange_matrix'])[:3,3]
+                gl.glPointSize(10);gl.glBegin(gl.GL_POINTS)
+                gl.glColor3f(.05,.65,.75);gl.glVertex3fv(actual);gl.glColor3f(1,.48,.1);gl.glVertex3fv(visual);gl.glEnd()
+                gl.glColor3f(.55,.65,.72);gl.glBegin(gl.GL_LINES);gl.glVertex3fv(actual);gl.glVertex3fv(self.live_frame['pose'][:3]);gl.glEnd()
+        if self.manual_active and self.manual_task:
+            gl.glColor3f(.08,.61,.74);gl.glBegin(gl.GL_LINE_STRIP)
+            for point in self.manual_task['waypoints']:gl.glVertex3fv(point['tcp_pose'][:3])
+            gl.glEnd()
+            failure=self.manual_task.get('joint_preview_report',{}).get('failure')
+            if failure:
+                gl.glColor3f(1,.15,.1);gl.glPointSize(14);gl.glBegin(gl.GL_POINTS);gl.glVertex3fv(failure['tip_mm']);gl.glEnd()
+            if self.manual_frames:
+                f=self.manual_frames[min(self.manual_index,len(self.manual_frames)-1)];point=f['tip']
+                if moving:
+                    flange=robot_frames(qb,(0,0,0))['flange'][:3,3]
+                    gl.glColor3f(.95,.6,.12);gl.glLineWidth(4);gl.glBegin(gl.GL_LINES);gl.glVertex3fv(flange);gl.glVertex3fv(point);gl.glEnd();gl.glLineWidth(2.3)
+                gl.glPointSize(10);gl.glColor3f(.9,.25,.35);gl.glBegin(gl.GL_POINTS);gl.glVertex3fv(point);gl.glEnd()
+                gl.glBegin(gl.GL_LINES)
+                for i,color in enumerate(([1,0,0],[0,.7,0],[0,.3,1])):
+                    gl.glColor3fv(color);gl.glVertex3fv(point);gl.glVertex3fv(point+f['rotation'][:,i]*55)
+                gl.glEnd()
         if self.plan and not self.live_mode:
             gl.glColor3f(.08,.61,.74);gl.glBegin(gl.GL_LINE_STRIP)
             for item in self.plan['waypoints']:gl.glVertex3fv(item['tip_world_mm'])
@@ -309,7 +345,8 @@ class Scene3D(QOpenGLWidget):
         super().paintEvent(event)
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setPen(QColor('#1c3653'));p.setFont(QFont('Microsoft YaHei',10))
-        p.drawText(18,28,'实时姿态' if self.live_mode and self.live_frame else ('等待实时反馈' if self.live_mode else '路径预览'))
+        joint_preview=self.manual_active and self.manual_task and 'joint_preview_report' in self.manual_task
+        p.drawText(18,28,('虚拟机械臂跟随 · 不控制实机' if joint_preview else 'TCP 几何预览 · 关节待求解') if self.manual_active else ('实时姿态' if self.live_mode and self.live_frame else ('等待实时反馈' if self.live_mode else '路径预览')))
         if self.render_error:p.setPen(QColor('#b45309'));p.drawText(18,50,self.render_error)
         if self.plan and hasattr(self,'view'):
             aspect=self.width()/max(1,self.height());f=1/math.tan(math.radians(37)/2)

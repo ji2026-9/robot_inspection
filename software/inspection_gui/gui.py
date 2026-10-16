@@ -292,6 +292,7 @@ class MainWindow(QMainWindow):
         self.btn_records = QPushButton('实验记录')
         self.btn_models = QPushButton('模型与数据管理')
         self.btn_simulation = QPushButton('三维定位与路径预览')
+        self.btn_probe = QPushButton('测头工作区 · 记录与实机控制')
         self.btn_results = QPushButton('打开结果文件夹')
         # [fusion-sync] 来自朋友分支的“测量就绪检查”
         self.btn_readiness = QPushButton('测量就绪检查')
@@ -300,7 +301,7 @@ class MainWindow(QMainWindow):
         # 「相机实时预览」已并入视觉检测区的「相机实时画面 / 抓拍」。
         positions=((self.btn_devices,0,0,1),(self.btn_records,0,1,1),
                    (self.btn_models,1,0,2),(self.btn_simulation,2,0,2),
-                   (self.btn_results,3,0,2),(self.btn_readiness,4,0,2))
+                   (self.btn_probe,3,0,2),(self.btn_results,4,0,2),(self.btn_readiness,5,0,2))
         for button,row,column,span in positions:
             button.setMinimumHeight(32);others_layout.addWidget(button,row,column,1,span)
         left_layout.addWidget(others)
@@ -540,6 +541,7 @@ class MainWindow(QMainWindow):
         self.btn_results.clicked.connect(self.open_results)
         self.btn_models.clicked.connect(self.show_model_management)
         self.btn_simulation.clicked.connect(self.show_simulation)
+        self.btn_probe.clicked.connect(self.show_probe_workspace)
         self.btn_readiness.clicked.connect(self.show_readiness)   # [fusion-sync]
         self.previous_button.clicked.connect(lambda: self.show_index(self.current_index - 1))
         self.next_button.clicked.connect(lambda: self.show_index(self.current_index + 1))
@@ -1239,6 +1241,10 @@ class MainWindow(QMainWindow):
         self.simulation_dialog.raise_()
         self.simulation_dialog.activateWindow()
 
+    def show_probe_workspace(self):
+        from .probe_workspace_view import show_probe_workspace
+        show_probe_workspace(self)
+
     def show_model_management(self):
         self.model_dialog.show()
         self.model_dialog.raise_()
@@ -1357,6 +1363,7 @@ class MainWindow(QMainWindow):
             except RuntimeError:
                 pass
         if hasattr(self,'simulation_dialog'):self.simulation_dialog.shutdown()
+        if hasattr(self,'_probe_workspace_dialog'):self._probe_workspace_dialog.shutdown()
         self.render_timer.stop()
         self.bridge.detach()
         from .devices_view import _registered_backends

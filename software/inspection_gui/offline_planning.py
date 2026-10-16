@@ -79,6 +79,10 @@ def build_plan(result=None, selected_ids=None, config=None):
 JOINT_OFFSETS=np.array([[0,147,0],[0,0,147],[0,427,-122],[0,357,116],[0,116,0],[0,0,105]],float)
 JOINT_AXES=['y','z','z','z','y','z']
 Y_UP_TO_Z_UP=np.array([[1,0,0,0],[0,0,-1,0],[0,1,0,0],[0,0,0,1]],float)
+# DobotStudio Pro's RoboticArmLoader.initAxesHelper sets TOOL.rotation.z=180deg.
+# Mesh J6 is a display joint frame, not the controller's flange/tool-zero axes.
+# This is a frame convention only, not a fitted calibration or a link correction.
+DISPLAY_J6_TO_FLANGE=np.diag([-1.,-1.,1.,1.])
 
 def rotation(axis, angle):
     c,s=math.cos(angle),math.sin(angle);r=np.eye(4)
@@ -90,6 +94,7 @@ def robot_frames(joints, base):
     t=translated(*base)@Y_UP_TO_Z_UP;frames={'base':t.copy()}
     for i,(offset,axis,q) in enumerate(zip(JOINT_OFFSETS,JOINT_AXES,joints)):
         t=t@translated(*offset)@rotation(axis,q);frames[f'J{i+1}']=t.copy()
+    frames['flange']=frames['J6']@DISPLAY_J6_TO_FLANGE
     return frames
 
 def solve_visual_ik(target, base, tool_length, seed=None):

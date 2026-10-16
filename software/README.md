@@ -1,5 +1,7 @@
 # software\ —— 正式版软件源码（当前使用的界面，以此为准）
 
+> **2026-10-16 当前版**：测头工作区、采点与白球分析、三维关节预览、TCP 定距控制及软件保护已同步。另一台电脑请先阅读 [下载运行说明](../docs/GETTING_STARTED_20261016.md)，完整项目与现用模型见 [v1.3 发布页](https://github.com/ji2026-9/robot_inspection/releases/tag/v1.3-probe-control)。实机运动停止距离尚未验证。
+
 > 2026-10-13 已同步当前实机软件，新增只读实时位姿、离线路径预览及布局优化。推荐直接下载 [v1.2 完整软件包](https://github.com/ji2026-9/robot_inspection/releases/tag/v1.2-readonly-pose)，包含模型和种子数据。只下载源码时，请补充模型，并安装本目录 `requirements.txt` 与适合机器的 PyTorch 版本。
 
 这里是我们**实际在用的那套界面**（「双机械臂孔检测系统」）的完整源码，也就是正式交付版，

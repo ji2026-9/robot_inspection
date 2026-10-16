@@ -51,7 +51,9 @@ class SimulationDialog(QDialog):
         self.config=SimulationConfig();self.result=None;self.selected=None
         self.plan=None;self.trajectory=[];self.generation=0;self.loading=False;self.loading_selection=False
         root=QVBoxLayout(self);root.setContentsMargins(12,12,12,12)
-        title=QLabel('双机械臂工作站');title.setStyleSheet('font-size:20px;font-weight:600;color:#19446b;');root.addWidget(title)
+        title=QLabel('双机械臂工作站');title.setStyleSheet('font-size:20px;font-weight:600;color:#19446b;')
+        heading=QHBoxLayout();heading.addWidget(title);heading.addStretch()
+        probe=QPushButton('测头臂工作区');probe.clicked.connect(self.show_probe_workspace);heading.addWidget(probe);root.addLayout(heading)
         note=QLabel('只读监视 · 工件尺寸与基座布局为模拟值')
         note.setStyleSheet('color:#7b8da0;font-size:11px;');root.addWidget(note)
         connection=QHBoxLayout()
@@ -140,6 +142,10 @@ class SimulationDialog(QDialog):
         self.feedback_timer=QTimer(self);self.feedback_timer.setInterval(100);self.feedback_timer.timeout.connect(self.refresh_feedback)
         self.asset_note=QLabel('外观模型用于姿态展示，运动学与碰撞未验证；真实 TCP 按反馈坐标显示。');self.asset_note.setWordWrap(True)
         self.asset_note.setStyleSheet('color:#6f7f90;font-size:11px;');root.addWidget(self.asset_note)
+
+    def show_probe_workspace(self):
+        from .probe_workspace_view import show_probe_workspace
+        show_probe_workspace(self.parentWidget() or self)
 
     def set_detection(self,result,selected_ids):
         key=json.dumps({'result':{'image':(result or {}).get('image_path'),'holes':(result or {}).get('fitted_holes',[])},

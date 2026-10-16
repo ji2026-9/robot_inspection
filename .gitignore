@@ -127,3 +127,11 @@ last_photo_dir.txt
 software/experiment_records.json
 software/captures/
 software/Log/
+
+# Local test output and private machine files
+.test-output/
+tmp*/
+.env
+.env.*
+*.pem
+*.key

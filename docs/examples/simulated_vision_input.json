@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "source": "simulated_vision",
+  "coordinate_frame": "camera",
+  "units": {
+    "position": "mm",
+    "angle": "deg"
+  },
+  "holes": [
+    {
+      "id": "H01",
+      "position_mm": [
+        0,
+        0,
+        0
+      ],
+      "approach_direction": [
+        0,
+        0,
+        -1
+      ]
+    },
+    {
+      "id": "H02",
+      "position_mm": [
+        40,
+        0,
+        0
+      ],
+      "approach_direction": [
+        0,
+        0,
+        -1
+      ]
+    },
+    {
+      "id": "H03",
+      "position_mm": [
+        40,
+        35,
+        0
+      ],
+      "approach_direction": [
+        0,
+        0,
+        -1
+      ]
+    },
+    {
+      "id": "H04",
+      "position_mm": [
+        0,
+        35,
+        0
+      ],
+      "approach_direction": [
+        0,
+        0,
+        -1
+      ]
+    }
+  ]
+}
