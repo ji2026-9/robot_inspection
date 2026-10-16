@@ -39,6 +39,7 @@ class SphereAnalysisDialog(QDialog):
         self.table=QTableWidget(0,3);self.table.setHorizontalHeaderLabels(['接收时间','X / Y / Z mm','状态']);self.table.verticalHeader().hide()
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch);self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows);self.table.setSelectionMode(QAbstractItemView.SingleSelection);right_layout.addWidget(self.table,1)
+        self.table.itemSelectionChanged.connect(self.update_controls)
         self.exclude=QPushButton('排除 / 恢复选中点（保留原始记录）');self.exclude.clicked.connect(self.exclude_selected);right_layout.addWidget(self.exclude)
         self.result=QPlainTextEdit();self.result.setReadOnly(True);self.result.setPlaceholderText('完成采点并结束本组后，分析结果显示在这里。');right_layout.addWidget(self.result,1)
         self.timer=QTimer(self);self.timer.setInterval(200);self.timer.timeout.connect(self.poll)
@@ -58,7 +59,8 @@ class SphereAnalysisDialog(QDialog):
         self.start.setEnabled(not active and self.ready.isChecked());self.stop.setEnabled(active)
         self.mode.setEnabled(not active);self.ready.setEnabled(not active);self.load.setEnabled(not active)
         self.analyze_button.setEnabled(self.session is not None and not active)
-        self.exclude.setEnabled(self.session is not None and not active);self.export.setEnabled(self.session is not None and not active)
+        self.exclude.setEnabled(self.session is not None and not active and self.table.currentRow()>=0);self.export.setEnabled(self.session is not None and not active)
+        self.exclude.setToolTip('先结束本组，并选择表格中的一个点')
 
     def start_session(self):
         try:
@@ -78,9 +80,16 @@ class SphereAnalysisDialog(QDialog):
     def stop_session(self,reason='用户结束本组采集'):
         try:
             if self.session and self.session.data['status']=='collecting':
-                self.session.stop(reason);self.status.setText(reason+'；已保存本组数据。')
+                # The user can click End before the 200 ms poll sees the last
+                # contact. Drain already received events before closing the group.
+                self.workspace.refresh_feedback()
+                for event in self.workspace.trigger_journal.records:
+                    self.session.append(event)
+                if self.session.data['status']=='collecting':self.session.stop(reason)
+                self.render_table()
+                self.status.setText(self.session.data['stop_reason']+'；已保存本组数据。')
             self.update_controls()
-        except OSError as exc:self.status.setText('保存失败，不能确认结束：'+str(exc))
+        except (OSError,ValueError,KeyError) as exc:self.status.setText('保存失败，不能确认结束：'+str(exc))
 
     def poll(self):
         frame=self.workspace.backend().snapshot();state=di1_state(frame)
@@ -150,3 +159,5 @@ class SphereAnalysisDialog(QDialog):
 
     def closeEvent(self,event):
         self.stop_session('分析窗口关闭，本组停止');self.timer.stop();super().closeEvent(event)
+
+    def reject(self):self.close()

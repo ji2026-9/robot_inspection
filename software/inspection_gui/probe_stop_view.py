@@ -65,8 +65,12 @@ class ProbeStopDialog(QDialog):
     def controls(self):
         m = self.monitor()
         active = bool(m and m.snapshot()['state'] in ('armed','pending','acknowledged'))
-        self.enable.setEnabled(bool(m) and not active and all(c.isChecked() for c in self.checks))
-        self.static_test.setEnabled(bool(m) and not active and self.static_ready.isChecked())
+        control=getattr(self.workspace.backend(),'manual_control',None)
+        conflict=bool(control and control.snapshot()['connected'])
+        self.enable.setEnabled(bool(m) and not active and not conflict and all(c.isChecked() for c in self.checks))
+        self.static_test.setEnabled(bool(m) and not active and not conflict and self.static_ready.isChecked())
+        tip='请先在实机控制窗口断开 TCP 控制，避免端口冲突' if conflict else '需连接有效反馈并确认现场条件'
+        self.enable.setToolTip(tip);self.static_test.setToolTip(tip)
         self.static_ready.setEnabled(not active)
         self.disable.setEnabled(active)
         self.simulate.setEnabled(not active)
@@ -83,6 +87,9 @@ class ProbeStopDialog(QDialog):
     def arm(self, checked=False, *, static_only=False):
         try:
             backend = self.workspace.backend()
+            control=getattr(backend,'manual_control',None)
+            if control and control.snapshot()['connected']:
+                raise ValueError('实机控制已连接，请先断开，避免两个功能争用控制端口')
             ready = self.static_ready.isChecked() if static_only else all(c.isChecked() for c in self.checks)
             if not ready:
                 raise ValueError('现场条件尚未确认')
@@ -110,6 +117,9 @@ class ProbeStopDialog(QDialog):
                 ('\n日志异常：'+r['save_error'] if r.get('save_error') else ''))
             self.status.setStyleSheet('color:#b42318' if r['state']=='failed' else '')
         self.controls()
+        control=getattr(self.workspace.backend(),'manual_control',None)
+        if control and control.snapshot()['connected']:
+            self.status.setText('独立测试已锁定：请先在实机控制窗口断开 TCP 控制，再返回本窗口')
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -123,3 +133,5 @@ class ProbeStopDialog(QDialog):
             c.setChecked(False)
         self.static_ready.setChecked(False)
         super().closeEvent(event)
+
+    def reject(self):self.close()

@@ -49,7 +49,8 @@ class ManualControlDialog(QDialog):
         self.execute_button.pressed.connect(self.execute);self.execute_button.released.connect(self.release);layout.addWidget(self.execute_button)
         self.stop_button=QPushButton('软件停止 · 立即锁定');self.stop_button.setStyleSheet('background:#b42318;color:white;font-size:18px;padding:12px')
         self.stop_button.clicked.connect(lambda:self.controller.request_stop('人工停止'));root.addWidget(self.stop_button)
-        self.detail=QLabel('');self.detail.setWordWrap(True);layout.addWidget(self.detail)
+        self.detail=QLabel('');self.detail.setWordWrap(True);self.detail.setStyleSheet('color:#b42318')
+        root.insertWidget(root.indexOf(self.safety_status)+1,self.detail)
         backend=workspace.backend()
         existing=getattr(backend,'manual_control',None)
         if existing is None:
@@ -126,6 +127,8 @@ class ManualControlDialog(QDialog):
 
     def refresh(self):
         state=self.controller.snapshot();frame=self.workspace.backend().snapshot()
+        if self.plan_id and state['plan'] and self.controller.clock()-state['plan']['created']>10:
+            self.plan_id=None;self.target.setText('目标预览已过期，请重新选择方向生成预览。')
         if frame:
             self.pose.setText('当前 XYZ：'+' / '.join(f'{v:.3f}' for v in frame['pose'][:3])+
                 ' mm\nRx / Ry / Rz：'+' / '.join(f'{v:.3f}' for v in frame['pose'][3:])+
@@ -142,6 +145,7 @@ class ManualControlDialog(QDialog):
         self.disconnect_button.setEnabled(state['connected']);self.stop_button.setEnabled(state['connected'])
         self.reset_button.setEnabled(safety['can_reset'])
         self.unlock_button.setEnabled(state['can_unlock'])
+        self.unlock_button.setToolTip('连接 TCP 并满足反馈检查后才能解锁；具体原因见下方状态。' if not state['can_unlock'] else '重新核对四项现场条件后解锁60秒')
         for button in self.directions:button.setEnabled(state['phase']=='ready' and safety['feedback_ok'])
         # Keep the held button enabled during execution so Qt can deliver release.
         holding=self.execute_button.isDown() and state['phase'] in ('queued','moving')

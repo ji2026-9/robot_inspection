@@ -239,7 +239,7 @@ class ProbeWorkspaceDialog(QDialog):
         layout=self.page('姿态核对');card,box=self.card('显示模型与控制器反馈')
         box.addWidget(self.note('使用同一帧的关节角、TCP 和工具偏移反算法兰。模型法兰轴已按厂家工具轴定义转换；剩余偏差仍保留。'))
         self.audit_button=QPushButton('核对当前姿态');self.audit_button.clicked.connect(self.start_audit);box.addWidget(self.audit_button)
-        optional=QPushButton('尝试控制器只读正解');optional.clicked.connect(lambda:self.start_audit(query_controller=True));box.addWidget(optional);layout.addWidget(card)
+        self.optional_audit_button=QPushButton('尝试控制器只读正解');self.optional_audit_button.clicked.connect(lambda:self.start_audit(query_controller=True));box.addWidget(self.optional_audit_button);layout.addWidget(card)
         self.audit_summary=QLabel('尚未核对');self.audit_summary.setWordWrap(True);layout.addWidget(self.audit_summary)
         self.export_audit_button=QPushButton('导出核对报告');self.export_audit_button.clicked.connect(self.export_audit);self.export_audit_button.setEnabled(False);layout.addWidget(self.export_audit_button)
         layout.addWidget(self.note('青色点：按反馈工具配置反算的法兰。橙色点：显示模型法兰。核对为单个静态样本，不代表整条运动学或实物测球标定已验证。'))
@@ -374,6 +374,10 @@ class ProbeWorkspaceDialog(QDialog):
         self.feedback_was_valid=frame is not None
         self.connect_button.setEnabled(frame is None and not self.connecting)
         self.record_button.setEnabled(frame is not None and self.library is not None);self.audit_button.setEnabled(frame is not None and not self.auditing)
+        control=getattr(backend,'manual_control',None)
+        conflict=bool(control and control.snapshot()['connected'])
+        self.optional_audit_button.setEnabled(frame is not None and not self.auditing and not conflict)
+        self.optional_audit_button.setToolTip('请先断开实机 TCP 控制；普通姿态核对仍可使用' if conflict else '仅查询控制器正解，需有效反馈')
         self.vision_current_button.setEnabled(frame is not None)
         if frame:
             self.connection_state.setText('● 只读反馈已连接 · '+str(backend.address))
@@ -641,6 +645,9 @@ class ProbeWorkspaceDialog(QDialog):
 
     def start_audit(self,*_,query_controller=False):
         if self.auditing:return
+        control=getattr(self.backend(),'manual_control',None)
+        if query_controller and control and control.snapshot()['connected']:
+            self.message('请先断开实机 TCP 控制，再尝试正解查询；可先使用普通姿态核对。',True);return
         frame=self.backend().snapshot()
         if frame is None:self.message('未收到有效反馈，不能核对',True);return
         self.auditing=True;self.audit=None;self.export_audit_button.setEnabled(False);self.audit_button.setEnabled(False)
@@ -686,6 +693,8 @@ class ProbeWorkspaceDialog(QDialog):
         self.closed=True;self.timer.stop();self.refresh_timer.stop();self.audit_generation+=1;self.auditing=False;super().closeEvent(event)
 
     def shutdown(self):self.shutdown_event.set();self.close()
+
+    def reject(self):self.close()
 
 
 def show_probe_workspace(parent=None):

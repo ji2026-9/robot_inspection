@@ -2,11 +2,11 @@
 
 最新源码：https://github.com/ji2026-9/robot_inspection
 
-完整项目与现用模型包：https://github.com/ji2026-9/robot_inspection/releases/tag/v1.3-probe-control
+完整项目与现用模型包：https://github.com/ji2026-9/robot_inspection/releases/tag/v1.3.1-button-fixes
 
 ## 另一台 Windows 电脑怎么运行
 
-推荐从发布页下载 `01_current_project_v1.3_20261016.zip` 并完整解压。它包含仓库源码、当前5个模型和训练种子数据，不包含 Python 环境。请安装 Python 3.11（包含 pip 和 Tkinter），然后在解压后的项目根目录打开命令行：
+推荐从发布页下载 `01_current_project_v1.3.1_20261016.zip` 并完整解压。它包含仓库源码、当前5个模型和训练种子数据，不包含 Python 环境。请安装 Python 3.11（包含 pip 和 Tkinter），然后在解压后的项目根目录打开命令行：
 
 ```bat
 py -3.11 -m venv software\.venv
@@ -34,15 +34,17 @@ git pull --ff-only origin main
 
 正式软件在 `software/`，入口 `software/app.py`，主界面 `software/inspection_gui/gui.py`。测头工作区见 `probe_workspace_view.py`；实机控制及保护见 `manual_control.py` 和 `manual_control_view.py`。`engine_bore_local/` 是历史引擎参考，不是当前界面的入口。
 
-Git 仓库不存放模型二进制和种子图片；只克隆代码时，请从 v1.3 完整项目包提取 `software/models/` 和 `software/data/database_seed/`。无需下载旧版界面覆盖新版源码。
+Git 仓库不存放模型二进制和种子图片；只克隆代码时，请从 v1.3.1 完整项目包提取 `software/models/` 和 `software/data/database_seed/`。无需下载旧版界面覆盖新版源码。
 
 ## 当前功能与验证边界
 
 - 视觉检测、孔位选择、记录、训练管理、三维显示和离线路径预览。
 - CR5A 只读反馈、DI_1 触发采点、白球拟合与重复性分析、模拟视觉坐标流程。
 - 独立 TCP 定距控制入口，默认锁定；保护检查、按住执行、停止后锁定与手动复位。
-- 97 项离线自动测试、12 项控制界面检查通过。实机仅验证过静止触发与停止指令通信，未验证运动停止距离或自动测量精度。
+- 109 项离线自动测试、12 项控制界面检查通过。实机仅验证过静止触发与停止指令通信，未验证运动停止距离或自动测量精度。
 
 源码有真实运动能力。阅读、离线分析无需连接机械臂；实机控制需重新核对现场、工具、负载和重心。软件停止不能替代实体急停，不会自动使能、清报警或切换 TCP 模式。
 
 详见 `docs/manual_control_safety.md`、`docs/manual_control.md`、`docs/sphere_analysis.md`。完整包不迁移本机控制日志、采点记录、设备会话或虚拟环境；历史检测结果与旧数据附件仍可在既有 Releases 找到。可选的本机厂商三维网格不随包分发，缺少时使用软件内置几何显示。
+
+本次按钮核对与修复清单见 [BUTTON_AUDIT_20261016.md](BUTTON_AUDIT_20261016.md)。

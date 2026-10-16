@@ -335,6 +335,8 @@ class SimulationDialog(QDialog):
             self.cancel.set();self.generation+=1;self.loading=False;self.input_key=None
         super().closeEvent(event)
 
+    def reject(self):self.close()
+
     def shutdown(self):
         self.cancel.set();self.generation+=1;self.feedback_timer.stop();self.timer.stop();self.debounce.stop()
         self.executor.shutdown(wait=False,cancel_futures=True)
