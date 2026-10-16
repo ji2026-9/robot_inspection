@@ -49,11 +49,19 @@ class TargetTests(unittest.TestCase):
         for f,w,g in cases:
             f=copy.deepcopy(f);f['received_monotonic']=time.monotonic()
             with self.subTest(g=g),self.assertRaises(ValueError):target.validate_context(plan,f,w,g)
-    def test_bad_feedback_and_unconfirmed_wall_refuse(self):
+    def test_bad_feedback_and_missing_radius_refuse(self):
         for change in ({'received_monotonic':0.},{'running':True},{'user_index':1},{'digital_inputs':1}):
             with self.assertRaises(ValueError):target.validate_start(dict(self.frame,**change))
-        with self.assertRaises(ValueError):target.build_target_preview(self.frame,self.frame['pose'],DEFAULT_WALL,20,self.mesh)
         with self.assertRaises(ValueError):target.build_target_preview(self.frame,self.frame['pose'],self.wall,0,self.mesh)
+    def test_unconfirmed_wall_skips_check_and_allows_execution(self):
+        pose=self.frame['pose'][:];pose[0]+=1
+        with patch('socket.create_connection',side_effect=AssertionError('No real motion')):
+            plan=target.build_target_preview(self.frame,pose,DEFAULT_WALL,None,self.mesh,generation=3)
+        self.assertFalse(plan['wall_checked']);self.assertTrue(plan['collision']['skipped']);self.assertFalse(plan['problems'])
+        self.assertTrue(plan['sampled_path_clear'])
+        frame=copy.deepcopy(self.frame);frame['received_monotonic']=time.monotonic()
+        approval=target.request_execution(plan,frame,DEFAULT_WALL,3)
+        self.assertTrue(approval['approved']);self.assertFalse(approval['wall_checked'])
     def test_collision_is_error_not_motion_permit(self):
         pose=self.frame['pose'][:];pose[0]+=1
         unsafe=dict(self.wall,distance_mm=1)

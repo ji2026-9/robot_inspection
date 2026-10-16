@@ -18,8 +18,8 @@ class CoordinateTargetDialog(QDialog):
         self.setWindowTitle('坐标到点 · 安全墙预演');self.resize(1250,820)
         root=QVBoxLayout(self);split=QSplitter(Qt.Horizontal);root.addWidget(split,1)
         controls=QWidget();left=QVBoxLayout(controls);scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(controls);scroll.setMinimumWidth(370);split.addWidget(scroll)
-        title=QLabel('输入目标 → 检查 → 带墙预演');title.setStyleSheet('font-size:18px;font-weight:600');left.addWidget(title)
-        note=QLabel('目标为测量臂底座B / 用户0坐标，XYZ为mm、姿态为度。默认保持当前姿态；先完成预演，绝不直接按输入坐标发送运动。')
+        title=QLabel('输入目标 → 预演 → 执行');title.setStyleSheet('font-size:18px;font-weight:600');left.addWidget(title)
+        note=QLabel('目标为测量臂底座B / 用户0坐标，XYZ为mm、姿态为度。默认保持当前姿态；安全墙没设置时只解算路径，不做碰墙检查。')
         note.setWordWrap(True);left.addWidget(note)
         self.hold_orientation=QCheckBox('保持采样时的当前工具姿态');self.hold_orientation.setChecked(True);left.addWidget(self.hold_orientation)
         form=QFormLayout();self.fields=[];left.addLayout(form)
@@ -27,9 +27,10 @@ class CoordinateTargetDialog(QDialog):
             field=QDoubleSpinBox();field.setRange(-2500,2500) if len(self.fields)<3 else field.setRange(-360,360)
             field.setDecimals(3);field.setSuffix(' mm' if len(self.fields)<3 else ' °');form.addRow(name,field);self.fields.append(field)
         read=QPushButton('读取当前位置作为目标初值');read.clicked.connect(self.read_current);left.addWidget(read)
-        self.radius=QDoubleSpinBox();self.radius.setRange(0,500);self.radius.setSuffix(' mm');form.addRow('工具包络半径（需实测）',self.radius)
-        self.tool_confirm=QCheckBox('已核对包络覆盖全部工具与测针');left.addWidget(self.tool_confirm)
-        self.build=QPushButton('生成姿态路径并检查安全墙');self.build.clicked.connect(self.generate);left.addWidget(self.build)
+        self.radius=QDoubleSpinBox();self.radius.setRange(0,500);self.radius.setValue(120);self.radius.setSuffix(' mm')
+        form.addRow('工具包络半径（设墙时才需要）',self.radius)
+        self.tool_confirm=QCheckBox('已核对包络覆盖全部工具与测针（设墙时才需要）');left.addWidget(self.tool_confirm)
+        self.build=QPushButton('生成路径预演');self.build.clicked.connect(self.generate);left.addWidget(self.build)
         self.play=QPushButton('播放预演');self.play.clicked.connect(self.toggle_play);self.play.setEnabled(False);left.addWidget(self.play)
         self.reset=QPushButton('回到预演起点');self.reset.clicked.connect(lambda:self.slider.setValue(0));left.addWidget(self.reset)
         self.collision_pose=QPushButton('查看碰墙姿态');self.collision_pose.clicked.connect(self.show_collision);self.collision_pose.setEnabled(False);left.addWidget(self.collision_pose)
@@ -41,7 +42,7 @@ class CoordinateTargetDialog(QDialog):
         self.session_confirm=QCheckBox('本次工具与现场已核对');left.addWidget(self.session_confirm)
         session_note=QLabel('包含负载与重心、工具坐标及实体急停；人员已离开运动范围。');session_note.setWordWrap(True);left.addWidget(session_note)
         row=QHBoxLayout();row.addWidget(QLabel('工具总重量'));self.payload=QDoubleSpinBox()
-        self.payload.setRange(0,5);self.payload.setDecimals(3);self.payload.setSuffix(' kg');row.addWidget(self.payload);row.addStretch(1);left.addLayout(row)
+        self.payload.setRange(0,5);self.payload.setDecimals(3);self.payload.setValue(1.0);self.payload.setSuffix(' kg');row.addWidget(self.payload);row.addStretch(1);left.addLayout(row)
         row=QHBoxLayout();self.connect_control=QPushButton('连接实机控制');self.connect_control.clicked.connect(self.connect_control_channel)
         row.addWidget(self.connect_control);self.enable_control=QPushButton('启用本轮控制');self.enable_control.clicked.connect(self.enable_control_session)
         row.addWidget(self.enable_control);left.addLayout(row)
@@ -61,6 +62,7 @@ class CoordinateTargetDialog(QDialog):
         try:self.show_wall(load_wall(self.workspace.storage_path.parent/'safety_wall.json'))
         except (ValueError,OSError,TypeError) as error:self.detail.setPlainText('安全墙读取失败：'+str(error))
         self.refresh_control_state()
+        self.auto_connect()
 
     def orientation_changed(self,*args):
         for field in self.fields[3:]:field.setEnabled(not self.hold_orientation.isChecked())
@@ -128,6 +130,33 @@ class CoordinateTargetDialog(QDialog):
         except (ValueError,OSError,RuntimeError) as error:self.detail.setPlainText('未连接：'+str(error))
         self.refresh_control_state()
 
+    def auto_connect(self):
+        """Non-motion convenience: grab the control channel as soon as the window opens."""
+        try:
+            backend,control=self.backend_control()
+            if control.snapshot()['connected']:return
+            frame=backend.snapshot()
+            if not frame or not backend.address:return
+            control.observe(frame,backend.generation);control.connect(backend.address,backend.generation)
+        except (ValueError,OSError,RuntimeError,AttributeError):pass
+
+    def ensure_session(self):
+        """Enable this round's motion permit if it is not already unlocked."""
+        backend,control=self.backend_control()
+        state=control.snapshot()
+        if not state.get('connected'):
+            self.auto_connect();state=control.snapshot()
+            if not state.get('connected'):raise ValueError('实机控制未连接：请先连上只读反馈，再点“连接实机控制”')
+        if state.get('unlocked') and state.get('phase')=='ready':return control
+        if not self.session_confirm.isChecked():raise ValueError('请先勾选“本次工具与现场已核对”')
+        frame=backend.snapshot()
+        if frame:control.observe(frame,backend.generation)
+        control.unlock(True,self.payload.value(),interactive=True);self.enabled_here=True
+        state=control.snapshot()
+        if not state.get('unlocked') or state.get('phase')!='ready':
+            raise ValueError('无法启用本轮控制：'+str(state.get('reason') or state.get('phase')))
+        return control
+
     def enable_control_session(self):
         try:
             backend,control=self.backend_control()
@@ -163,7 +192,8 @@ class CoordinateTargetDialog(QDialog):
         try:
             backend=self.workspace.backend();frame=copy.deepcopy(validate_start(backend.snapshot()))
             wall=load_wall(self.workspace.storage_path.parent/'safety_wall.json')
-            if not self.tool_confirm.isChecked() or self.radius.value()<=0:raise ValueError('请先实测并填写工具包络半径，确认覆盖全部工具和测针')
+            if wall['direction_confirmed'] and (not self.tool_confirm.isChecked() or self.radius.value()<=0):
+                raise ValueError('已设置安全墙：请先填写工具包络半径并勾选覆盖确认')
             target=[field.value() for field in self.fields]
             if self.hold_orientation.isChecked():target[3:]=frame['pose'][3:]
             radius=self.radius.value();generation=backend.generation;token=self.revision
@@ -187,14 +217,22 @@ class CoordinateTargetDialog(QDialog):
         seed=dict(joints_deg=plan['start']['joints']);self.scene.set_manual_preview(plan['task'],plan['frames'],seed)
         self.slider.setRange(0,max(0,len(plan['frames'])-1));self.seek(0);self.play.setEnabled(bool(plan['frames']))
         self.collision_pose.setEnabled(plan['collision']['collision'])
-        verdict='检查不通过，禁止执行：'+'；'.join(plan['problems']) if plan['problems'] else '显示模型采样路径未发现碰墙；不等于实机路径已验证安全'
-        text=f"{verdict}\n目标：{plan['target_pose']}\n完成逆解：{len(plan['frames'])} 帧\n采样最小间隙：{plan['collision']['minimum_clearance_mm']:.2f} mm\n起点显示模型/反馈差：{plan['start_model_error_mm']:.2f} mm，{plan['start_model_error_deg']:.2f}°"
-        clearance=plan['collision']['minimum_clearance_mm']
-        clearance_ok=(not plan['problems'] and clearance>=EXECUTION_MIN_CLEARANCE_MM)
-        text+=(f'\n执行门槛：采样间隙需 ≥ {EXECUTION_MIN_CLEARANCE_MM:.0f} mm（当前{"达标" if clearance_ok else "未达标"}）')
+        wall_checked=bool(plan.get('wall_checked'))
+        if plan['problems']:verdict='检查不通过，禁止执行：'+'；'.join(plan['problems'])
+        elif wall_checked:verdict='显示模型采样路径未发现碰墙；不等于实机路径已验证安全'
+        else:verdict='逆解完整；未设置安全墙，本次没有做碰墙检查'
+        text=f"{verdict}\n目标：{plan['target_pose']}\n完成逆解：{len(plan['frames'])} 帧\n起点显示模型/反馈差：{plan['start_model_error_mm']:.2f} mm，{plan['start_model_error_deg']:.2f}°"
+        if wall_checked:
+            clearance=plan['collision']['minimum_clearance_mm']
+            clearance_ok=(not plan['problems'] and clearance>=EXECUTION_MIN_CLEARANCE_MM)
+            text+=f"\n采样最小间隙：{clearance:.2f} mm"
+            text+=f'\n执行门槛：采样间隙需 ≥ {EXECUTION_MIN_CLEARANCE_MM:.0f} mm（当前{"达标" if clearance_ok else "未达标"}）'
+        else:
+            clearance_ok=not plan['problems']
+            text+='\n未设置安全墙：间隙门槛不适用，执行前请自行确认运动范围内没有障碍。'
         text+='\n仍需人工确认：'+'；'.join(plan['execution_blockers'])
         if clearance_ok:
-            text+='\n可执行：连接实机控制并启用本轮控制（勾选现场确认、填写工具总重量）后，点“实机执行”即可到点。'
+            text+='\n可执行：勾选“本次工具与现场已核对”，再点“实机执行”。'
         else:
             text+='\n实机执行保持禁止。'
         self.detail.setPlainText(text);self.execute_ready=clearance_ok;self.refresh_control_state()
@@ -227,10 +265,7 @@ class CoordinateTargetDialog(QDialog):
                 load_wall(self.workspace.storage_path.parent/'safety_wall.json'),backend.generation)
             control=getattr(backend,'manual_control',None)
             if control is None:raise ValueError('请先点“连接实机控制”')
-            state=control.snapshot()
-            if not state.get('connected'):raise ValueError('请先点“连接实机控制”')
-            if not state.get('unlocked') or state.get('phase')!='ready':
-                raise ValueError('请勾选现场确认、填写工具总重量并点“启用本轮控制”')
+            control=self.ensure_session()
             speed=int(self.execute_speed.value())
             move=control.preview_target(approval['target_pose'],speed)
             control.execute(move['id'])

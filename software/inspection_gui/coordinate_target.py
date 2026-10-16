@@ -28,9 +28,11 @@ def validate_start(frame,now=None):
 def build_target_preview(frame,target_pose,wall,tool_radius_mm,meshes,*,generation=0,now=None,cancelled=None):
     frame=copy.deepcopy(validate_start(frame,now));target=vector6(target_pose,'目标位姿')
     wall=validate_wall(wall)
-    if not wall['direction_confirmed']:raise ValueError('安全墙方向未确认，请先设置安全墙')
-    if type(tool_radius_mm) not in (float,int) or not math.isfinite(tool_radius_mm) or tool_radius_mm<=0:
-        raise ValueError('必须填写并确认能够覆盖全部测针工具的包络半径')
+    wall_checked=bool(wall['direction_confirmed'])
+    radius_ok=type(tool_radius_mm) in (float,int) and math.isfinite(tool_radius_mm) and tool_radius_mm>0
+    if wall_checked and not radius_ok:
+        raise ValueError('设置了安全墙时必须填写并确认能够覆盖全部测针工具的包络半径')
+    radius=float(tool_radius_mm) if radius_ok else None
     distance=math.dist(frame['pose'][:3],target[:3])
     if distance>2000 or max(abs(x) for x in target[:3])>2500:raise ValueError('目标超出本预演支持范围')
     rotations=Rotation.from_euler('xyz',[frame['pose'][3:],target[3:]],degrees=True)
@@ -46,7 +48,12 @@ def build_target_preview(frame,target_pose,wall,tool_radius_mm,meshes,*,generati
     start_q=np.deg2rad(frame['joints'])
     points=[start_q]+[f['joints'] for f in frames]
     if len(points)==1:points.append(start_q.copy())
-    collision=check_path(meshes,points,wall,frame['tool_offset'],float(tool_radius_mm),cancelled=cancelled)
+    if wall_checked:
+        collision=check_path(meshes,points,wall,frame['tool_offset'],radius,cancelled=cancelled)
+    else:
+        collision=dict(kind='path',collision=False,parts=[],samples=1,skipped=True,
+            reason='未确认安全墙方向，本次未做碰墙检查',minimum_clearance_mm=float('inf'),
+            model_only=True,hardware_executable=False,continuous_verified=False,wall=wall)
     tool=pose_matrix(frame['tool_offset']);model_start=tcp_matrix(start_q,tool)
     measured=pose_matrix(frame['pose'])
     model_error_mm=float(np.linalg.norm(model_start[:3,3]-measured[:3,3]))
@@ -54,13 +61,16 @@ def build_target_preview(frame,target_pose,wall,tool_radius_mm,meshes,*,generati
     problems=[]
     if not ik.get('complete'):problems.append('没有完整连续逆解：'+str((ik.get('failure') or {}).get('reason','未知原因')))
     if collision['collision']:problems.append('路径进入安全墙禁区：'+','.join(sorted({p['part'] for p in collision['parts'] if p['collision']})))
+    blockers=['显示几何和测针TCP未完成实物验证','控制器实际插补轨迹与预演的一致性未验证']
+    if wall_checked:blockers.insert(1,'碰撞检查仅为采样，未证明连续路径无碰撞')
+    else:blockers.insert(0,'未设置安全墙：本次没有做碰墙检查')
     return dict(id=task['task_id'],created_at=datetime.now().astimezone().isoformat(),start=frame,
                 generation=generation,target_pose=target,wall=wall,wall_fingerprint=wall_fingerprint(wall),
-                tool_radius_mm=float(tool_radius_mm),task=task,frames=frames,collision=collision,problems=problems,
+                tool_radius_mm=radius,task=task,frames=frames,collision=collision,wall_checked=wall_checked,
+                problems=problems,
                 preview_complete=bool(ik.get('complete')),sampled_path_clear=bool(ik.get('complete') and not collision['collision']),
                 start_model_error_mm=model_error_mm,start_model_error_deg=model_error_deg,
-                hardware_executable=False,execution_blockers=['显示几何和测针TCP未完成实物验证',
-                    '碰撞检查仅为采样，未证明连续路径无碰撞','控制器实际插补轨迹与预演的一致性未验证'])
+                hardware_executable=False,execution_blockers=blockers)
 
 def validate_context(plan,frame,wall,generation,now=None):
     validate_start(frame,now)
@@ -89,7 +99,13 @@ def request_execution(plan,frame,wall,generation,now=None):
     editing an exported report cannot authorise movement.
     """
     validate_context(plan,frame,wall,generation,now)
-    clearance = float(plan.get('collision', {}).get('minimum_clearance_mm', -float('inf')))
+    collision = plan.get('collision', {})
+    if collision.get('skipped'):
+        return dict(approved=True, target_pose=plan['target_pose'],
+                    tool_index=plan['task']['tool_index'], minimum_clearance_mm=None,
+                    required_margin_mm=EXECUTION_MIN_CLEARANCE_MM, wall_checked=False,
+                    sampled_only=True, hardware_executable=False)
+    clearance = float(collision.get('minimum_clearance_mm', -float('inf')))
     if not math.isfinite(clearance):
         raise ValueError('碰撞检查结果无效，禁止运动')
     if clearance < EXECUTION_MIN_CLEARANCE_MM:
@@ -98,5 +114,5 @@ def request_execution(plan,frame,wall,generation,now=None):
             '提前报错，禁止运动')
     return dict(approved=True, target_pose=plan['target_pose'],
                 tool_index=plan['task']['tool_index'], minimum_clearance_mm=clearance,
-                required_margin_mm=EXECUTION_MIN_CLEARANCE_MM, sampled_only=True,
+                required_margin_mm=EXECUTION_MIN_CLEARANCE_MM, wall_checked=True, sampled_only=True,
                 hardware_executable=False)
