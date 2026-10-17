@@ -1,36 +1,29 @@
 {
-  "updated_at": "2026-10-17T18:04:52.184283+08:00",
-  "build_id": "2026.10.17-tool-payload-autosave",
+  "updated_at": "2026-10-17T18:37:40.698268+08:00",
+  "build_id": "2026.10.17-auto-hole-probe",
   "targeted_tests": {
-    "test_tool_payload.py": 6,
-    "test_steppers.py": 9,
-    "test_recent_ui.py": 12,
-    "test_standard_workbench.py": 10,
-    "test_workflow_audit.py": 4,
-    "test_return_all_modes.py": 3
-  },
-  "previous_full_suite": {
-    "passed": 298,
-    "scope": "previous GitHub sync"
+    "test_contact_points.py": 10,
+    "test_manual_control.py": 19
   },
   "full_suite": {
-    "total": 307,
-    "passed": 307,
+    "total": 318,
+    "passed": 318,
     "skipped": 0,
-    "scope": "this round after payload change"
+    "scope": "this round after auto hole probe"
+  },
+  "previous_full_suite": {
+    "passed": 307,
+    "scope": "tool payload round"
   },
   "offline_opengl_qa": true,
   "checked_modes": 3,
   "hardware_connected": false,
   "robot_moved": false,
-  "backup": "E:\\robot_project\\_backup_tool_payload_20261017_1804",
+  "backup": "E:\\robot_project\\_backup_auto_hole_probe_20261017_1837",
   "evidence": [
-    "tests/test_tool_payload.py",
-    "tests/test_steppers.py",
-    "tests/test_recent_ui.py",
-    "tests/test_standard_workbench.py",
-    "tests/test_workflow_audit.py",
-    "tests/test_return_all_modes.py"
+    "tests/test_contact_points.py",
+    "tests/test_manual_control.py",
+    "scripts/qa_workflows_offline.py"
   ],
   "automatic_main_merge_authorized": true,
   "publish_status": "见 UPDATES.md；以实际推送/PR记录为准"

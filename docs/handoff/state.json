@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "build_id": "2026.10.17-tool-payload-autosave",
+  "build_id": "2026.10.17-auto-hole-probe",
   "git": {
-    "head": "31b37442ce786c3ba1e6b4c9f02f7a15e39588f2",
+    "head": "d85fe176b1655bc0964cf25b1c10563e11d2f34f",
     "remote": "https://github.com/ji2026-9/robot_inspection.git",
-    "dirty_entries": 0,
+    "dirty_entries": 15,
     "remote_fetched_during_snapshot": false,
     "publish_status": "Not inferred; see UPDATES.md",
     "head_note": "HEAD when snapshot was generated; may precede the commit containing this snapshot"
@@ -21,6 +21,7 @@
     "software/inspection_gui/circle_measurement_view.py": "f997cfd69e13d32f65fb34e7f567b5cdf97a01d125ca025ee85700262d67e343",
     "software/inspection_gui/config_history.py": "22f4f1089c4d9015e0de46dfc2ccb5050ccbbaa7d79ef067a9e115e9bda55d8f",
     "software/inspection_gui/config_history_view.py": "8efb063d58a7056e9fc5f6e549df9e28d723dd64da6c2370e0927d3585d20177",
+    "software/inspection_gui/contact_points.py": "d8ce0929ce6f858fc20e3485c6db83eeff46e40dc675a71e76282f989c06ac15",
     "software/inspection_gui/control_overview.py": "b710c3daafa04ecef584c5d370963d9b6512f5f58196797fc6315ffffd77cbf2",
     "software/inspection_gui/coordinate_target.py": "9ed8865dd1ba309e185b62df2c7a60b68f07bc69d455ddecf4fb8bd57cede0ec",
     "software/inspection_gui/coordinate_target_view.py": "9cabccb0cad84dd5fbf95c859c9ed47125cf795b33c9160f8dcc1daba988d87e",
@@ -29,8 +30,10 @@
     "software/inspection_gui/event_history_view.py": "97823618e223652176e978a573a681e5f96951689106de4aa95c96575144118c",
     "software/inspection_gui/global_status_view.py": "79fbd17b452bbeccbe8791b29c846c5066e81fac9f1d770382d9bd670c485d96",
     "software/inspection_gui/global_wall.py": "6d1fd7c4269c592bcc0285e791244671c6def00f91fdd9818eed3b4ce379bf97",
-    "software/inspection_gui/gui.py": "ac9765585b8819b4db6df00176c598a81082035b1808b92d14151415ae5e9dd5",
-    "software/inspection_gui/manual_control.py": "3616982878718d6e0fdb109e7627df69b45c3d7b82471c05c06430f435620e5c",
+    "software/inspection_gui/gui.py": "dd4cbf8efcaca5d0bb8c6cdd2ef3e39550c2486b0ee42bc0f2409af27d89a305",
+    "software/inspection_gui/hole_probe.py": "6c6ebbc4cb45b7caaddbd8e679e8d5a810d698e3f9111e6b448e1477bfb6648e",
+    "software/inspection_gui/hole_probe_view.py": "f3c0a435c00facb5c52db747e347c655d2816293e8b78c27389143a3afc6e56f",
+    "software/inspection_gui/manual_control.py": "5edac81dbc5c05806ebbf83bea0691692b147bd57cb3e2c1bcbbea8de94dfefb",
     "software/inspection_gui/manual_control_view.py": "e367bb043802a09aa84c8742af529a0fbdad746bef851d7ad70d3cad0c7e0d82",
     "software/inspection_gui/manual_origin.py": "b0680c9b109f97ebbcd5936e4331a2055f467172d46c5365ef831ce8281d441e",
     "software/inspection_gui/manual_preview.py": "54d6e75f89a24910e3f54960e7423f18ad7061278250fec7a9e19efc5efaf318",
@@ -46,47 +49,40 @@
     "software/inspection_gui/ui_events.py": "cc9286d45ee9c4d2b2567904e0c980a6ba60ecfebf13b0dedb3e345e61da73f8",
     "software/inspection_gui/ui_feedback.py": "84d7a9ba05c4a062e70facbe7a95dada9bb1bde163c838311f282828439fb253",
     "software/inspection_gui/wall_guard.py": "e52a8f7b0e91ebded46df33e43d645e9f278a7654c69ab67884c57b513866a62",
-    "software/inspection_gui/workbench.py": "184817a68aba48c8c709ecfd436f610df0997a8bc19daf918b371f3cc5284826"
+    "software/inspection_gui/workbench.py": "29cd5605d1b3f1bfa90ba421c992e34de6ea0b933feb7e06751fc37c552949a2"
   },
-  "manifest_sha256": "8dd9e104395df554191ce9efb8b03df26bef5b1ccbb26fbb8fad977227e6f6ef",
+  "manifest_sha256": "461ae9e531f324b2fe23eb1db4d60fc434e86ae4c2d30eca7554bd3111e75815",
   "runtime_comparison": {
     "available": true,
-    "checked_files": 32,
+    "checked_files": 35,
     "different_or_missing": []
   },
   "validation": {
-    "updated_at": "2026-10-17T18:04:52.184283+08:00",
-    "build_id": "2026.10.17-tool-payload-autosave",
+    "updated_at": "2026-10-17T18:37:40.698268+08:00",
+    "build_id": "2026.10.17-auto-hole-probe",
     "targeted_tests": {
-      "test_tool_payload.py": 6,
-      "test_steppers.py": 9,
-      "test_recent_ui.py": 12,
-      "test_standard_workbench.py": 10,
-      "test_workflow_audit.py": 4,
-      "test_return_all_modes.py": 3
-    },
-    "previous_full_suite": {
-      "passed": 298,
-      "scope": "previous GitHub sync"
+      "test_contact_points.py": 10,
+      "test_manual_control.py": 19
     },
     "full_suite": {
-      "total": 307,
-      "passed": 307,
+      "total": 318,
+      "passed": 318,
       "skipped": 0,
-      "scope": "this round after payload change"
+      "scope": "this round after auto hole probe"
+    },
+    "previous_full_suite": {
+      "passed": 307,
+      "scope": "tool payload round"
     },
     "offline_opengl_qa": true,
     "checked_modes": 3,
     "hardware_connected": false,
     "robot_moved": false,
-    "backup": "E:\\robot_project\\_backup_tool_payload_20261017_1804",
+    "backup": "E:\\robot_project\\_backup_auto_hole_probe_20261017_1837",
     "evidence": [
-      "tests/test_tool_payload.py",
-      "tests/test_steppers.py",
-      "tests/test_recent_ui.py",
-      "tests/test_standard_workbench.py",
-      "tests/test_workflow_audit.py",
-      "tests/test_return_all_modes.py"
+      "tests/test_contact_points.py",
+      "tests/test_manual_control.py",
+      "scripts/qa_workflows_offline.py"
     ],
     "automatic_main_merge_authorized": true,
     "publish_status": "见 UPDATES.md；以实际推送/PR记录为准"
@@ -96,5 +92,5 @@
     "No model weights, raw probe records, credentials or hardware connections read.",
     "Update prose STATUS and UPDATES separately; this script does not infer progress."
   ],
-  "generated_at": "2026-10-17T18:07:02.442488+08:00"
+  "generated_at": "2026-10-17T18:39:10.809296+08:00"
 }

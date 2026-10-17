@@ -48,7 +48,7 @@ class Workbench(QWidget):
         if parent:parent.installEventFilter(self)
 
     def group_for(self,key):
-        return {'visual':'工作台','simulation':'工作台','probe':'测量任务','circle':'测量任务','control':'实机控制','records':'记录与结果','events':'记录与结果'}.get(key,'设置')
+        return {'visual':'工作台','simulation':'工作台','probe':'测量任务','circle':'测量任务','contact':'测量任务','control':'实机控制','records':'记录与结果','events':'记录与结果'}.get(key,'设置')
 
     def select_settings_tier(self,tier):
         if tier not in self.settings_buttons:raise ValueError('未知设置分类')
@@ -96,6 +96,7 @@ class Workbench(QWidget):
                 'control':'实机控制 · 预览与执行分开；软件停止不能替代实体急停',
                 'probe':'只读触碰采点 · 保存当前工具坐标；本页不发送运动',
                 'circle':'圆孔分析 · 只读采点与估算拟合可用；自动探测 / 退离未开放',
+                'contact':'自动测孔 · 逐孔接触停止与退让；需先在实机控制页启用，异常即锁定',
                 'sphere':'标定与验证工具 · 拟合成功不等于精度已验证',
                 'wall':'全局软件安全墙 · 需按真实现场确认位置；不是控制器安全平面',
                 'stop':'诊断工具 · 静止通信测试不代表运动中停止性能已验证',
