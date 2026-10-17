@@ -2,6 +2,15 @@
 
 每次记录：日期/构建、目的、改动文件、验证范围、未完成与运行副本同步、GitHub状态。摘要STATUS保持短，历史留在此文件。以下较早条目为本轮根据既有文档和构建记录整理，不是补造逐次验收。
 
+## 2026-10-17 · tool-payload-autosave
+
+- 目的：工具总质量不再每次启动重填。输入或点击一次后自动保存到用户数据目录 `tool_payload.json`，下次打开实机控制页自动恢复；恢复只填数值，不勾选确认、不解锁、不连接。
+- 实现：新增 `tool_payload.py`（校验 0–5 kg、原子写入、损坏/缺失按未保存处理）；`manual_control_view.py` 加载时静默恢复、编辑后800 ms防抖保存、启用本轮控制及关窗时补存。
+- 未改：控制器负载/TCP 不写入，安全墙、原点、任务数据不动；`coordinate_target_view.py` 为未挂载旧窗口，未改。
+- 验证：新增 test_tool_payload.py 6项；步进器9、近期界面12、标准工作台10、流程核对4、返回模式3，共44项通过；随后全量307项全部通过；离线Qt/OpenGL流程验收无异常。未连实机网络、未移动机械臂。
+- 安装：源码与运行副本 `inspection_app` 的 manual_control_view.py/tool_payload.py 哈希一致；备份 `E:\robot_project\_backup_tool_payload_20261017_1804`；既有用户数据未替换。
+- 构建清单与 last_validation 已更新为 `2026.10.17-tool-payload-autosave`；GitHub 同步结果以实际分支/PR记录为准。
+
 ## 2026-10-17 · handoff-consistency
 
 - 接班核对：PR #3 已合并进 main（合并提交 `1ee6be2`）；本地 HEAD 与远端 main 一致，工作区干净；`refresh_handoff.py --check` 报告快照与运行副本无漂移。

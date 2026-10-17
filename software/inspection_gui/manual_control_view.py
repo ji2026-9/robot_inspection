@@ -12,6 +12,7 @@ from .manual_control import ManualControl
 from .numeric_parameter import NumericParameter
 from .manual_preview import ManualPreview,validate_preview
 from .safety_wall import load_wall
+from .tool_payload import FILE_NAME as PAYLOAD_FILE_NAME,load_payload as load_tool_payload,save_payload as save_tool_payload
 
 
 class ManualControlDialog(QDialog):
@@ -71,6 +72,10 @@ class ManualControlDialog(QDialog):
         row=QHBoxLayout();row.addWidget(QLabel('工具总重量'))
         self.payload=DoubleParameter();self.payload.setRange(0,5);self.payload.setSingleStep(.1);self.payload.setDecimals(3);self.payload.setSuffix(' kg')
         self.payload.setMaximumWidth(175);row.addWidget(self.payload);session.addLayout(row)
+        self.payload_path=workspace.storage_path.parent/PAYLOAD_FILE_NAME
+        self.payload_save_timer=QTimer(self);self.payload_save_timer.setSingleShot(True)
+        self.payload_save_timer.setInterval(800);self.payload_save_timer.timeout.connect(self.save_payload)
+        self.restore_payload()
         self.unlock_button=QPushButton('启用本轮控制');self.unlock_button.setObjectName('primary')
         self.unlock_button.clicked.connect(self.unlock);session.addWidget(self.unlock_button)
         self.session_budget=QLabel('60 秒 / 累计 5 mm；普通停止不重置额度。')
@@ -220,6 +225,7 @@ class ManualControlDialog(QDialog):
         self.motion_mode.currentIndexChanged.connect(self.mode_changed);self.mode_changed()
         self.step.currentTextChanged.connect(self.invalidate_plan);self.speed.currentTextChanged.connect(self.invalidate_plan)
         self.checks[0].toggled.connect(self.confirmation_changed);self.payload.valueChanged.connect(self.confirmation_changed)
+        self.payload.valueChanged.connect(self.schedule_payload_save)
         self.preview_view.feedback.connect(self.preview_feedback)
         self.timer=QTimer(self);self.timer.setInterval(50);self.timer.timeout.connect(self.refresh);self.preview_view.changed.connect(self.preview_changed);self.refresh()
 
@@ -488,10 +494,31 @@ class ManualControlDialog(QDialog):
     def clear_checks(self):
         for check in self.checks:check.setChecked(False)
 
+    def restore_payload(self):
+        """恢复上次保存的工具总质量；不代替本轮勾选确认，也不解锁运动。"""
+        try:saved=load_tool_payload(self.payload_path)
+        except (OSError,ValueError,TypeError):saved=None
+        if not saved:return
+        self.payload.blockSignals(True);self.payload.setValue(saved['mass_kg']);self.payload.blockSignals(False)
+        self.payload.setToolTip(f"已恢复上次保存的工具总质量 {saved['mass_kg']:.3f} kg；仅作人工确认记录，仍需勾选本轮确认。")
+
+    def schedule_payload_save(self):
+        if hasattr(self,'payload_save_timer'):self.payload_save_timer.start()
+
+    def save_payload(self):
+        """把当前声明的工具总质量写入用户数据目录，供下次启动恢复。"""
+        try:payload=save_tool_payload(self.payload_path,self.payload.value())
+        except (OSError,ValueError,TypeError) as exc:
+            self.payload.setToolTip('工具总质量未能保存：'+str(exc));return False
+        self.payload.setToolTip(f"工具总质量 {payload['declared_tool_mass_kg']:.3f} kg 已自动保存；仅作人工确认记录，不会写入控制器。")
+        return True
+
     def unlock(self):
         if not all(check.isChecked() for check in self.checks):
             self.error('请先核对工具与现场，并勾选本轮确认。');return
-        try:self.controller.unlock(True,self.payload.value(),interactive=True);self.clear_error()
+        try:
+            self.controller.unlock(True,self.payload.value(),interactive=True);self.clear_error()
+            self.save_payload()
         except (ValueError,OSError) as exc:self.error(exc)
         self.refresh()
 
@@ -710,6 +737,6 @@ class ManualControlDialog(QDialog):
         self.waiting_feedback=False;self.timer.stop();self.preview_view.clear('页面已隐藏；请重新生成预览。');super().hideEvent(event)
 
     def closeEvent(self,event):
-        self.preview_view.shutdown();self.timer.stop();self.controller.close();self.clear_checks();self.plan_id=None;super().closeEvent(event)
+        self.save_payload();self.preview_view.shutdown();self.timer.stop();self.controller.close();self.clear_checks();self.plan_id=None;super().closeEvent(event)
 
     def reject(self):self.close()
