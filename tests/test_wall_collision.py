@@ -46,13 +46,14 @@ class CollisionTests(unittest.TestCase):
         path=Path(__file__).resolve().parents[1]/'software/inspection_gui/assets/local_dobot_cr5.npz'
         
         if not path.is_file():self.skipTest('Optional local vendor display asset is not installed')
-        meshes=load_collision_meshes(path);self.assertEqual(len(meshes),32)
+        meshes=load_collision_meshes(path)
         with np.load(path,allow_pickle=False) as raw:
+            self.assertEqual(len(meshes),len(json.loads(str(raw['metadata']))))
             for i,mesh in enumerate(meshes):
                 for direction in ([1,0,0],[0,1,0],[.2,-.7,.4]):
                     self.assertAlmostEqual(float(np.max(raw[f'v{i}']@direction)),float(np.max(mesh['vertices']@direction)),places=4)
         result=check_pose(meshes,[0]*6,dict(self.wall,distance_mm=10000))
-        self.assertFalse(result['collision']);self.assertEqual(len(result['parts']),32)
+        self.assertFalse(result['collision']);self.assertEqual(len(result['parts']),len(meshes))
 
     def test_current_snapshot_button_uses_no_control_channel(self):
         os.environ['QT_QPA_PLATFORM']='offscreen'
@@ -70,12 +71,14 @@ class CollisionTests(unittest.TestCase):
             def snapshot(self):return dict(received_monotonic=time.monotonic(),mode=5,running=False,user_index=0,joints=[0]*6,pose=[100,0,500,0,0,0],tool_offset=[0,0,100,0,0,0])
         with tempfile.TemporaryDirectory() as directory,patch('socket.create_connection',side_effect=AssertionError('No control channel')):
             workspace=Workspace();window=SafetyWallDialog(workspace,Path(directory)/'wall.json')
+            results=[];window.test_completed.connect(results.append)
             window.direction.setCurrentIndex(1);window.fields['distance_mm'].setValue(10000)
             window.tool_confirm.setChecked(True);window.start_test(False)
             end=time.monotonic()+5
             while window._testing and time.monotonic()<end:app.processEvents();time.sleep(.01)
-            self.assertFalse(window._testing);self.assertIsNotNone(workspace.scene.report)
-            self.assertTrue(workspace.scene.report['tool_checked']);self.assertFalse(workspace.scene.report['hardware_executable'])
+            self.assertFalse(window._testing);self.assertTrue(results)
+            self.assertIsNone(workspace.scene.report)  # A local check never overwrites another page's pose.
+            self.assertTrue(results[-1]['tool_checked']);self.assertFalse(results[-1]['hardware_executable'])
             self.assertEqual(len(list((Path(directory)/'wall_tests').glob('*.json'))),1)
             window.close();workspace.close();app.processEvents()
 

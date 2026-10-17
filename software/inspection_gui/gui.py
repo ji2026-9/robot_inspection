@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QGridLayout, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow, QDialog,
     QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QScrollArea,
     QFrame, QSizePolicy, QSlider, QSplitter, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QWidget,
+    QVBoxLayout, QWidget, QToolButton, QMenu,
 )
 
 from experiment_records import ExperimentRecords
@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
 
         # ---- 顶部标题栏 ----
         top = QFrame()
-        top.setObjectName('topBar')
+        top.setObjectName('topBar');self.visual_header=top
         top.setFixedHeight(70)   # [local patch]
         top_layout = QHBoxLayout(top)
         top_layout.setContentsMargins(20, 8, 20, 8)
@@ -240,7 +240,7 @@ class MainWindow(QMainWindow):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(10)
 
-        actions = QGroupBox('操作')
+        actions = QGroupBox('检测流程')
         actions_layout = QVBoxLayout(actions)
         actions_layout.setSpacing(8)
         self.btn_select = QPushButton('① 选择照片')
@@ -258,7 +258,8 @@ class MainWindow(QMainWindow):
             actions_layout.addWidget(_button)
         left_layout.addWidget(actions)
 
-        photos = QGroupBox('本组照片')
+        photos = QGroupBox('照片与批次');self.photo_group=photos
+        photos.setStyleSheet('QGroupBox{border:0;background:transparent;margin-top:14px;padding-top:5px;} QGroupBox::title{left:0;padding:0;}')
         photos_layout = QVBoxLayout(photos)
         photos_layout.setSpacing(5)
         photos_layout.setContentsMargins(10, 6, 10, 8)   # [compact-left]
@@ -283,7 +284,7 @@ class MainWindow(QMainWindow):
         photos_layout.addWidget(self.selector)
         photos_layout.addLayout(navigation)
         photos_layout.addWidget(self.batch_progress)
-        left_layout.addWidget(photos)
+        actions_layout.addWidget(photos)
 
         others = QGroupBox('其他功能')
         self.utility_group=others
@@ -309,8 +310,8 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(others)
         # 每张卡片给一个真实最小高度：诊断信息展开时左栏改为滚动，
         # 而不是把卡片压成一条看不清的细缝。   # [compact-left]
-        actions.setMinimumHeight(222)
-        photos.setMinimumHeight(158)
+        actions.setMinimumHeight(0)
+        photos.setMinimumHeight(0)
         others.setMinimumHeight(184)
         left_layout.addStretch(1)
         # [local patch] keep the left column reachable when 诊断信息 expands
@@ -407,7 +408,7 @@ class MainWindow(QMainWindow):
                         '红色十字圆心；点右格的孔即可选中/取消，选中的孔椭圆变绿、圆心打勾（要测量的孔）')
         legend.setObjectName('legend')
         visual_layout.addWidget(legend)
-        legend.setWordWrap(True)
+        legend.setWordWrap(True);self.result_view.setToolTip(legend.text());legend.hide()
         self.image_info.setWordWrap(True)
         self.workspace_split.addWidget(visual)
 
@@ -459,8 +460,11 @@ class MainWindow(QMainWindow):
         for _column in (0, 1, 3, 4):
             _header.setSectionResizeMode(_column, QHeaderView.ResizeMode.ResizeToContents)
         _header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        task_layout.addWidget(self.task_note)
+        self.table.setToolTip(self.task_note.text());self.task_note.hide()
         task_layout.addWidget(self.table, 1)
+        self.result_empty=QLabel('等待检测结果\n\n选择照片或拍照 → 开始检测\n完成后在此选择要测量的孔')
+        self.result_empty.setAlignment(Qt.AlignCenter);self.result_empty.setWordWrap(True)
+        self.result_empty.setStyleSheet('color:#7b8da0;line-height:1.6;padding:20px;');task_layout.addWidget(self.result_empty,1);self.table.hide()
         self.coordinate_note = QLabel('当前圆心为图像像素坐标；三维定位与测量机械臂坐标待标定。')
         self.coordinate_note.setObjectName('hintNote')
         self.coordinate_note.setWordWrap(True)
@@ -625,6 +629,7 @@ class MainWindow(QMainWindow):
 
     def auto_connect_camera(self):
         """[camera-sync] 后台连一次相机；连不上只记录原因，不改任何显示状态。"""
+        if getattr(self,'_closing',False):return
         backend = self._device_backends().get('camera')
         if backend is None:
             self.log('未发现 Orbbec 相机驱动（未安装 OrbbecSDK），相机保持未连接。')
@@ -651,6 +656,7 @@ class MainWindow(QMainWindow):
 
     def report_auto_connect(self):
         """[camera-sync] 把自动连接的结果如实写进运行日志。"""
+        if getattr(self,'_closing',False):return
         state = getattr(self, '_auto_connect_state', None)
         if state is None:
             return
@@ -905,6 +911,7 @@ class MainWindow(QMainWindow):
             self.model_label.setText('本地模型')
 
     def set_controls(self):
+        if hasattr(self,'photo_group'):self.photo_group.setVisible(bool(self.paths))
         idle = not self.batch_running and not self.bridge.busy
         self.btn_select.setEnabled(idle)
         self.btn_detect.setEnabled(idle and bool(self.paths))
@@ -985,6 +992,7 @@ class MainWindow(QMainWindow):
         detected = result.get('detected_holes', [])
         by_id = {hole['id']: hole for hole in detected}
         self.table.setRowCount(4)
+        self.table.setVisible(bool(result));self.result_empty.setVisible(not bool(result))
         self._filling_table = True        # [fusion-sync]
         try:
             for row in range(4):
@@ -1227,15 +1235,51 @@ class MainWindow(QMainWindow):
     def _build_workbench(self):
         from .workbench import Workbench
         visual=self.takeCentralWidget();self.workbench=Workbench(visual,self);self.setCentralWidget(self.workbench)
+        from .global_wall import wall_service
+        self.global_wall=wall_service()
+        from .ui_events import journal
+        journal().configure(self.global_wall.path.parent/'ui_events.jsonl')
+        banner=QFrame();row=QHBoxLayout(banner);row.setContentsMargins(12,5,12,5)
+        from .global_status_view import WallStatusLabel
+        self.wall_summary=WallStatusLabel();self.wall_summary.clicked.connect(lambda:self.workbench.open_page('wall'));self.wall_summary.setWordWrap(True);self.wall_summary.setObjectName('globalWallStatus')
+        row.addWidget(self.wall_summary,1)
+        from .wall_alert import WallAlertPresenter
+        self.wall_alerts=WallAlertPresenter(self.global_wall,self)
+        self.workbench.layout().insertWidget(0,banner)
+        from .global_status_view import GlobalStatusStrip
+        from .devices_view import _registered_backends
+        self.global_stop_shortcut=QShortcut(QKeySequence('Esc'),self)
+        self.global_stop_shortcut.setAutoRepeat(False)
+        self.global_stop_shortcut.activated.connect(lambda:self.global_status.request_stop())
+        self.global_status=GlobalStatusStrip(lambda:_registered_backends.get('robot_b'),self.workbench)
+        self.workbench.layout().insertWidget(1,self.global_status)
+        # One shared status row instead of two stacked banners.
+        self.workbench.layout().removeWidget(banner);self.workbench.layout().removeWidget(self.global_status)
+        status_row=QWidget();status_layout=QHBoxLayout(status_row);status_layout.setContentsMargins(0,0,0,0);status_layout.setSpacing(4)
+        status_layout.addWidget(banner,4);status_layout.addWidget(self.global_status,6);self.workbench.layout().insertWidget(0,status_row)
+        self.visual_header.hide()
+        self.model_label.setStyleSheet('color:#506984;background:transparent;font-size:11px;');self.model_label.setMaximumWidth(220)
+        self.workbench.navigation.layout().insertWidget(4,self.model_label)
+        self.global_wall.status_changed.connect(self._update_wall_status);self._update_wall_status()
+        from .start_guide import StartGuide
+        self.workbench.start_guide=StartGuide(lambda:_registered_backends.get('robot_b'),self.global_wall.reason,self.workbench.open_page,self.workbench)
+        self.workbench.layout().insertWidget(self.workbench.layout().indexOf(self.workbench.tabs),self.workbench.start_guide)
+        self.workbench.start_guide.hide()
         for button in (self.btn_devices,self.btn_records,self.btn_models,self.btn_simulation,self.btn_probe):button.hide()
-        self.utility_group.setTitle('辅助工具');self.utility_group.setMinimumHeight(0)
+        self.utility_group.hide()
+        self.visual_tools=QToolButton();self.visual_tools.setText('检测工具 ▾');self.visual_tools.setPopupMode(QToolButton.InstantPopup)
+        self.visual_tools.setStyleSheet('QToolButton{border:0;padding:7px 12px;color:#49647f;background:transparent;} QToolButton::menu-indicator{image:none;}')
+        menu=QMenu(self.visual_tools)
+        menu.addAction('打开结果文件夹',self.open_results);menu.addAction('测量就绪检查',self.show_readiness)
+        menu.addSeparator();menu.addAction('模型管理',lambda:self.workbench.open_page('models'))
+        self.visual_tools.setMenu(menu);self.workbench.navigation.layout().insertWidget(5,self.visual_tools)
         for key,label,factory in (
-            ('simulation','三维预览',self._simulation_page),('wall','安全墙',self._wall_page),('control','实机控制',self._control_page),
-            ('target','坐标到点',self._target_page),
-            ('probe','测头任务',self._probe_page),('sphere','白球分析',self._sphere_page),
-            ('stop','停止测试',self._stop_page),('devices','设备连接',self._devices_page),
-            ('records','实验记录',self._records_page),('models','模型管理',lambda:self.model_dialog)):
+            ('simulation','三维总览',self._simulation_page),('wall','安全墙',self._wall_page),('control','实机控制',self._control_page),
+            ('probe','触碰采点',self._probe_page),('sphere','测头标定与白球验证',self._sphere_page),('circle','圆孔测量',self._circle_page),
+            ('stop','诊断：触发停止测试',self._stop_page),('devices','设备连接',self._devices_page),
+            ('records','任务与测量结果',self._records_page),('models','模型管理',lambda:self.model_dialog),('events','运行日志',self._events_page),('configs','配置版本',self._configs_page)):
             self.workbench.register(key,label,factory)
+        self.workbench.select_group('工作台')
         self.workbench.tabs.currentChanged.connect(self._refresh_work_page)
         self.workbench.page_ready.connect(lambda key,page:self._refresh_work_page(self.workbench.keys.index(key)))
         # Select Qt's GL composition before the main native window is shown.
@@ -1245,13 +1289,37 @@ class MainWindow(QMainWindow):
             self._gl_anchor=QOpenGLWidget(self.workbench)
             self._gl_anchor.setGeometry(-8,-8,1,1);self._gl_anchor.show()
 
+    def _circle_page(self):
+        from .circle_measurement_view import CircleMeasurementPage
+        if not hasattr(self,'_circle_measurement_page'):self._circle_measurement_page=CircleMeasurementPage(self._probe_page(),self)
+        return self._circle_measurement_page
+
+    def _configs_page(self):
+        from .config_history_view import ConfigHistoryPage
+        from .devices_view import _registered_backends
+        if not hasattr(self,'_config_history_page'):self._config_history_page=ConfigHistoryPage(self.global_wall.path.parent,lambda:_registered_backends.get('robot_b'),self)
+        return self._config_history_page
+
+    def _events_page(self):
+        from .event_history_view import EventHistoryPage
+        if not hasattr(self,'_event_history_page'):self._event_history_page=EventHistoryPage(self)
+        return self._event_history_page
+
     def _refresh_work_page(self,index):
         if index<0:return
         key=self.workbench.keys[index];page=self.workbench.pages.get(key)
+        if hasattr(self,'global_stop_shortcut'):self.global_stop_shortcut.setEnabled(key!='control')
+        if hasattr(self,'global_status'):self.global_status.stop.setVisible(key!='control')
+        if hasattr(self,'visual_tools'):self.visual_tools.setVisible(key=='visual')
+        self.model_label.setVisible(key=='visual')
         if page is None:return
         if key=='simulation':page.set_detection(self.current_result,self.confirmed_targets())
         elif key=='records':page.refresh_if_changed()
         elif key=='visual':self.render_view()
+
+    def _update_wall_status(self):
+        self.wall_summary.setText(self.global_wall.summary())
+        self.wall_summary.setStyleSheet('color:#b42318;font-weight:600;' if self.global_wall.last_notice else 'color:#a56515;font-weight:600;' if self.global_wall.reason() else 'color:#236446;font-weight:600;')
 
     def _probe_page(self):
         from .probe_workspace_view import ProbeWorkspaceDialog
@@ -1268,9 +1336,7 @@ class MainWindow(QMainWindow):
         return self.simulation_dialog
 
     def _target_page(self):
-        from .coordinate_target_view import CoordinateTargetDialog
-        if not hasattr(self,'_coordinate_target_page'):self._coordinate_target_page=CoordinateTargetDialog(self._probe_page())
-        return self._coordinate_target_page
+        page=self._control_page();page.open_coordinate_target();return page
 
     def _wall_page(self):
         from .safety_wall_view import SafetyWallWorkbench
@@ -1423,6 +1489,8 @@ class MainWindow(QMainWindow):
             self.log('训练数据管理窗口仍在运行，请先在任务栏返回并关闭管理窗口，再退出软件。')
             event.ignore()
             return
+        self._closing=True
+        if hasattr(self,'global_status'):self.global_status.timer.stop()
         worker = getattr(self, 'live_worker', None)      # [canvas-live] 先停实时画面
         if worker is not None:
             try:

@@ -46,7 +46,7 @@ class ManualTests(unittest.TestCase):
     def create(self):
         def factory(address):
             channel=FakeChannel(address);self.channels.append(channel);return channel
-        control=ManualControl(self.folder,factory,lambda:self.now[0]);control.observe(frame(),1)
+        control=ManualControl(self.folder,factory,lambda:self.now[0],wall_guard=None);control.observe(frame(),1)
         self.controls.append(control);return control
 
     def connected(self):
@@ -148,7 +148,7 @@ class ManualTests(unittest.TestCase):
         c.close();c.worker.join(1)
         c=self.connected();c.unlock(True,1,interactive=True)
         for target,speed in [([1,2,3,180,0],5),([101.,200.,300.,180.,0.,0.],0),
-                             ([101.,200.,300.,180.,0.,0.],11),([1e9,0,0,0,0,0],5)]:
+                             ([101.,200.,300.,180.,0.,0.],1.5),([1e9,0,0,0,0,0],5)]:
             with self.assertRaises(ValueError):c.preview_target(target,speed)
         p=c.preview_target([101.,200.,300.,180.,0.,0.],5)
         self.assertEqual(p['kind'],'target');self.assertEqual(p['target'],[101.,200.,300.,180.,0.,0.])

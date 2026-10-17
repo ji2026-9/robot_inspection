@@ -1,0 +1,15 @@
+{
+  "updated_at": "2026-10-17T15:25:22.384721+08:00",
+  "build_id": "2026.10.17-settings-handoff",
+  "targeted_tests": {
+    "test_settings_navigation.py": 4,
+    "test_standard_workbench.py": 10,
+    "test_handoff_snapshot.py": 2
+  },
+  "offline_opengl_qa": true,
+  "hardware_connected": false,
+  "robot_moved": false,
+  "backup": "E:\\robot_project\\_backup_settings_handoff_20261017_152522",
+  "evidence": "scripts/qa_workflows_offline.py; tests/test_settings_navigation.py; tests/test_standard_workbench.py; tests/test_handoff_snapshot.py",
+  "github_pushed": false
+}

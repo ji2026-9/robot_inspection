@@ -21,6 +21,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Protocol
 
+from .ui_feedback import FeedbackLabel
 from PySide6.QtCore import Qt, Signal, QTimer
 from .stepper import IntegerParameter
 from .dobot_feedback import DobotFeedback
@@ -199,7 +200,7 @@ class DevicePage(QWidget):
         self.status = QLabel("● 未连接")
         self.status.setObjectName("deviceOffline")
         connection_layout.addWidget(self.status)
-        self.connection_note = QLabel(
+        self.connection_note = FeedbackLabel(
             "已接入连接功能：点「连接设备」即可连接，连不上会如实提示原因。"
             if device_id in _registered_backends else
             "尚未接入此设备的连接功能，填写配置后也不会自动连接。")
@@ -492,7 +493,7 @@ class DevicePage(QWidget):
     def _set_status(self, connected: bool, note: str) -> None:
         self.status.setText("● 已连接" if connected else "● 未连接")
         self.status.setStyleSheet("color: #15803d;" if connected else "color: #b45309;")
-        self.connection_note.setText(note)
+        self.connection_note.show_message(note,'success' if connected else 'error' if ('失败' in note or '未能连接' in note) else 'warning')
         self.connect_button.setEnabled(not connected)
         self.disconnect_button.setEnabled(connected)
         self.connection_status_changed.emit(self.device_id, connected, note)

@@ -1,0 +1,45 @@
+{
+  "build_id": "2026.10.17-settings-handoff",
+  "created_at": "2026-10-17T14:26:24.419302+08:00",
+  "modules": {
+    "circle_measurement.py": "913b3832268cd41af299a3278de5ad314e2594d6349c343c1c19b0a641af07bf",
+    "circle_measurement_view.py": "f997cfd69e13d32f65fb34e7f567b5cdf97a01d125ca025ee85700262d67e343",
+    "config_history.py": "22f4f1089c4d9015e0de46dfc2ccb5050ccbbaa7d79ef067a9e115e9bda55d8f",
+    "config_history_view.py": "8efb063d58a7056e9fc5f6e549df9e28d723dd64da6c2370e0927d3585d20177",
+    "event_history_view.py": "97823618e223652176e978a573a681e5f96951689106de4aa95c96575144118c",
+    "global_status_view.py": "79fbd17b452bbeccbe8791b29c846c5066e81fac9f1d770382d9bd670c485d96",
+    "gui.py": "ac9765585b8819b4db6df00176c598a81082035b1808b92d14151415ae5e9dd5",
+    "manual_control_view.py": "a4a2ed935217e46d601cae509791e48dd28673f04b3a3b9a84dae3925a57ca3d",
+    "manual_origin.py": "b0680c9b109f97ebbcd5936e4331a2055f467172d46c5365ef831ce8281d441e",
+    "manual_preview.py": "54d6e75f89a24910e3f54960e7423f18ad7061278250fec7a9e19efc5efaf318",
+    "page_style.py": "98774267ff897bcbf995b9f813cd258c7f60399ca77e6a98ffd025c4e4d45ff8",
+    "safety_wall.py": "700a871ead9c11627c978aa373591df93199704c85c9e8bd03b1605ea7d94acf",
+    "target_table.py": "d507706cc3957211b3b8ec7c0003d165111f457727c63ae2ae35fa20c3423831",
+    "target_task.py": "dc5fad5a781a106cc979aceb7f7f6b1d077e0293b8c5d396c9ba94bd4d0ea340",
+    "ui_events.py": "cc9286d45ee9c4d2b2567904e0c980a6ba60ecfebf13b0dedb3e345e61da73f8",
+    "ui_feedback.py": "84d7a9ba05c4a062e70facbe7a95dada9bb1bde163c838311f282828439fb253",
+    "workbench.py": "184817a68aba48c8c709ecfd436f610df0997a8bc19daf918b371f3cc5284826",
+    "probe_workspace_view.py": "5aa1012cbfd0b5956eccb3620d0f242c467b19c263f93b05f67dea7acf487a92",
+    "start_guide.py": "1803346c94caabfe9b20985964d9f9738aef1529efab847181d5dccbe9e23075",
+    "control_overview.py": "b710c3daafa04ecef584c5d370963d9b6512f5f58196797fc6315ffffd77cbf2"
+  },
+  "validation": {
+    "total": 253,
+    "passed": 251,
+    "skipped": 2,
+    "hardware_connected": false,
+    "robot_moved": false
+  },
+  "pending_physical_acceptance": [
+    "自动圆孔探测停止及退离循环",
+    "正式工具/TCP及有效半径标定",
+    "控制器安全平面"
+  ],
+  "ui_validation": {
+    "targeted_tests_passed": 16,
+    "offline_opengl_qa": true,
+    "hardware_connected": false,
+    "robot_moved": false
+  },
+  "updated_at": "2026-10-17T15:25:22.384721+08:00"
+}

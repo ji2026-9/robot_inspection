@@ -2,6 +2,7 @@
 import copy,time
 from pathlib import Path
 from datetime import datetime
+from .ui_feedback import FeedbackLabel
 from PySide6.QtCore import QTimer,Qt
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,
     QCheckBox,QComboBox,QTableWidget,QTableWidgetItem,QAbstractItemView,QHeaderView,
@@ -33,7 +34,7 @@ class SphereAnalysisDialog(QDialog):
         self.analyze_button=QPushButton('分析本组数据');self.analyze_button.clicked.connect(self.analyze);left.addWidget(self.analyze_button)
         self.load=QPushButton('打开已有采集组');self.load.clicked.connect(self.open_session);left.addWidget(self.load)
         self.export=QPushButton('导出本组及分析结果');self.export.clicked.connect(self.export_session);left.addWidget(self.export)
-        self.status=QLabel('未开始采集。原有触发记录不会自动加入新组。');self.status.setWordWrap(True);left.addWidget(self.status)
+        self.status=FeedbackLabel('未开始采集。原有触发记录不会自动加入新组。');root.insertWidget(1,self.status)
         note=QLabel('不写工具参数、不控制机械臂。\n按所录参考球尺寸估算测针有效半径，结果未标定验证。\n球面拟合残差与重复性均不等于测量精度。');note.setWordWrap(True);left.addWidget(note);left.addStretch()
         right=QWidget();right_layout=QVBoxLayout(right);split.addWidget(right);split.setSizes([340,700])
         self.table=QTableWidget(0,3);self.table.setHorizontalHeaderLabels(['接收时间','X / Y / Z mm','状态']);self.table.verticalHeader().hide()
@@ -87,7 +88,7 @@ class SphereAnalysisDialog(QDialog):
                     self.session.append(event)
                 if self.session.data['status']=='collecting':self.session.stop(reason)
                 self.render_table()
-                self.status.setText(self.session.data['stop_reason']+'；已保存本组数据。')
+                self.status.show_message(self.session.data['stop_reason']+'；已保存本组数据。','success' if reason=='用户结束本组采集' else 'warning')
             self.update_controls()
         except (OSError,ValueError,KeyError) as exc:self.status.setText('保存失败，不能确认结束：'+str(exc))
 
@@ -108,7 +109,7 @@ class SphereAnalysisDialog(QDialog):
                         self.stop_session('触发帧的工具配置或朝向变化，本组已停止');return
                 self.session.append(event)
             if len(self.session.data['records'])!=self.last_count:self.render_table()
-            self.status.setText(f"{self.session.data['name']}\n本组 {len(self.session.data['records'])} 点 · "+('采集中' if self.session.data['status']=='collecting' else self.session.data['stop_reason']))
+            self.status.set_status(f"{self.session.data['name']}\n本组 {len(self.session.data['records'])} 点 · "+('采集中' if self.session.data['status']=='collecting' else self.session.data['stop_reason']))
             self.update_controls()
         except (ValueError,OSError,KeyError) as exc:self.status.setText('采点保存 / 检查失败，请结束并排查：'+str(exc))
 
@@ -125,7 +126,7 @@ class SphereAnalysisDialog(QDialog):
             row=self.table.currentRow()
             if self.session and 0<=row<len(self.session.data['records']):
                 self.session.exclude(self.session.data['records'][row]['id']);self.result.clear();self.render_table()
-        except (ValueError,OSError) as exc:self.status.setText(str(exc))
+        except (ValueError,OSError) as exc:self.status.show_message(str(exc),'error')
 
     def analyze(self):
         try:

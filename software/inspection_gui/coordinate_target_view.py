@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QFormLayout,QLabe
 from .coordinate_target import build_target_preview,request_execution,validate_start,EXECUTION_MIN_CLEARANCE_MM
 from .safety_wall import load_wall
 from .simulation_scene3d import Scene3D
+from .stepper import DoubleParameter
 
 class CoordinateTargetDialog(QDialog):
     ready=Signal(object,str,int)
@@ -22,17 +23,17 @@ class CoordinateTargetDialog(QDialog):
         self.hold_orientation=QCheckBox('保持采样时的当前工具姿态');self.hold_orientation.setChecked(True);left.addWidget(self.hold_orientation)
         form=QFormLayout();self.fields=[];left.addLayout(form)
         for name in ('X','Y','Z','Rx','Ry','Rz'):
-            field=QDoubleSpinBox();field.setRange(-2500,2500) if len(self.fields)<3 else field.setRange(-360,360)
+            field=DoubleParameter();field.setSingleStep(.1);field.setRange(-2500,2500) if len(self.fields)<3 else field.setRange(-360,360)
             field.setDecimals(3);field.setSuffix(' mm' if len(self.fields)<3 else ' °');form.addRow(name,field);self.fields.append(field)
         read=QPushButton('读取当前位置作为目标初值');read.clicked.connect(self.read_current);left.addWidget(read)
-        self.radius=QDoubleSpinBox();self.radius.setRange(0,500);self.radius.setSuffix(' mm');form.addRow('工具包络半径（需实测）',self.radius)
+        self.radius=DoubleParameter();self.radius.setSingleStep(.1);self.radius.setRange(0,500);self.radius.setSuffix(' mm');form.addRow('工具包络半径（需实测）',self.radius)
         self.tool_confirm=QCheckBox('已核对包络覆盖全部工具与测针');left.addWidget(self.tool_confirm)
         self.build=QPushButton('生成姿态路径并检查安全墙');self.build.clicked.connect(self.generate);left.addWidget(self.build)
         self.play=QPushButton('播放预演');self.play.clicked.connect(self.toggle_play);self.play.setEnabled(False);left.addWidget(self.play)
         self.reset=QPushButton('回到预演起点');self.reset.clicked.connect(lambda:self.slider.setValue(0));left.addWidget(self.reset)
         self.collision_pose=QPushButton('查看碰墙姿态');self.collision_pose.clicked.connect(self.show_collision);self.collision_pose.setEnabled(False);left.addWidget(self.collision_pose)
         self.execute=QPushButton('实机执行 · 先解锁手动控制');self.execute.setEnabled(False);self.execute.clicked.connect(self.try_execute);left.addWidget(self.execute)
-        row=QHBoxLayout();row.addWidget(QLabel('执行速度'));self.execute_speed=QDoubleSpinBox()
+        row=QHBoxLayout();row.addWidget(QLabel('执行速度'));self.execute_speed=DoubleParameter()
         self.execute_speed.setRange(1,10);self.execute_speed.setDecimals(0);self.execute_speed.setValue(5);self.execute_speed.setSuffix(' mm/s')
         row.addWidget(self.execute_speed);row.addStretch(1);left.addLayout(row)
         self.detail=QPlainTextEdit();self.detail.setReadOnly(True);self.detail.setMinimumHeight(190);left.addWidget(self.detail)

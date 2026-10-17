@@ -25,6 +25,11 @@ def decode_frame(data):
     tool_offset = struct.unpack_from('<6d',data,1248)
     joint_speeds = struct.unpack_from('<6d',data,480)
     tcp_speeds = struct.unpack_from('<6d',data,672)
+    # Official V4 layout: SpeedScaling is a float64 at byte 64.
+    # VelocityRatio (byte 1016) is a distinct field and can be zero while
+    # SpeedScaling still reports the active controller global percentage.
+    speed_scaling=struct.unpack_from('<d',data,64)[0]
+    speed_percent=speed_scaling if math.isfinite(speed_scaling) and 0<=speed_scaling<=100 else None
     if not all(math.isfinite(v) for v in joints+pose+user_offset+tool_offset+joint_speeds+tcp_speeds):
         raise ValueError('反馈坐标无效')
     return {'joints':list(joints),'pose':list(pose),
@@ -35,7 +40,7 @@ def decode_frame(data):
             'mode':struct.unpack_from('<Q',data,24)[0],
             'controller_timestamp_ms':struct.unpack_from('<Q',data,32)[0],
             'tool_index':data[1013], 'user_index':data[1012],
-            'speed_percent':int(data[1016]),
+            'speed_percent':speed_percent,'velocity_ratio_raw':int(data[1016]),
             'enabled':bool(data[1026]), 'running':bool(data[1028]),
             'error':bool(data[1029]), 'received_at':time.time(),
             'received_monotonic':time.monotonic()}
