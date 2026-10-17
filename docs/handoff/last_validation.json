@@ -19,5 +19,6 @@
     "tests/test_standard_workbench.py"
   ],
   "automatic_main_merge_authorized": true,
-  "github_pushed": false
+  "github_pushed": true,
+  "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/3"
 }
