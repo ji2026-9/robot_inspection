@@ -21,5 +21,9 @@
     "origin intent survives generic re-preview with coincident input, task table, grouped navigation, circle demo, history/config pages, global Esc requests only Stop",
     "shutdown cleans up pages and timers"
   ],
-  "github_pushed": false
+  "github_pushed": true,
+  "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/2",
+  "sync_branch": "sync/project-update-20261017",
+  "merged_to_main": false,
+  "merge_status": "Awaiting explicit authorization after automatic approval rejection"
 }
