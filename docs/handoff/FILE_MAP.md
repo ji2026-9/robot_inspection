@@ -16,6 +16,7 @@
 | 全局墙配置、碰撞拦截、弹窗 | `software/inspection_gui/global_wall.py`, `wall_guard.py`, `safety_wall.py`, `safety_wall_view.py`, `wall_alert.py` | `test_global_wall_guard.py`, `test_wall_deployment.py`, `test_wall_collision.py` |
 | DI触发记录、停止诊断、白球 | `software/inspection_gui/probe_trigger.py`, `probe_stop.py`, `probe_workspace_view.py`, `sphere_analysis_view.py` | `test_circle_and_config.py`及对应probe测试；`docs/probe_trigger.md`, `probe_stop.md` |
 | 圆孔只读采点、拟合、导出 | `software/inspection_gui/circle_measurement.py`, `circle_measurement_view.py` | `test_circle_and_config.py`, `test_workflow_audit.py` |
+| 自动测孔（示教、接触、退让、中心、撤离） | `software/inspection_gui/hole_probe.py`, `hole_probe_view.py`, `contact_points.py` | `test_contact_points.py`, `test_manual_control.py`（release_probe）；实机验收未完成 |
 | 日志与历史回滚 | `software/inspection_gui/ui_events.py`, `event_history_view.py`, `config_history.py`, `config_history_view.py` | `test_standard_workbench.py`, `test_circle_and_config.py` |
 | 视觉推理与拟合 | `software/detect_core.py`, `edge_bore_refinement.py`, `robust_bore_ellipse.py`, `part_predictor.py`；早期库在 `app/` | 历史 `docs/ELLIPSE_FIT_COMPARISON.md`；先查本次使用的检测入口，别默认重训 |
 | 模型维护/数据流程 | `software/inspection_gui/model_management_view.py`, `software/dataset_update.py`, `software/validation_view.py` | 依赖模型/数据，不要默认载入全部权重 |
@@ -28,6 +29,7 @@
 - `tool_payload.json`：上次声明的工具总质量（0–5 kg，仅人工确认记录，不写入控制器）。
 - `safety_wall.json`：墙面与工具包络；文件存在不等于已实物验收。
 - `positions.json`、`probe_triggers/`、`circle_sessions/`：位置库、触发接收帧、圆孔采集。
+- `hole_probe_holes.json`、`contact_points.json`、`contact_sessions/`：示教孔位、累积接触点库、每次测孔会话。
 - `manual_control_logs/`、`ui_events.jsonl`、`config_versions/`：控制日志、UI事件、配置历史。
 - 用户保存的目标任务JSON位置由文件对话框选择，不能只找默认targets.json。
 

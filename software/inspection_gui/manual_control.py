@@ -113,7 +113,7 @@ class ManualControl:
         self.wake_event=threading.Event()
         self.tasks=queue.Queue(maxsize=1);self.worker=None;self.channel=None
         self.latest=None;self.generation=None;self.connected=False;self.phase='locked'
-        self.reason='未连接控制；运动锁定';self.permit=None;self.plan=None;self.events=[]
+        self.reason='未连接控制；运动锁定';self.permit=None;self.plan=None;self.release_plan=None;self.events=[]
         self.audit=None;self.external_monitor=False;self.stop_handled=False;self.accepted_at=None;self.hold_until=0
         self.stop_state='none';self.stop_reason='';self.stop_ack_at=None
         self.stop_frames=[];self.stop_configuration=None
@@ -381,6 +381,42 @@ class ManualControl:
         if any(abs(a-b)>(.05 if i<3 else .01) for i,(a,b) in enumerate(zip(f['pose'],p['start']))):
             raise ValueError('当前位置已变化，请重新预览')
 
+    def release_probe(self, axis, sign, distance_mm=1.5, speed=2):
+        """接触停止后沿反方向小步退让，释放测针；只允许在已核对停止后调用。
+
+        这是自动测孔的必要动作：测针被压住时 DI_1 仍为高，无法直接用普通
+        点动退开。退让距离和速度都有上限，失败立即进入故障锁定。
+        """
+        with self.lock:
+            f=self.latest
+            self.validate_feedback(f)
+            if not 0<=self.clock()-f['received_monotonic']<=.15:raise ValueError('需要新鲜反馈')
+            if self.phase!='latched' or self.stop_state!='verified':
+                raise ValueError('需要先完成接触停止并核对反馈稳定')
+            if axis not in ('X','Y','Z') or type(sign) is not int or sign not in (-1,1):
+                raise ValueError('退让方向无效')
+            if type(distance_mm) not in (int,float) or not math.isfinite(distance_mm) or not .3<=distance_mm<=5:
+                raise ValueError('退让距离需为 0.3–5 mm')
+            if type(speed) is not int or not 1<=speed<=5:
+                raise ValueError('退让速度需为 1–5 mm/s')
+            if self.config(f)!=self.stop_configuration:
+                raise ValueError('停止后工具或用户配置已变化')
+            if self.wall_guard:self.wall_guard.ready()
+            if self.tasks.full():raise ValueError('控制队列忙，无法退让')
+            target=f['pose'][:];target[('X','Y','Z').index(axis)]+=sign*distance_mm
+            plan=dict(id=uuid.uuid4().hex,kind='release',target=target,start=f['pose'][:],speed=speed,
+                distance=distance_mm,user=0,tool=f['tool_index'],config=self.config(f),
+                generation=self.connection_generation,created=self.clock())
+            self.stop_event.clear();self.stop_handled=False;self.stop_frames=[]
+            self.stop_state='none';self.stop_reason='';self.resume_context=None;self.auto_rearm=False
+            self.permit=None;self.plan=None;self.active_plan=None
+            self.phase='releasing';self.reason='接触后小步退让，释放测针';self.release_plan=plan
+            self._record('probe_release_requested',plan=copy.deepcopy(plan))
+            try:self.tasks.put_nowait(dict(plan))
+            except queue.Full:raise ValueError('控制队列忙，无法退让')
+            self.wake_event.set()
+        return True
+
     def request_stop(self, reason='人工停止', *, recoverable=False, auto_rearm=False):
         self.stop_event.set()
         self.wake_event.set()
@@ -462,6 +498,7 @@ class ManualControl:
     def observe(self, frame, generation, external_monitor=False):
         with self.lock:
             self.latest=copy.deepcopy(frame);self.generation=generation;self.external_monitor=external_monitor
+            if self.phase=='releasing':return
             if (isinstance(frame,dict) and type(frame.get('digital_inputs')) is int
                 and frame['digital_inputs']&1 and (self.permit or self.resume_context)):
                 self.request_stop('测头 DI_1 触发')
@@ -524,6 +561,39 @@ class ManualControl:
                 self.request_stop(str(exc))
                 if self.wall_guard and '安全墙' in str(exc):self.wall_guard.service.warn(exc)
 
+    def _run_release(self, plan):
+        """执行一次 bounded 反向退让；只用于接触停止后的测针释放。"""
+        try:
+            with self.lock:
+                self.active_plan=plan;self.accepted_at=self.clock()
+            self.channel.move(plan)
+            target=plan['target']
+            deadline=self.clock()+max(2.,plan['distance']/plan['speed']*3+1.5)
+            while self.clock()<deadline:
+                if self.closing.is_set() or self.stop_event.is_set():break
+                f=self.latest
+                if isinstance(f,dict):
+                    try:
+                        self.validate_feedback(f)
+                        if (f['mode']==5 and not f['running'] and f.get('pose_stable')
+                            and math.dist(f['pose'][:3],target[:3])<=.05):break
+                    except (ValueError,KeyError,TypeError):pass
+                time.sleep(.02)
+            self.channel.stop()
+            with self.lock:
+                self.phase='locked';self.reason='已退让释放测针；请重新启用本轮控制'
+                self.stop_state='none';self.stop_frames=[];self.stop_reason=''
+                self.resume_context=None;self.auto_rearm=False
+                self.permit=None;self.plan=None;self.active_plan=None;self.release_plan=None
+                self._record('probe_release_done',plan=copy.deepcopy(plan))
+        except Exception as exc:
+            with self.lock:
+                self.phase='fault';self.stop_state='unconfirmed'
+                self.reason='退让释放失败，请使用实体急停：'+str(exc)
+                self.permit=None;self.plan=None;self.active_plan=None;self.release_plan=None
+                try:self._record('probe_release_fault',error=str(exc))
+                except OSError:pass
+
     def _run(self):
         try:
             self.channel=self.factory(self.address);self.channel.check()
@@ -558,6 +628,9 @@ class ManualControl:
                 try:plan=self.tasks.get_nowait()
                 except queue.Empty:
                     self.wake_event.wait(.02)
+                    continue
+                if plan.get('kind')=='release':
+                    self._run_release(plan)
                     continue
                 with self.lock:
                     if self.stop_event.is_set() or not self.permit:continue

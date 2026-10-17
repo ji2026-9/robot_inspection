@@ -202,6 +202,24 @@ class ManualTests(unittest.TestCase):
         self.assertEqual(channel.calls,['RobotMode()'])
         self.assertFalse(c.snapshot()['connected'])
 
+    def test_release_probe_backs_off_after_verified_stop(self):
+        c=self.ready()
+        c.observe(dict(frame(self.now[0]),digital_inputs=1),1)
+        self.assertTrue(wait(lambda:'Stop()' in self.channels[-1].calls))
+        for _ in range(8):
+            self.now[0]+=.1;c.observe(frame(self.now[0]),1)
+        self.assertTrue(wait(lambda:c.snapshot()['safety']['stop_state']=='verified'))
+        with self.assertRaises(ValueError):c.release_probe('X',1,10,2)
+        self.assertTrue(c.release_probe('X',-1,1.5,2))
+        self.assertEqual(c.snapshot()['phase'],'releasing')
+        target=[98.5,200.,300.,180.,0.,0.]
+        for _ in range(80):
+            self.now[0]+=.05;c.observe(dict(frame(self.now[0]),pose=target[:]),1)
+            if c.snapshot()['phase']=='locked':break
+            time.sleep(.01)
+        self.assertEqual(c.snapshot()['phase'],'locked')
+        self.assertTrue(any(isinstance(x,dict) and x.get('kind')=='release' for x in self.channels[-1].calls))
+
 
 class WireTests(unittest.TestCase):
     def test_feedback_receiver_forwards_every_frame_and_shuts_down_control(self):

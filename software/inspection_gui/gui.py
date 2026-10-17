@@ -1276,6 +1276,7 @@ class MainWindow(QMainWindow):
         for key,label,factory in (
             ('simulation','三维总览',self._simulation_page),('wall','安全墙',self._wall_page),('control','实机控制',self._control_page),
             ('probe','触碰采点',self._probe_page),('sphere','测头标定与白球验证',self._sphere_page),('circle','圆孔测量',self._circle_page),
+            ('contact','自动测孔',self._hole_probe_page),
             ('stop','诊断：触发停止测试',self._stop_page),('devices','设备连接',self._devices_page),
             ('records','任务与测量结果',self._records_page),('models','模型管理',lambda:self.model_dialog),('events','运行日志',self._events_page),('configs','配置版本',self._configs_page)):
             self.workbench.register(key,label,factory)
@@ -1293,6 +1294,11 @@ class MainWindow(QMainWindow):
         from .circle_measurement_view import CircleMeasurementPage
         if not hasattr(self,'_circle_measurement_page'):self._circle_measurement_page=CircleMeasurementPage(self._probe_page(),self)
         return self._circle_measurement_page
+
+    def _hole_probe_page(self):
+        from .hole_probe_view import HoleProbePage
+        if not hasattr(self,'_hole_probe_page_widget'):self._hole_probe_page_widget=HoleProbePage(self._probe_page(),self)
+        return self._hole_probe_page_widget
 
     def _configs_page(self):
         from .config_history_view import ConfigHistoryPage
