@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "build_id": "2026.10.17-return-all-modes",
+  "build_id": "2026.10.17-tool-payload-autosave",
   "git": {
-    "head": "1ee6be2e9c0246bf1b5718fe69e1d6517ab49fd8",
+    "head": "ad40876108104ef13ae2796b7521d7d51b6d8c63",
     "remote": "https://github.com/ji2026-9/robot_inspection.git",
-    "dirty_entries": 2,
+    "dirty_entries": 9,
     "remote_fetched_during_snapshot": false,
     "publish_status": "Not inferred; see UPDATES.md",
     "head_note": "HEAD when snapshot was generated; may precede the commit containing this snapshot"
@@ -31,7 +31,7 @@
     "software/inspection_gui/global_wall.py": "6d1fd7c4269c592bcc0285e791244671c6def00f91fdd9818eed3b4ce379bf97",
     "software/inspection_gui/gui.py": "ac9765585b8819b4db6df00176c598a81082035b1808b92d14151415ae5e9dd5",
     "software/inspection_gui/manual_control.py": "3616982878718d6e0fdb109e7627df69b45c3d7b82471c05c06430f435620e5c",
-    "software/inspection_gui/manual_control_view.py": "ef724c60eb4a902e3af0e16e71619797634bf08458a08455e8d6d62ba945419e",
+    "software/inspection_gui/manual_control_view.py": "e367bb043802a09aa84c8742af529a0fbdad746bef851d7ad70d3cad0c7e0d82",
     "software/inspection_gui/manual_origin.py": "b0680c9b109f97ebbcd5936e4331a2055f467172d46c5365ef831ce8281d441e",
     "software/inspection_gui/manual_preview.py": "54d6e75f89a24910e3f54960e7423f18ad7061278250fec7a9e19efc5efaf318",
     "software/inspection_gui/page_style.py": "98774267ff897bcbf995b9f813cd258c7f60399ca77e6a98ffd025c4e4d45ff8",
@@ -42,45 +42,59 @@
     "software/inspection_gui/start_guide.py": "1803346c94caabfe9b20985964d9f9738aef1529efab847181d5dccbe9e23075",
     "software/inspection_gui/target_table.py": "d507706cc3957211b3b8ec7c0003d165111f457727c63ae2ae35fa20c3423831",
     "software/inspection_gui/target_task.py": "dc5fad5a781a106cc979aceb7f7f6b1d077e0293b8c5d396c9ba94bd4d0ea340",
+    "software/inspection_gui/tool_payload.py": "d27998e33c1980a87fdc76b160c8c1ec47bb6c214fb3bd5c99934b5ae7079acc",
     "software/inspection_gui/ui_events.py": "cc9286d45ee9c4d2b2567904e0c980a6ba60ecfebf13b0dedb3e345e61da73f8",
     "software/inspection_gui/ui_feedback.py": "84d7a9ba05c4a062e70facbe7a95dada9bb1bde163c838311f282828439fb253",
     "software/inspection_gui/wall_guard.py": "e52a8f7b0e91ebded46df33e43d645e9f278a7654c69ab67884c57b513866a62",
     "software/inspection_gui/workbench.py": "184817a68aba48c8c709ecfd436f610df0997a8bc19daf918b371f3cc5284826"
   },
-  "manifest_sha256": "4aa42b73aa9961285bd83886ed36d142b2b98600c52d493b8845af47d51e2845",
+  "manifest_sha256": "716783b64e47f30965ff895c7d09c5b69b80fd399f0668322066cea2231e4693",
   "runtime_comparison": {
     "available": true,
-    "checked_files": 31,
+    "checked_files": 32,
     "different_or_missing": []
   },
   "validation": {
-    "updated_at": "2026-10-17T17:04:28.795023+08:00",
-    "build_id": "2026.10.17-return-all-modes",
+    "updated_at": "2026-10-17T18:04:52.184283+08:00",
+    "build_id": "2026.10.17-tool-payload-autosave",
     "targeted_tests": {
-      "test_return_all_modes.py": 3,
-      "test_standard_workbench.py": 10
+      "test_tool_payload.py": 6,
+      "test_steppers.py": 9,
+      "test_recent_ui.py": 12,
+      "test_standard_workbench.py": 10,
+      "test_workflow_audit.py": 4,
+      "test_return_all_modes.py": 3
     },
     "previous_full_suite": {
       "passed": 298,
       "scope": "previous GitHub sync"
     },
+    "full_suite": {
+      "total": 307,
+      "passed": 307,
+      "skipped": 0,
+      "scope": "this round after payload change"
+    },
     "offline_opengl_qa": true,
     "checked_modes": 3,
     "hardware_connected": false,
     "robot_moved": false,
-    "backup": "E:\\robot_project\\_backup_return_all_modes_20261017_170428",
+    "backup": "E:\\robot_project\\_backup_tool_payload_20261017_1804",
     "evidence": [
-      "tests/test_return_all_modes.py",
-      "tests/test_standard_workbench.py"
+      "tests/test_tool_payload.py",
+      "tests/test_steppers.py",
+      "tests/test_recent_ui.py",
+      "tests/test_standard_workbench.py",
+      "tests/test_workflow_audit.py",
+      "tests/test_return_all_modes.py"
     ],
     "automatic_main_merge_authorized": true,
-    "github_pushed": true,
-    "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/3"
+    "publish_status": "见 UPDATES.md；以实际推送/PR记录为准"
   },
   "notes": [
     "Lightweight snapshot, not a guarantee of complete project or hardware acceptance.",
     "No model weights, raw probe records, credentials or hardware connections read.",
     "Update prose STATUS and UPDATES separately; this script does not infer progress."
   ],
-  "generated_at": "2026-10-17T17:52:59.161196+08:00"
+  "generated_at": "2026-10-17T18:06:02.896414+08:00"
 }

@@ -7,6 +7,7 @@
 | 首页、检测流程、布局、入口路由 | `software/inspection_gui/gui.py` | `scripts/qa_workflows_offline.py` |
 | 主导航、设置常用/高级、懒加载与复用 | `software/inspection_gui/workbench.py` | `tests/test_settings_navigation.py`, `test_standard_workbench.py` |
 | 控制页按钮、输入、原点、多点与保存 | `software/inspection_gui/manual_control_view.py` | `test_standard_workbench.py`, `test_workflow_audit.py`, `test_origin_selection.py` |
+| 工具总质量自动保存/恢复 | `software/inspection_gui/tool_payload.py`, `manual_control_view.py` | `test_tool_payload.py` |
 | 控制状态文案与目标距离 | `software/inspection_gui/control_overview.py`, `ui_feedback.py` | `test_control_overview.py`, `test_visible_feedback.py` |
 | 真实运动通道、停止优先、点动状态机 | `software/inspection_gui/manual_control.py` | `test_manual_control.py`, `test_stop_dispatch.py`, `test_continuous_jog.py` |
 | 工具反馈、倍率、网络帧 | `software/inspection_gui/dobot_feedback.py`, `devices_view.py` | `test_feedback_speed.py`；设备配置不等于连接 |
@@ -24,6 +25,7 @@
 本机运行根 `E:/robot_project/inspection_app`，主要用户数据在 `data/probe_workspace/`：
 
 - `manual_origin.json`：XYZ返回位置+工具/用户上下文。
+- `tool_payload.json`：上次声明的工具总质量（0–5 kg，仅人工确认记录，不写入控制器）。
 - `safety_wall.json`：墙面与工具包络；文件存在不等于已实物验收。
 - `positions.json`、`probe_triggers/`、`circle_sessions/`：位置库、触发接收帧、圆孔采集。
 - `manual_control_logs/`、`ui_events.jsonl`、`config_versions/`：控制日志、UI事件、配置历史。

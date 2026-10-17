@@ -1,24 +1,37 @@
 {
-  "updated_at": "2026-10-17T17:04:28.795023+08:00",
-  "build_id": "2026.10.17-return-all-modes",
+  "updated_at": "2026-10-17T18:04:52.184283+08:00",
+  "build_id": "2026.10.17-tool-payload-autosave",
   "targeted_tests": {
-    "test_return_all_modes.py": 3,
-    "test_standard_workbench.py": 10
+    "test_tool_payload.py": 6,
+    "test_steppers.py": 9,
+    "test_recent_ui.py": 12,
+    "test_standard_workbench.py": 10,
+    "test_workflow_audit.py": 4,
+    "test_return_all_modes.py": 3
   },
   "previous_full_suite": {
     "passed": 298,
     "scope": "previous GitHub sync"
   },
+  "full_suite": {
+    "total": 307,
+    "passed": 307,
+    "skipped": 0,
+    "scope": "this round after payload change"
+  },
   "offline_opengl_qa": true,
   "checked_modes": 3,
   "hardware_connected": false,
   "robot_moved": false,
-  "backup": "E:\\robot_project\\_backup_return_all_modes_20261017_170428",
+  "backup": "E:\\robot_project\\_backup_tool_payload_20261017_1804",
   "evidence": [
-    "tests/test_return_all_modes.py",
-    "tests/test_standard_workbench.py"
+    "tests/test_tool_payload.py",
+    "tests/test_steppers.py",
+    "tests/test_recent_ui.py",
+    "tests/test_standard_workbench.py",
+    "tests/test_workflow_audit.py",
+    "tests/test_return_all_modes.py"
   ],
   "automatic_main_merge_authorized": true,
-  "github_pushed": true,
-  "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/3"
+  "publish_status": "见 UPDATES.md；以实际推送/PR记录为准"
 }
