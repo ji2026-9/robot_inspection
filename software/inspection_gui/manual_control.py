@@ -580,6 +580,12 @@ class ManualControl:
                     except (ValueError,KeyError,TypeError):pass
                 time.sleep(.02)
             self.channel.stop()
+            settle=self.clock()+1.5
+            while self.clock()<settle:
+                f=self.latest
+                if (isinstance(f,dict) and f.get('mode')==5 and not f.get('running')
+                    and f.get('pose_stable') and not f.get('error')):break
+                time.sleep(.02)
             with self.lock:
                 self.phase='locked';self.reason='已退让释放测针；请重新启用本轮控制'
                 self.stop_state='none';self.stop_frames=[];self.stop_reason=''

@@ -9,7 +9,8 @@
 - 安全：任何未接触/超搜索上限/停止未核对/DI 未释放/配置变化/反馈中断都会停止并锁定，不自动跳孔；重新启用使用当前工具总质量（未保存时默认 1 kg 并在界面标注）。接触点仍是接收帧，不是控制器锁存。
 - 验证：新增 test_contact_points.py 10项、test_manual_control.py 增加1项退让测试（共19项）；全量318项通过；离线 Qt/OpenGL 流程验收无异常。**全程未连接实机、未移动机械臂。**
 - 安装：源码与运行副本 `inspection_app` 的 6 个模块哈希一致；备份 `E:\robot_project\_backup_auto_hole_probe_20261017_1837`；既有原点、安全墙、点位与配置未替换。
-- 构建清单与 last_validation 更新为 `2026.10.17-auto-hole-probe`；下一步必须按空跑→单孔→多孔→撤离逐级实机验收，不能直接连续运行。
+- 构建清单与 last_validation 更新为 `2026.10.17-auto-hole-probe`；发布入口：[PR #7](https://github.com/ji2026-9/robot_inspection/pull/7)，main 合并提交 `9cb65e8`。
+- 验收前补强：退让结束后等待反馈进入待机稳定，再回到锁定并允许重新启用；避免刚发停止就重新启用导致“位姿不稳定”失败。下一步必须按空跑→单孔→多孔→撤离逐级实机验收，不能直接连续运行。
 
 ## 2026-10-17 · tool-payload-autosave
 
