@@ -133,7 +133,7 @@ class ManualControlDialog(QDialog):
         for text,callback in [('保存当前位置',self.set_origin_current),('保存输入位置',self.set_origin_input)]:
             button=QPushButton(text);button.setStyleSheet('padding:6px 5px;');button.clicked.connect(callback);row.addWidget(button);self.origin_buttons.append(button)
         points.addLayout(row,10,0,1,2)
-        self.return_origin_button=QPushButton('预览返回路径');self.return_origin_button.clicked.connect(self.preview_origin);points.addWidget(self.return_origin_button,11,0,1,2)
+        self.return_origin_button=QPushButton('返回保存位置 · 先预览');self.return_origin_button.clicked.connect(self.preview_origin);right.insertWidget(right.indexOf(self.motion_mode)+1,self.return_origin_button)
         note=QLabel('返回位置自动保存；保持当前工具姿态，不是机械零点，不更改控制器坐标系。预览后点击底部“确认预览并执行”。');note.setWordWrap(True);note.setObjectName('muted');points.addWidget(note,12,0,1,2)
         self.origin_path=workspace.storage_path.parent/'manual_origin.json';self.origin=None
         from .manual_origin import load_origin
@@ -158,7 +158,6 @@ class ManualControlDialog(QDialog):
         for text,callback in [('保存目标任务',self.save_target_task),('打开任务',self.open_target_task)]:
             button=QPushButton(text);button.clicked.connect(callback);single_tasks.addWidget(button);self.route_buttons.append(button)
         points.addLayout(single_tasks,15,0,1,2)
-        self.return_origin_button.hide()
         self.preview_source.blockSignals(True);self.preview_source.setCurrentIndex(2);self.preview_source.blockSignals(False)
         right.addWidget(self.point_panel)
         self.update_target_fields()
@@ -233,7 +232,6 @@ class ManualControlDialog(QDialog):
                 item=self.target_grid.itemAtPosition(row,col)
                 if item:self._show_target_item(item,visible)
             self.target_grid.setRowMinimumHeight(row,38 if visible and row<=3 else 0)
-        self.return_origin_button.hide()
 
     def _show_target_item(self,item,visible):
         if item.widget():item.widget().setVisible(visible)
@@ -261,7 +259,7 @@ class ManualControlDialog(QDialog):
             self.origin=save_origin(self.origin_path,xyz,backend.snapshot(),backend.address)
             self.update_origin_label();self.invalidate_plan();self.clear_error()
             self.target.setText('自定义原点已保存；只保存位置，没有发送运动。')
-            self.pin_notice(False);self.detail.show_message('自定义原点已保存。','success',hint='需要返回时，点击“回到原点 · 先预览”。');self.detail.show()
+            self.pin_notice(False);self.detail.show_message('自定义原点已保存。','success',hint='需要返回时，点击“返回保存位置 · 先预览”。');self.detail.show()
         except (ValueError,OSError,TypeError,KeyError) as exc:self.error(exc)
 
     def set_origin_current(self):
@@ -272,6 +270,9 @@ class ManualControlDialog(QDialog):
     def set_origin_input(self):self.save_user_origin([v.value() for v in self.xyz])
 
     def preview_origin(self):
+        if self.controller.snapshot()['phase'] in ('queued','moving','stopping','verifying_stop'):
+            self.error('请先停止当前运动并完成反馈核对，再预览返回位置');return
+        self.motion_mode.setCurrentIndex(2)
         self.preview_source.setCurrentIndex(1);self.generate_target_preview()
 
     def origin_target(self):
@@ -655,6 +656,7 @@ class ManualControlDialog(QDialog):
         idle=state['phase'] not in ('queued','moving','stopping','verifying_stop')
         self.build_target_button.setEnabled(idle and bool(frame) and not self.preview_view.busy)
         self.return_origin_button.setEnabled(idle and bool(frame) and self.origin is not None and not self.preview_view.busy)
+        self.return_origin_button.setToolTip('未设置返回位置：在“位置与路径 → 返回保存位置”保存当前位置。' if self.origin is None else '切换到返回位置路径预览；核对后再点击“确认预览并执行”，不会直接运动。')
         for control in (self.motion_mode,self.preview_source,self.step,self.speed,self.payload,self.read_position,self.route_list,*self.route_buttons,*self.origin_buttons,*self.xyz,*self.checks):
             control.setEnabled(state['phase'] not in ('queued','moving','stopping','verifying_stop'))
 

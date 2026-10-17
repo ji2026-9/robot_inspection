@@ -1,29 +1,24 @@
 {
-  "updated_at": "2026-10-17T15:34:08.080121+08:00",
-  "build_id": "2026.10.17-github-sync",
-  "full_suite": {
-    "total": 298,
+  "updated_at": "2026-10-17T17:04:28.795023+08:00",
+  "build_id": "2026.10.17-return-all-modes",
+  "targeted_tests": {
+    "test_return_all_modes.py": 3,
+    "test_standard_workbench.py": 10
+  },
+  "previous_full_suite": {
     "passed": 298,
-    "skipped": 0
+    "scope": "previous GitHub sync"
   },
   "offline_opengl_qa": true,
-  "asynchronous_errors": 0,
+  "checked_modes": 3,
   "hardware_connected": false,
   "robot_moved": false,
-  "backup": "E:\\robot_project\\_backup_synced_remote_20261017_153408",
+  "backup": "E:\\robot_project\\_backup_return_all_modes_20261017_170428",
   "evidence": [
-    "docs/handoff/latest_tests.txt",
-    "scripts/qa_workflows_offline.py"
+    "tests/test_return_all_modes.py",
+    "tests/test_standard_workbench.py"
   ],
-  "ui_checks": [
-    "unknown geometry displayed globally; actual motion locked; no default file written",
-    "visible persistent errors and next actions, invalid selected target with coordinates, wall validation notice, probe notice, checkbox selection, persisted custom origin, separate return preview, two target route, real OpenGL rendering, expanded preview, visible Stop and nonblocking warning; no hardware networking",
-    "origin intent survives generic re-preview with coincident input, task table, grouped navigation, circle demo, history/config pages, global Esc requests only Stop",
-    "shutdown cleans up pages and timers"
-  ],
+  "automatic_main_merge_authorized": true,
   "github_pushed": true,
-  "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/2",
-  "sync_branch": "sync/project-update-20261017",
-  "merge_status": "Explicit authorization received; verify final merge result at pull_request URL",
-  "automatic_main_merge_authorized": true
+  "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/3"
 }

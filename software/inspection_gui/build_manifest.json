@@ -1,5 +1,5 @@
 {
-  "build_id": "2026.10.17-github-sync",
+  "build_id": "2026.10.17-return-all-modes",
   "created_at": "2026-10-17T14:26:24.419302+08:00",
   "modules": {
     "circle_measurement.py": "913b3832268cd41af299a3278de5ad314e2594d6349c343c1c19b0a641af07bf",
@@ -9,7 +9,7 @@
     "event_history_view.py": "97823618e223652176e978a573a681e5f96951689106de4aa95c96575144118c",
     "global_status_view.py": "79fbd17b452bbeccbe8791b29c846c5066e81fac9f1d770382d9bd670c485d96",
     "gui.py": "ac9765585b8819b4db6df00176c598a81082035b1808b92d14151415ae5e9dd5",
-    "manual_control_view.py": "a4a2ed935217e46d601cae509791e48dd28673f04b3a3b9a84dae3925a57ca3d",
+    "manual_control_view.py": "ef724c60eb4a902e3af0e16e71619797634bf08458a08455e8d6d62ba945419e",
     "manual_origin.py": "b0680c9b109f97ebbcd5936e4331a2055f467172d46c5365ef831ce8281d441e",
     "manual_preview.py": "54d6e75f89a24910e3f54960e7423f18ad7061278250fec7a9e19efc5efaf318",
     "page_style.py": "98774267ff897bcbf995b9f813cd258c7f60399ca77e6a98ffd025c4e4d45ff8",
@@ -27,8 +27,9 @@
     "simulation_scene3d.py": "9886af68d097209dca8243d20331e8bcdd76ee85682f35c0220c2ec0ea97ad89"
   },
   "validation": {
-    "total": 298,
-    "passed": 298,
+    "scope": "targeted",
+    "total": 13,
+    "passed": 13,
     "skipped": 0,
     "hardware_connected": false,
     "robot_moved": false
@@ -39,10 +40,17 @@
     "控制器安全平面"
   ],
   "ui_validation": {
+    "checked_modes": 3,
     "offline_opengl_qa": true,
-    "asynchronous_errors": 0,
     "hardware_connected": false,
     "robot_moved": false
   },
-  "updated_at": "2026-10-17T15:34:08.080121+08:00"
+  "updated_at": "2026-10-17T17:04:28.795023+08:00",
+  "previous_full_validation": {
+    "total": 298,
+    "passed": 298,
+    "skipped": 0,
+    "hardware_connected": false,
+    "robot_moved": false
+  }
 }
