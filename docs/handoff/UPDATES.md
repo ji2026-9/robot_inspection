@@ -9,7 +9,7 @@
 - 未改：控制器负载/TCP 不写入，安全墙、原点、任务数据不动；`coordinate_target_view.py` 为未挂载旧窗口，未改。
 - 验证：新增 test_tool_payload.py 6项；步进器9、近期界面12、标准工作台10、流程核对4、返回模式3，共44项通过；随后全量307项全部通过；离线Qt/OpenGL流程验收无异常。未连实机网络、未移动机械臂。
 - 安装：源码与运行副本 `inspection_app` 的 manual_control_view.py/tool_payload.py 哈希一致；备份 `E:\robot_project\_backup_tool_payload_20261017_1804`；既有用户数据未替换。
-- 构建清单与 last_validation 已更新为 `2026.10.17-tool-payload-autosave`；GitHub 同步结果以实际分支/PR记录为准。
+- 构建清单与 last_validation 已更新为 `2026.10.17-tool-payload-autosave`；发布入口：[PR #5](https://github.com/ji2026-9/robot_inspection/pull/5)，main 合并提交 `31b3744`。
 
 ## 2026-10-17 · handoff-consistency
 
