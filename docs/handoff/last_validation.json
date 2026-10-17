@@ -24,6 +24,6 @@
   "github_pushed": true,
   "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/2",
   "sync_branch": "sync/project-update-20261017",
-  "merged_to_main": false,
-  "merge_status": "Awaiting explicit authorization after automatic approval rejection"
+  "merge_status": "Explicit authorization received; verify final merge result at pull_request URL",
+  "automatic_main_merge_authorized": true
 }

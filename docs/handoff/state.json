@@ -2,9 +2,9 @@
   "schema_version": 1,
   "build_id": "2026.10.17-github-sync",
   "git": {
-    "head": "d45d7b6e95c8eaff86bcc6d60a4565834da939e4",
+    "head": "df16536fa038905a293d9353f1fc9bc0d9cc3968",
     "remote": "https://github.com/ji2026-9/robot_inspection.git",
-    "dirty_entries": 4,
+    "dirty_entries": 5,
     "remote_fetched_during_snapshot": false,
     "publish_status": "Not inferred; see UPDATES.md",
     "head_note": "HEAD when snapshot was generated; may precede the commit containing this snapshot"
@@ -79,13 +79,13 @@
     "github_pushed": true,
     "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/2",
     "sync_branch": "sync/project-update-20261017",
-    "merged_to_main": false,
-    "merge_status": "Awaiting explicit authorization after automatic approval rejection"
+    "merge_status": "Explicit authorization received; verify final merge result at pull_request URL",
+    "automatic_main_merge_authorized": true
   },
   "notes": [
     "Lightweight snapshot, not a guarantee of complete project or hardware acceptance.",
     "No model weights, raw probe records, credentials or hardware connections read.",
     "Update prose STATUS and UPDATES separately; this script does not infer progress."
   ],
-  "generated_at": "2026-10-17T15:35:32.711449+08:00"
+  "generated_at": "2026-10-17T15:40:47.050225+08:00"
 }
