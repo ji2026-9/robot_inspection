@@ -2,9 +2,9 @@
   "schema_version": 1,
   "build_id": "2026.10.17-auto-hole-probe",
   "git": {
-    "head": "d85fe176b1655bc0964cf25b1c10563e11d2f34f",
+    "head": "9cb65e880adf0138054ae90fae29b051f6752410",
     "remote": "https://github.com/ji2026-9/robot_inspection.git",
-    "dirty_entries": 15,
+    "dirty_entries": 3,
     "remote_fetched_during_snapshot": false,
     "publish_status": "Not inferred; see UPDATES.md",
     "head_note": "HEAD when snapshot was generated; may precede the commit containing this snapshot"
@@ -33,7 +33,7 @@
     "software/inspection_gui/gui.py": "dd4cbf8efcaca5d0bb8c6cdd2ef3e39550c2486b0ee42bc0f2409af27d89a305",
     "software/inspection_gui/hole_probe.py": "6c6ebbc4cb45b7caaddbd8e679e8d5a810d698e3f9111e6b448e1477bfb6648e",
     "software/inspection_gui/hole_probe_view.py": "f3c0a435c00facb5c52db747e347c655d2816293e8b78c27389143a3afc6e56f",
-    "software/inspection_gui/manual_control.py": "5edac81dbc5c05806ebbf83bea0691692b147bd57cb3e2c1bcbbea8de94dfefb",
+    "software/inspection_gui/manual_control.py": "50ce88e1ba99607a628dff362c979cec849a28566465e7e692ded23a12d2d839",
     "software/inspection_gui/manual_control_view.py": "e367bb043802a09aa84c8742af529a0fbdad746bef851d7ad70d3cad0c7e0d82",
     "software/inspection_gui/manual_origin.py": "b0680c9b109f97ebbcd5936e4331a2055f467172d46c5365ef831ce8281d441e",
     "software/inspection_gui/manual_preview.py": "54d6e75f89a24910e3f54960e7423f18ad7061278250fec7a9e19efc5efaf318",
@@ -51,7 +51,7 @@
     "software/inspection_gui/wall_guard.py": "e52a8f7b0e91ebded46df33e43d645e9f278a7654c69ab67884c57b513866a62",
     "software/inspection_gui/workbench.py": "29cd5605d1b3f1bfa90ba421c992e34de6ea0b933feb7e06751fc37c552949a2"
   },
-  "manifest_sha256": "461ae9e531f324b2fe23eb1db4d60fc434e86ae4c2d30eca7554bd3111e75815",
+  "manifest_sha256": "0ca827e352bbf1c7c99da7ae04916b1f8305d79a69494b7a76df763199a6b8df",
   "runtime_comparison": {
     "available": true,
     "checked_files": 35,
@@ -92,5 +92,5 @@
     "No model weights, raw probe records, credentials or hardware connections read.",
     "Update prose STATUS and UPDATES separately; this script does not infer progress."
   ],
-  "generated_at": "2026-10-17T18:39:10.809296+08:00"
+  "generated_at": "2026-10-17T18:40:18.188858+08:00"
 }

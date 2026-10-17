@@ -12,7 +12,7 @@
     "gui.py": "dd4cbf8efcaca5d0bb8c6cdd2ef3e39550c2486b0ee42bc0f2409af27d89a305",
     "hole_probe.py": "6c6ebbc4cb45b7caaddbd8e679e8d5a810d698e3f9111e6b448e1477bfb6648e",
     "hole_probe_view.py": "f3c0a435c00facb5c52db747e347c655d2816293e8b78c27389143a3afc6e56f",
-    "manual_control.py": "5edac81dbc5c05806ebbf83bea0691692b147bd57cb3e2c1bcbbea8de94dfefb",
+    "manual_control.py": "50ce88e1ba99607a628dff362c979cec849a28566465e7e692ded23a12d2d839",
     "manual_control_view.py": "e367bb043802a09aa84c8742af529a0fbdad746bef851d7ad70d3cad0c7e0d82",
     "manual_origin.py": "b0680c9b109f97ebbcd5936e4331a2055f467172d46c5365ef831ce8281d441e",
     "manual_preview.py": "54d6e75f89a24910e3f54960e7423f18ad7061278250fec7a9e19efc5efaf318",
