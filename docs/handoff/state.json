@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "build_id": "2026.10.17-settings-handoff",
+  "build_id": "2026.10.17-github-sync",
   "git": {
-    "head": "106f4fd20a283056055e6d903b25d53ed2b46742",
+    "head": "ed92f319bf567f61c555fd4c6183962d3cffb404",
     "remote": "https://github.com/ji2026-9/robot_inspection.git",
-    "dirty_entries": 81,
+    "dirty_entries": 6,
     "remote_fetched_during_snapshot": false,
     "publish_status": "Not inferred; see UPDATES.md",
     "head_note": "HEAD when snapshot was generated; may precede the commit containing this snapshot"
@@ -22,6 +22,8 @@
     "software/inspection_gui/config_history.py": "22f4f1089c4d9015e0de46dfc2ccb5050ccbbaa7d79ef067a9e115e9bda55d8f",
     "software/inspection_gui/config_history_view.py": "8efb063d58a7056e9fc5f6e549df9e28d723dd64da6c2370e0927d3585d20177",
     "software/inspection_gui/control_overview.py": "b710c3daafa04ecef584c5d370963d9b6512f5f58196797fc6315ffffd77cbf2",
+    "software/inspection_gui/coordinate_target.py": "9ed8865dd1ba309e185b62df2c7a60b68f07bc69d455ddecf4fb8bd57cede0ec",
+    "software/inspection_gui/coordinate_target_view.py": "9cabccb0cad84dd5fbf95c859c9ed47125cf795b33c9160f8dcc1daba988d87e",
     "software/inspection_gui/devices_view.py": "68be3fe75f20285e08487bf75be28478986a433b154ecd0c175013d6bf8f727b",
     "software/inspection_gui/dobot_feedback.py": "577130eac533ab62b5cad4cff6a9b298a0d1500ccc2388f2a04ac612d03f20c3",
     "software/inspection_gui/event_history_view.py": "97823618e223652176e978a573a681e5f96951689106de4aa95c96575144118c",
@@ -36,7 +38,7 @@
     "software/inspection_gui/probe_trigger.py": "1c73f267feffc2d4d6c1446d32ec3dc435cce144ca1c576ccb0d7bebabe1f6c5",
     "software/inspection_gui/probe_workspace_view.py": "5aa1012cbfd0b5956eccb3620d0f242c467b19c263f93b05f67dea7acf487a92",
     "software/inspection_gui/safety_wall.py": "700a871ead9c11627c978aa373591df93199704c85c9e8bd03b1605ea7d94acf",
-    "software/inspection_gui/simulation_scene3d.py": "4969eec6195fe9512adcfc080a4f75c86b70388fb30680d23e59b002a644a1d1",
+    "software/inspection_gui/simulation_scene3d.py": "9886af68d097209dca8243d20331e8bcdd76ee85682f35c0220c2ec0ea97ad89",
     "software/inspection_gui/start_guide.py": "1803346c94caabfe9b20985964d9f9738aef1529efab847181d5dccbe9e23075",
     "software/inspection_gui/target_table.py": "d507706cc3957211b3b8ec7c0003d165111f457727c63ae2ae35fa20c3423831",
     "software/inspection_gui/target_task.py": "dc5fad5a781a106cc979aceb7f7f6b1d077e0293b8c5d396c9ba94bd4d0ea340",
@@ -45,25 +47,35 @@
     "software/inspection_gui/wall_guard.py": "e52a8f7b0e91ebded46df33e43d645e9f278a7654c69ab67884c57b513866a62",
     "software/inspection_gui/workbench.py": "184817a68aba48c8c709ecfd436f610df0997a8bc19daf918b371f3cc5284826"
   },
-  "manifest_sha256": "26c8e4eff3ace49cd019c3af714519af71057e6fc0cd2ba41c1a8443e9c7706b",
+  "manifest_sha256": "310ec94576370d80d9c9f5ae6ec079dd01803d6a10ce456f68b6fe68fcf2a867",
   "runtime_comparison": {
     "available": true,
-    "checked_files": 29,
+    "checked_files": 31,
     "different_or_missing": []
   },
   "validation": {
-    "updated_at": "2026-10-17T15:25:22.384721+08:00",
-    "build_id": "2026.10.17-settings-handoff",
-    "targeted_tests": {
-      "test_settings_navigation.py": 4,
-      "test_standard_workbench.py": 10,
-      "test_handoff_snapshot.py": 2
+    "updated_at": "2026-10-17T15:34:08.080121+08:00",
+    "build_id": "2026.10.17-github-sync",
+    "full_suite": {
+      "total": 298,
+      "passed": 298,
+      "skipped": 0
     },
     "offline_opengl_qa": true,
+    "asynchronous_errors": 0,
     "hardware_connected": false,
     "robot_moved": false,
-    "backup": "E:\\robot_project\\_backup_settings_handoff_20261017_152522",
-    "evidence": "scripts/qa_workflows_offline.py; tests/test_settings_navigation.py; tests/test_standard_workbench.py; tests/test_handoff_snapshot.py",
+    "backup": "E:\\robot_project\\_backup_synced_remote_20261017_153408",
+    "evidence": [
+      "docs/handoff/latest_tests.txt",
+      "scripts/qa_workflows_offline.py"
+    ],
+    "ui_checks": [
+      "unknown geometry displayed globally; actual motion locked; no default file written",
+      "visible persistent errors and next actions, invalid selected target with coordinates, wall validation notice, probe notice, checkbox selection, persisted custom origin, separate return preview, two target route, real OpenGL rendering, expanded preview, visible Stop and nonblocking warning; no hardware networking",
+      "origin intent survives generic re-preview with coincident input, task table, grouped navigation, circle demo, history/config pages, global Esc requests only Stop",
+      "shutdown cleans up pages and timers"
+    ],
     "github_pushed": false
   },
   "notes": [
@@ -71,5 +83,5 @@
     "No model weights, raw probe records, credentials or hardware connections read.",
     "Update prose STATUS and UPDATES separately; this script does not infer progress."
   ],
-  "generated_at": "2026-10-17T15:31:09.801160+08:00"
+  "generated_at": "2026-10-17T15:34:08.290586+08:00"
 }

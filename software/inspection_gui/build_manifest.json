@@ -1,5 +1,5 @@
 {
-  "build_id": "2026.10.17-settings-handoff",
+  "build_id": "2026.10.17-github-sync",
   "created_at": "2026-10-17T14:26:24.419302+08:00",
   "modules": {
     "circle_measurement.py": "913b3832268cd41af299a3278de5ad314e2594d6349c343c1c19b0a641af07bf",
@@ -21,12 +21,15 @@
     "workbench.py": "184817a68aba48c8c709ecfd436f610df0997a8bc19daf918b371f3cc5284826",
     "probe_workspace_view.py": "5aa1012cbfd0b5956eccb3620d0f242c467b19c263f93b05f67dea7acf487a92",
     "start_guide.py": "1803346c94caabfe9b20985964d9f9738aef1529efab847181d5dccbe9e23075",
-    "control_overview.py": "b710c3daafa04ecef584c5d370963d9b6512f5f58196797fc6315ffffd77cbf2"
+    "control_overview.py": "b710c3daafa04ecef584c5d370963d9b6512f5f58196797fc6315ffffd77cbf2",
+    "coordinate_target_view.py": "9cabccb0cad84dd5fbf95c859c9ed47125cf795b33c9160f8dcc1daba988d87e",
+    "coordinate_target.py": "9ed8865dd1ba309e185b62df2c7a60b68f07bc69d455ddecf4fb8bd57cede0ec",
+    "simulation_scene3d.py": "9886af68d097209dca8243d20331e8bcdd76ee85682f35c0220c2ec0ea97ad89"
   },
   "validation": {
-    "total": 253,
-    "passed": 251,
-    "skipped": 2,
+    "total": 298,
+    "passed": 298,
+    "skipped": 0,
     "hardware_connected": false,
     "robot_moved": false
   },
@@ -36,10 +39,10 @@
     "控制器安全平面"
   ],
   "ui_validation": {
-    "targeted_tests_passed": 16,
     "offline_opengl_qa": true,
+    "asynchronous_errors": 0,
     "hardware_connected": false,
     "robot_moved": false
   },
-  "updated_at": "2026-10-17T15:25:22.384721+08:00"
+  "updated_at": "2026-10-17T15:34:08.080121+08:00"
 }
