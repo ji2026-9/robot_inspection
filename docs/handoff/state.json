@@ -2,9 +2,9 @@
   "schema_version": 1,
   "build_id": "2026.10.17-tool-payload-autosave",
   "git": {
-    "head": "ad40876108104ef13ae2796b7521d7d51b6d8c63",
+    "head": "0dcf266c9d63ca1eb886506e4c5bce4bc2a115d0",
     "remote": "https://github.com/ji2026-9/robot_inspection.git",
-    "dirty_entries": 9,
+    "dirty_entries": 3,
     "remote_fetched_during_snapshot": false,
     "publish_status": "Not inferred; see UPDATES.md",
     "head_note": "HEAD when snapshot was generated; may precede the commit containing this snapshot"
@@ -42,13 +42,13 @@
     "software/inspection_gui/start_guide.py": "1803346c94caabfe9b20985964d9f9738aef1529efab847181d5dccbe9e23075",
     "software/inspection_gui/target_table.py": "d507706cc3957211b3b8ec7c0003d165111f457727c63ae2ae35fa20c3423831",
     "software/inspection_gui/target_task.py": "dc5fad5a781a106cc979aceb7f7f6b1d077e0293b8c5d396c9ba94bd4d0ea340",
-    "software/inspection_gui/tool_payload.py": "d27998e33c1980a87fdc76b160c8c1ec47bb6c214fb3bd5c99934b5ae7079acc",
+    "software/inspection_gui/tool_payload.py": "752fdc5fe10d0a42f79291acbb526fc7261e6f04202591c3edb4089a19d7c538",
     "software/inspection_gui/ui_events.py": "cc9286d45ee9c4d2b2567904e0c980a6ba60ecfebf13b0dedb3e345e61da73f8",
     "software/inspection_gui/ui_feedback.py": "84d7a9ba05c4a062e70facbe7a95dada9bb1bde163c838311f282828439fb253",
     "software/inspection_gui/wall_guard.py": "e52a8f7b0e91ebded46df33e43d645e9f278a7654c69ab67884c57b513866a62",
     "software/inspection_gui/workbench.py": "184817a68aba48c8c709ecfd436f610df0997a8bc19daf918b371f3cc5284826"
   },
-  "manifest_sha256": "716783b64e47f30965ff895c7d09c5b69b80fd399f0668322066cea2231e4693",
+  "manifest_sha256": "146dec14d4d4ad21fab2aba4a7f657c2632709878d18d9127bc73c07c5787883",
   "runtime_comparison": {
     "available": true,
     "checked_files": 32,
@@ -96,5 +96,5 @@
     "No model weights, raw probe records, credentials or hardware connections read.",
     "Update prose STATUS and UPDATES separately; this script does not infer progress."
   ],
-  "generated_at": "2026-10-17T18:06:02.896414+08:00"
+  "generated_at": "2026-10-17T18:06:31.744545+08:00"
 }
