@@ -49,11 +49,19 @@ class TargetTests(unittest.TestCase):
         for f,w,g in cases:
             f=copy.deepcopy(f);f['received_monotonic']=time.monotonic()
             with self.subTest(g=g),self.assertRaises(ValueError):target.validate_context(plan,f,w,g)
-    def test_bad_feedback_and_unconfirmed_wall_refuse(self):
+    def test_bad_feedback_and_missing_radius_refuse(self):
         for change in ({'received_monotonic':0.},{'running':True},{'user_index':1},{'digital_inputs':1}):
             with self.assertRaises(ValueError):target.validate_start(dict(self.frame,**change))
-        with self.assertRaises(ValueError):target.build_target_preview(self.frame,self.frame['pose'],DEFAULT_WALL,20,self.mesh)
         with self.assertRaises(ValueError):target.build_target_preview(self.frame,self.frame['pose'],self.wall,0,self.mesh)
+    def test_unconfirmed_wall_skips_check_and_allows_execution(self):
+        pose=self.frame['pose'][:];pose[0]+=1
+        with patch('socket.create_connection',side_effect=AssertionError('No real motion')):
+            plan=target.build_target_preview(self.frame,pose,DEFAULT_WALL,None,self.mesh,generation=3)
+        self.assertFalse(plan['wall_checked']);self.assertTrue(plan['collision']['skipped']);self.assertFalse(plan['problems'])
+        self.assertTrue(plan['sampled_path_clear'])
+        frame=copy.deepcopy(self.frame);frame['received_monotonic']=time.monotonic()
+        approval=target.request_execution(plan,frame,DEFAULT_WALL,3)
+        self.assertTrue(approval['approved']);self.assertFalse(approval['wall_checked'])
     def test_collision_is_error_not_motion_permit(self):
         pose=self.frame['pose'][:];pose[0]+=1
         unsafe=dict(self.wall,distance_mm=1)
@@ -65,17 +73,47 @@ class TargetTests(unittest.TestCase):
         from inspection_gui import coordinate_target_view as view
         app=QApplication.instance() or QApplication([])
         class Scene(QWidget):
+            seeds=[]
             def set_safety_wall(self,*args):pass
             def set_wall_test_result(self,*args):pass
-            def set_manual_preview(self,*args):pass
+            def set_manual_preview(self,task,frames,seed):self.seeds.append((task,seed))
         class Workspace(QWidget):
             def backend(self):return SimpleNamespace(snapshot=sample,generation=1)
         with tempfile.TemporaryDirectory() as folder,patch.object(view,'Scene3D',Scene),patch('socket.create_connection',side_effect=AssertionError('No real motion')):
             workspace=Workspace();workspace.storage_path=Path(folder)/'positions.json'
             dialog=view.CoordinateTargetDialog(workspace)
             self.assertTrue(dialog.hold_orientation.isChecked());self.assertFalse(dialog.execute.isEnabled())
+            # The arm must be visible before any preview is generated.
+            self.assertTrue(dialog.scene.seeds);self.assertIsNone(dialog.scene.seeds[-1][0])
+            self.assertEqual(dialog.scene.seeds[-1][1]['joints_deg'],sample()['joints'])
             dialog.read_current();self.assertAlmostEqual(dialog.fields[0].value(),sample()['pose'][0],places=3)
             dialog.fields[0].setValue(123);self.assertIsNone(dialog.plan);self.assertFalse(dialog.execute.isEnabled())
+            self.assertEqual(dialog.scene.seeds[-1][1]['joints_deg'],sample()['joints'])
             dialog.close();workspace.close();app.processEvents()
+    def test_execute_requires_unlocked_control_in_this_window(self):
+        os.environ['QT_QPA_PLATFORM']='offscreen'
+        from PySide6.QtWidgets import QApplication,QWidget
+        from inspection_gui import coordinate_target_view as view
+        app=QApplication.instance() or QApplication([])
+        class Scene(QWidget):
+            def set_safety_wall(self,*args):pass
+            def set_wall_test_result(self,*args):pass
+            def set_manual_preview(self,*args):pass
+        class Control:
+            def __init__(self,connected,unlocked,stop='none'):
+                self._state=dict(connected=connected,unlocked=unlocked,phase='ready',reason='测试',
+                    resumable=False,safety=dict(stop_state=stop))
+            def snapshot(self):return copy.deepcopy(self._state)
+        class Workspace(QWidget):
+            def __init__(self,control):super().__init__();self.control=control
+            def backend(self):return SimpleNamespace(snapshot=sample,generation=1,manual_control=self.control)
+        with tempfile.TemporaryDirectory() as folder,patch.object(view,'Scene3D',Scene),patch('socket.create_connection',side_effect=AssertionError('No real motion')):
+            for connected,unlocked,expected in ((False,False,False),(True,False,False),(True,True,True)):
+                workspace=Workspace(Control(connected,unlocked));workspace.storage_path=Path(folder)/'positions.json'
+                dialog=view.CoordinateTargetDialog(workspace)
+                dialog.execute_ready=True;dialog.refresh_control_state()
+                self.assertEqual(dialog.execute.isEnabled(),expected,(connected,unlocked))
+                self.assertEqual(dialog.enable_control.isEnabled(),connected and not unlocked)
+                dialog.close();workspace.close();app.processEvents()
 
 if __name__=='__main__':unittest.main(verbosity=2)
