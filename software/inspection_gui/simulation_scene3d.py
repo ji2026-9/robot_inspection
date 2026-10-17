@@ -96,6 +96,8 @@ class Scene3D(QOpenGLWidget):
                 models,q,label=future.result();signals.loaded.emit(models,q,label)
             except RuntimeError:pass
         self.asset_future=display_assets(path);self.asset_future.add_done_callback(finished)
+        from .global_wall import wall_service
+        wall_service().attach_scene(self)
 
     def _assets_loaded(self,models,q,label):
         self.meshes=models;self.camera_q=q;self.asset_label=label;self.update()
@@ -121,13 +123,19 @@ class Scene3D(QOpenGLWidget):
 
 
     def _draw_safety_wall(self):
-        if not self.probe_only or not self.safety_wall or not self.safety_wall['visible']:return
+        if not self.safety_wall or not self.safety_wall['visible']:return
         from .safety_wall import wall_vertices
-        wall=self.safety_wall;vertices=wall_vertices(wall)
+        wall=self.safety_wall;offset=np.zeros(3) if self.probe_only else np.array([480.,100.,0.])
+        vertices=[np.asarray(p)+offset for p in wall_vertices(wall)]
         gl.glPushAttrib(gl.GL_ENABLE_BIT|gl.GL_CURRENT_BIT|gl.GL_LINE_BIT|gl.GL_COLOR_BUFFER_BIT|gl.GL_DEPTH_BUFFER_BIT)
         try:
             gl.glDisable(gl.GL_LIGHTING);gl.glDisable(gl.GL_CULL_FACE)
-            gl.glEnable(gl.GL_BLEND);gl.glBlendFunc(gl.GL_SRC_ALPHA,gl.GL_ONE_MINUS_SRC_ALPHA)
+            gl.glEnable(gl.GL_BLEND)
+            # Qt composites this FBO again. Preserve opaque destination alpha;
+            # ordinary glBlendFunc also squares source alpha and corrupts the
+            # final window composition (blue wall / faded viewport).
+            gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA,gl.GL_ONE_MINUS_SRC_ALPHA,
+                                  gl.GL_ONE,gl.GL_ONE_MINUS_SRC_ALPHA)
             gl.glDepthMask(False);gl.glColor4f(1.,.48,.12,.18);gl.glBegin(gl.GL_QUADS)
             for point in vertices:gl.glVertex3fv(point)
             gl.glEnd();gl.glDepthMask(True)
@@ -136,10 +144,11 @@ class Scene3D(QOpenGLWidget):
             gl.glEnd()
             gl.glEnable(gl.GL_LINE_STIPPLE);gl.glLineStipple(2,0x00FF)
             gl.glBegin(gl.GL_LINE_LOOP)
-            for point in wall_vertices(wall,boundary=True):gl.glVertex3fv(point)
+            for point in wall_vertices(wall,boundary=True):gl.glVertex3fv(np.asarray(point)+offset)
             gl.glEnd();gl.glDisable(gl.GL_LINE_STIPPLE)
             angle=math.radians(wall['yaw_deg']);normal=np.array([math.cos(angle),math.sin(angle),0.])
             center=normal*wall['distance_mm'];center[2]=wall['bottom_mm']+wall['height_mm']/2
+            center+=offset
             gl.glColor3f(.9,.15,.12);gl.glBegin(gl.GL_LINES)
             gl.glVertex3fv(center);gl.glVertex3fv(center+normal*140);gl.glEnd()
         finally:gl.glPopAttrib()
@@ -286,6 +295,9 @@ class Scene3D(QOpenGLWidget):
         self._prune_buffers()
         # QPainter's overlay changes GL state; restore it on every frame.
         gl.glUseProgram(0);gl.glDisable(gl.GL_SCISSOR_TEST);gl.glDisable(gl.GL_CULL_FACE)
+        gl.glColorMask(True,True,True,True)
+        gl.glActiveTexture(gl.GL_TEXTURE0);gl.glDisable(gl.GL_TEXTURE_2D)
+        gl.glDisable(gl.GL_BLEND);gl.glBlendEquation(gl.GL_FUNC_ADD)
         gl.glDepthMask(True);gl.glEnable(gl.GL_DEPTH_TEST);gl.glDepthFunc(gl.GL_LESS)
         gl.glEnable(gl.GL_NORMALIZE);gl.glEnable(gl.GL_LIGHTING)
         gl.glEnable(gl.GL_LIGHT0);gl.glEnable(gl.GL_LIGHT1);gl.glEnable(gl.GL_COLOR_MATERIAL)
@@ -387,8 +399,8 @@ class Scene3D(QOpenGLWidget):
         joint_preview=self.manual_active and self.manual_task and 'joint_preview_report' in self.manual_task
         p.drawText(18,28,('虚拟机械臂跟随 · 不控制实机' if joint_preview else 'TCP 几何预览 · 关节待求解') if self.manual_active else ('实时姿态' if self.live_mode and self.live_frame else ('等待实时反馈' if self.live_mode else '路径预览')))
         if self.render_error:p.setPen(QColor('#b45309'));p.drawText(18,50,self.render_error)
-        if self.probe_only and self.safety_wall and self.safety_wall['visible']:
-            p.setPen(QColor('#b45309'));p.drawText(18,72,'安全墙草稿 · 运动拦截未启用 | 底座 X红 / Y绿 / Z蓝')
+        if self.safety_wall and self.safety_wall['visible']:
+            p.setPen(QColor('#b45309'));p.drawText(18,72,'全局安全墙 · 基于测量臂B底座 | X红 / Y绿 / Z蓝')
         if self.probe_only and self.wall_test_result:
             p.setPen(QColor('#b42318'));p.drawText(18,94,'虚拟碰撞快照 · 非实时姿态 · 不控制实机')
         for axes in self.axis_labels:

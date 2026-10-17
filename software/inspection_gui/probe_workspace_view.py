@@ -4,11 +4,12 @@ from datetime import datetime
 import copy,json,threading,time
 import numpy as np
 from scipy.spatial.transform import Rotation
+from .ui_feedback import FeedbackLabel
 from PySide6.QtCore import Qt,QTimer,QObject,Signal
 from .stepper import DoubleParameter
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QGridLayout,QLabel,QPushButton,
     QWidget,QFrame,QSplitter,QTabWidget,QScrollArea,QLineEdit,QTableWidget,QTableWidgetItem,
-    QHeaderView,QAbstractItemView,QCheckBox,QDoubleSpinBox,QSlider,QFileDialog,QInputDialog,QPlainTextEdit)
+    QHeaderView,QAbstractItemView,QCheckBox,QDoubleSpinBox,QSlider,QFileDialog,QInputDialog,QPlainTextEdit,QToolButton)
 from .probe_workspace import PositionLibrary,capture_position,manual_task,cartesian_frames,atomic_json,vector6
 from .readonly_kinematics import audit_snapshot
 from .simulation_scene3d import Scene3D
@@ -65,8 +66,8 @@ class ProbeWorkspaceDialog(QDialog):
         self.trigger_cursor=0;self.trigger_missed=0;self.trigger_save_error=''
         self.trigger_journal=TriggerJournal(self.storage_path.parent/'probe_triggers')
         root=QVBoxLayout(self);root.setContentsMargins(14,12,14,12);root.setSpacing(10)
-        heading=QHBoxLayout();label=QLabel('测头臂工作区');label.setStyleSheet('font-size:20px;font-weight:600;color:#19446b;');heading.addWidget(label)
-        heading.addStretch();label=QLabel('轨迹仅预览 · 实机控制需独立解锁');label.setObjectName('muted');heading.addWidget(label);root.addLayout(heading)
+        heading=QHBoxLayout();label=QLabel('触碰采点');label.setStyleSheet('font-size:20px;font-weight:600;color:#19446b;');heading.addWidget(label)
+        heading.addStretch();label=QLabel('当前 TCP 触发记录 · 不发送运动');label.setObjectName('muted');heading.addWidget(label);root.addLayout(heading)
         connection=QHBoxLayout();self.address=QLineEdit(current_settings()['robot_b'].get('address') or '192.168.5.1');self.address.setMaximumWidth(150)
         self.connect_button=QPushButton('连接只读反馈');self.connect_button.clicked.connect(self.connect_feedback)
         self.connection_state=QLabel('等待反馈');self.connection_state.setWordWrap(True)
@@ -76,6 +77,9 @@ class ProbeWorkspaceDialog(QDialog):
         split=QSplitter(Qt.Orientation.Horizontal);split.setChildrenCollapsible(False);root.addWidget(split,1)
         self.tabs=QTabWidget();self.tabs.setMinimumWidth(360);self.tabs.setMaximumWidth(450);split.addWidget(self.tabs)
         self._build_positions();self._build_manual();self._build_audit();self._build_simulated_vision();self._build_probe_trigger()
+        self.advanced_tools=QToolButton();self.advanced_tools.setText('展开位置库与离线诊断');self.advanced_tools.setCheckable(True)
+        connection.addWidget(self.advanced_tools);self.advanced_tools.toggled.connect(self.set_advanced_tools)
+        self.set_advanced_tools(False)
         self.scene=Scene3D();self.scene.probe_only=True;self.scene.distance=2200
         self.scene.setToolTip('左键旋转 · 右键平移 · 滚轮缩放\n虚拟关节跟随仅使用显示模型；未验证实物工具和碰撞，不控制实机。')
         split.addWidget(self.scene);split.setSizes([400,820]);split.setStretchFactor(1,1)
@@ -86,14 +90,23 @@ class ProbeWorkspaceDialog(QDialog):
         reset=QPushButton('回到起点');self.reset_button=reset;reset.clicked.connect(self.reset_preview);playback.addWidget(reset)
         self.focus_button=QPushButton('聚焦路径');self.focus_button.clicked.connect(self.focus_preview);playback.addWidget(self.focus_button);playback.addStretch()
         view=QPushButton('恢复斜视');view.clicked.connect(self.scene.reset_view);playback.addWidget(view);root.addLayout(playback)
-        self.message_label=QLabel(self.storage_error or '记录当前配置下的 TCP；测球 TCP 尚未标定，任务不可执行于实机。');self.message_label.setWordWrap(True);self.message_label.setObjectName('muted');root.addWidget(self.message_label)
+        self.message_label=FeedbackLabel(self.storage_error or '记录当前配置下的 TCP；测球 TCP 尚未标定，任务不可执行于实机。');self.message_label.setWordWrap(True);root.insertWidget(1,self.message_label)
         self.timer=QTimer(self);self.timer.setInterval(33);self.timer.timeout.connect(self.tick)
         self.refresh_timer=QTimer(self);self.refresh_timer.setInterval(200);self.refresh_timer.timeout.connect(self.refresh_feedback)
-        self.refresh_positions();self.invalidate_preview();self.tab_changed(0)
+        self.refresh_positions();self.invalidate_preview();self.tab_changed(self.tabs.currentIndex())
         if hasattr(self.scene,'set_safety_wall'):
-            from .safety_wall import load_wall
-            try:self.scene.set_safety_wall(load_wall(self.storage_path.parent/'safety_wall.json'))
-            except (ValueError,OSError,TypeError) as error:self.message('安全墙草稿未加载：'+str(error),True)
+            from .global_wall import wall_service
+            wall_service(self.storage_path.parent/'safety_wall.json').attach_scene(self.scene)
+
+    def set_advanced_tools(self,enabled):
+        # Preserve original tab indices for existing task loaders and preview logic.
+        self.tabs.blockSignals(True)
+        self.tabs.setCurrentIndex(4)
+        for index in range(4):self.tabs.setTabVisible(index,enabled)
+        self.tabs.tabBar().setVisible(enabled)
+        self.tabs.blockSignals(False)
+        self.advanced_tools.setText('收起位置库与离线诊断' if enabled else '展开位置库与离线诊断')
+        if hasattr(self,'scene'):self.tab_changed(4)
 
     def open_safety_wall(self):
         if hasattr(self,'workbench_router'):return self.workbench_router('wall')
@@ -352,7 +365,7 @@ class ProbeWorkspaceDialog(QDialog):
             self.invalidate_preview();self.vision_summary.setText('未生成：'+str(exc));self.message(str(exc),True)
 
     def message(self,text,error=False):
-        self.message_label.setText(text);self.message_label.setStyleSheet('color:#b45309;' if error else '')
+        self.message_label.show_message(text,'error' if error else 'info')
 
     def connect_feedback(self):
         if self.connecting:return

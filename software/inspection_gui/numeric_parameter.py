@@ -25,7 +25,8 @@ class NumericParameter(QComboBox):
         self.lineEdit().setValidator(validator)
         self.blockSignals(True);self.clear();self.addItems([format(v,'g') for v in values])
         self.setCurrentText(format(default,'g'));self.blockSignals(False)
-        self.setToolTip(f'可选择常用值，也可直接输入：{minimum:g}–{maximum:g}'+('，仅支持整数' if integer else ''))
+        limits=f'{minimum:g}–{maximum:g}' if math.isfinite(maximum) else f'至少{minimum:g}；不设软件速度上限，实际由控制器校验'
+        self.setToolTip('可选择常用值，也可直接输入：'+limits+('，仅支持整数' if integer else ''))
         self._sync_buttons()
 
     def step_by(self,direction):
@@ -41,7 +42,7 @@ class NumericParameter(QComboBox):
         self.minus_button.setEnabled(self.isEnabled() and (value is None or value>self.minimum))
         self.plus_button.setEnabled(self.isEnabled() and (value is None or value<self.maximum))
         self.minus_button.setToolTip(f'减少 {self.increment:g}；最小 {self.minimum:g}')
-        self.plus_button.setToolTip(f'增加 {self.increment:g}；最大 {self.maximum:g}')
+        self.plus_button.setToolTip(f'增加 {self.increment:g}'+(f'；最大 {self.maximum:g}' if math.isfinite(self.maximum) else ''))
 
     def resizeEvent(self,event):
         super().resizeEvent(event)
@@ -57,6 +58,6 @@ class NumericParameter(QComboBox):
         try:value=float(self.currentText().strip())
         except ValueError:raise ValueError('参数不能为空，且必须是数值')
         if not math.isfinite(value) or not self.minimum<=value<=self.maximum:
-            raise ValueError(f'参数范围：{self.minimum:g}–{self.maximum:g}')
+            raise ValueError(f'参数范围：{self.minimum:g}–{self.maximum:g}' if math.isfinite(self.maximum) else f'参数需为至少{self.minimum:g}的有限数值')
         if self.integer and not value.is_integer():raise ValueError('速度或倍率需要输入整数')
         return int(value) if self.integer else value

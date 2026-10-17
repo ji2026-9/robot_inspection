@@ -51,6 +51,8 @@ class WallTests(unittest.TestCase):
         state=type('State',(),{'probe_only':True,'safety_wall':dict(DEFAULT_WALL,visible=True,direction_confirmed=True,margin_mm=40,distance_mm=250)})()
         with patch.object(scene,'gl',fake):scene.Scene3D._draw_safety_wall(state)
         fake.glPushAttrib.assert_called_once();fake.glPopAttrib.assert_called_once()
+        fake.glBlendFuncSeparate.assert_called_once_with(fake.GL_SRC_ALPHA,fake.GL_ONE_MINUS_SRC_ALPHA,
+            fake.GL_ONE,fake.GL_ONE_MINUS_SRC_ALPHA)
         points=[call.args[0] for call in fake.glVertex3fv.call_args_list]
         self.assertTrue(all(point[0]==250 for point in points[:8]))
         self.assertTrue(all(point[0]==210 for point in points[8:12]))

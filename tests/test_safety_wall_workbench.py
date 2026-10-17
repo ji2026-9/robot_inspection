@@ -29,6 +29,8 @@ class IntegrationTests(unittest.TestCase):
             self.assertIsNotNone(page.scene.safety_wall)
             wall=dict(page.editor.config(),visible=True,direction_confirmed=True)
             page.editor.wall_changed.emit(wall)
+            self.assertNotEqual(page.scene.safety_wall,page.workspace.scene.safety_wall)
+            page.editor.service.publish(wall)
             self.assertEqual(page.scene.safety_wall,page.workspace.scene.safety_wall)
             marker={'joints_rad':[0.]*6,'parts':[]}
             page.editor.test_completed.emit(marker);self.assertEqual(page.scene.report,marker)

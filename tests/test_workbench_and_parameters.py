@@ -27,10 +27,10 @@ class ParameterTests(unittest.TestCase):
             with self.assertRaises(ValueError):combo.value()
         c=self.connected();c.unlock(True,1,interactive=True)
         p=c.preview('X',25,12);self.assertEqual(p['target'][0],125);self.assertEqual(p['speed'],12)
-        for delta,speed in [(100.1,1),(.001,1),(1,21),(1,1.5)]:
+        for delta,speed in [(2000.1,1),(.001,1),(1,0),(1,1.5)]:
             with self.assertRaises(ValueError):c.preview('Y',delta,speed)
-        with self.assertRaises(ValueError):c.start_jog('X',1,11)
-        with self.assertRaises(ValueError):c.start_jog('X',1,1,101)
+        with self.assertRaises(ValueError):c.start_jog('X',1,101)
+        with self.assertRaises(ValueError):c.start_jog('X',1,1,-1)
 
     def test_custom_jog_limit_stops_and_rearms_without_queuing(self):
         c=self.connected();c.unlock(True,1,interactive=True);c.start_jog('X',1,3,2.5)

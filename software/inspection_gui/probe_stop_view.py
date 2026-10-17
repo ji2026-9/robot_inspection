@@ -1,6 +1,7 @@
 """Explicit opt-in stop-only UI; never starts physical motion."""
 from pathlib import Path
 import time
+from .ui_feedback import FeedbackLabel
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QDialog,QVBoxLayout,QLabel,QPushButton,QCheckBox,QPlainTextEdit
 from .probe_stop import run_simulation
@@ -48,9 +49,9 @@ class ProbeStopDialog(QDialog):
         self.disable = QPushButton('结束监控（实机监控期间先请求停止）')
         self.disable.clicked.connect(self.disarm)
         layout.addWidget(self.disable)
-        self.status = QLabel('实机停止监控未启用')
+        self.status = FeedbackLabel('实机停止监控未启用')
         self.status.setWordWrap(True)
-        layout.addWidget(self.status)
+        layout.insertWidget(1,self.status)
         self.detail = QPlainTextEdit()
         self.detail.setReadOnly(True)
         layout.addWidget(self.detail, 1)
@@ -86,6 +87,7 @@ class ProbeStopDialog(QDialog):
 
     def arm(self, checked=False, *, static_only=False):
         try:
+            self.status.clear()
             backend = self.workspace.backend()
             control=getattr(backend,'manual_control',None)
             if control and control.snapshot()['connected']:
@@ -101,9 +103,11 @@ class ProbeStopDialog(QDialog):
                 self.detail.appendPlainText('等待轻触测针一次后松开；不要点动或接触白球。\n本测试不验证运动中可停止。')
         except (ValueError, OSError, AttributeError, KeyError) as exc:
             self.detail.setPlainText('未启用：'+str(exc))
+            self.status.show_message('未启用：'+str(exc),'error')
         self.refresh()
 
     def disarm(self):
+        self.status.clear()
         m = self.monitor()
         if m:
             m.disarm()
@@ -113,9 +117,9 @@ class ProbeStopDialog(QDialog):
         m = self.monitor()
         if m:
             r = m.snapshot()
-            self.status.setText(r['state']+' · '+r['reason']+
+            self.status.set_status(r['state']+' · '+r['reason']+
                 ('\n日志异常：'+r['save_error'] if r.get('save_error') else ''))
-            self.status.setStyleSheet('color:#b42318' if r['state']=='failed' else '')
+            if r['state']=='failed' or r.get('save_error'):self.status.show_message(r['reason']+('；日志异常：'+r['save_error'] if r.get('save_error') else ''),'error')
         self.controls()
         control=getattr(self.workspace.backend(),'manual_control',None)
         if control and control.snapshot()['connected']:

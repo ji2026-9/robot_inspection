@@ -7,6 +7,7 @@ from .probe_workspace import atomic_json
 DEFAULT_WALL=dict(schema_version=1,frame='robot_b_base',units='mm',direction_confirmed=False,
                   yaw_deg=0.,distance_mm=330.,margin_mm=0.,width_mm=3000.,height_mm=2000.,
                   bottom_mm=0.,visible=False,geometry_verified=False,motion_enforced=False)
+DEFAULT_WALL.update(wall_confirmed=False,tool_envelope_confirmed=False,tool_radius_mm=50.,stop_reserve_mm=50.)
 
 
 def validate_wall(data):
@@ -23,6 +24,14 @@ def validate_wall(data):
     for key in ('visible','direction_confirmed'):
         if type(data.get(key)) is not bool:raise ValueError('安全墙选项无效：'+key)
         result[key]=data[key]
+    for key in ('wall_confirmed','tool_envelope_confirmed'):
+        value=data.get(key,False)
+        if type(value) is not bool:raise ValueError('安全墙确认项无效：'+key)
+        result[key]=value
+    for key,low,high in (('tool_radius_mm',1,500),('stop_reserve_mm',10,1000)):
+        value=data.get(key,DEFAULT_WALL[key])
+        if type(value) not in (int,float) or not math.isfinite(value) or not low<=value<=high:raise ValueError('安全墙保护参数无效：'+key)
+        result[key]=float(value)
     if result['margin_mm']>=result['distance_mm']:raise ValueError('预留距离必须小于底座中心到玻璃的距离')
     if result['visible'] and not result['direction_confirmed']:raise ValueError('请先选择玻璃相对底座坐标轴的方向')
     # A saved file can never certify geometry or authorize real motion.
@@ -36,7 +45,9 @@ def load_wall(path):
 
 
 def save_wall(path,data):
-    result=validate_wall(data);atomic_json(path,result);return result
+    result=validate_wall(data)
+    from .config_history import archive_config
+    path=Path(path);archive_config(path,'wall');atomic_json(path,result);return result
 
 
 def wall_vertices(data,boundary=False):

@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "build_id": "2026.10.17-github-sync",
+  "git": {
+    "head": "df16536fa038905a293d9353f1fc9bc0d9cc3968",
+    "remote": "https://github.com/ji2026-9/robot_inspection.git",
+    "dirty_entries": 5,
+    "remote_fetched_during_snapshot": false,
+    "publish_status": "Not inferred; see UPDATES.md",
+    "head_note": "HEAD when snapshot was generated; may precede the commit containing this snapshot"
+  },
+  "local_paths": {
+    "repository": "E:\\robot_project\\robot_inspection",
+    "runtime": "E:\\robot_project\\inspection_app",
+    "development_python": "E:\\robot_project\\robot_inspection\\.venv\\Scripts\\python.exe"
+  },
+  "source_sha256": {
+    "software/app.py": "0a532c1b8c71c5218652aed7999dabc5b013cbc5cf993e12bdb7637686edcc7b",
+    "software/detect_core.py": "4019dcb02563a6c9a65719ba993ab9e3b143c6af24fe895882ca8a0fdd9d38bd",
+    "software/inspection_gui/circle_measurement.py": "913b3832268cd41af299a3278de5ad314e2594d6349c343c1c19b0a641af07bf",
+    "software/inspection_gui/circle_measurement_view.py": "f997cfd69e13d32f65fb34e7f567b5cdf97a01d125ca025ee85700262d67e343",
+    "software/inspection_gui/config_history.py": "22f4f1089c4d9015e0de46dfc2ccb5050ccbbaa7d79ef067a9e115e9bda55d8f",
+    "software/inspection_gui/config_history_view.py": "8efb063d58a7056e9fc5f6e549df9e28d723dd64da6c2370e0927d3585d20177",
+    "software/inspection_gui/control_overview.py": "b710c3daafa04ecef584c5d370963d9b6512f5f58196797fc6315ffffd77cbf2",
+    "software/inspection_gui/coordinate_target.py": "9ed8865dd1ba309e185b62df2c7a60b68f07bc69d455ddecf4fb8bd57cede0ec",
+    "software/inspection_gui/coordinate_target_view.py": "9cabccb0cad84dd5fbf95c859c9ed47125cf795b33c9160f8dcc1daba988d87e",
+    "software/inspection_gui/devices_view.py": "68be3fe75f20285e08487bf75be28478986a433b154ecd0c175013d6bf8f727b",
+    "software/inspection_gui/dobot_feedback.py": "577130eac533ab62b5cad4cff6a9b298a0d1500ccc2388f2a04ac612d03f20c3",
+    "software/inspection_gui/event_history_view.py": "97823618e223652176e978a573a681e5f96951689106de4aa95c96575144118c",
+    "software/inspection_gui/global_status_view.py": "79fbd17b452bbeccbe8791b29c846c5066e81fac9f1d770382d9bd670c485d96",
+    "software/inspection_gui/global_wall.py": "6d1fd7c4269c592bcc0285e791244671c6def00f91fdd9818eed3b4ce379bf97",
+    "software/inspection_gui/gui.py": "ac9765585b8819b4db6df00176c598a81082035b1808b92d14151415ae5e9dd5",
+    "software/inspection_gui/manual_control.py": "3616982878718d6e0fdb109e7627df69b45c3d7b82471c05c06430f435620e5c",
+    "software/inspection_gui/manual_control_view.py": "a4a2ed935217e46d601cae509791e48dd28673f04b3a3b9a84dae3925a57ca3d",
+    "software/inspection_gui/manual_origin.py": "b0680c9b109f97ebbcd5936e4331a2055f467172d46c5365ef831ce8281d441e",
+    "software/inspection_gui/manual_preview.py": "54d6e75f89a24910e3f54960e7423f18ad7061278250fec7a9e19efc5efaf318",
+    "software/inspection_gui/page_style.py": "98774267ff897bcbf995b9f813cd258c7f60399ca77e6a98ffd025c4e4d45ff8",
+    "software/inspection_gui/probe_trigger.py": "1c73f267feffc2d4d6c1446d32ec3dc435cce144ca1c576ccb0d7bebabe1f6c5",
+    "software/inspection_gui/probe_workspace_view.py": "5aa1012cbfd0b5956eccb3620d0f242c467b19c263f93b05f67dea7acf487a92",
+    "software/inspection_gui/safety_wall.py": "700a871ead9c11627c978aa373591df93199704c85c9e8bd03b1605ea7d94acf",
+    "software/inspection_gui/simulation_scene3d.py": "9886af68d097209dca8243d20331e8bcdd76ee85682f35c0220c2ec0ea97ad89",
+    "software/inspection_gui/start_guide.py": "1803346c94caabfe9b20985964d9f9738aef1529efab847181d5dccbe9e23075",
+    "software/inspection_gui/target_table.py": "d507706cc3957211b3b8ec7c0003d165111f457727c63ae2ae35fa20c3423831",
+    "software/inspection_gui/target_task.py": "dc5fad5a781a106cc979aceb7f7f6b1d077e0293b8c5d396c9ba94bd4d0ea340",
+    "software/inspection_gui/ui_events.py": "cc9286d45ee9c4d2b2567904e0c980a6ba60ecfebf13b0dedb3e345e61da73f8",
+    "software/inspection_gui/ui_feedback.py": "84d7a9ba05c4a062e70facbe7a95dada9bb1bde163c838311f282828439fb253",
+    "software/inspection_gui/wall_guard.py": "e52a8f7b0e91ebded46df33e43d645e9f278a7654c69ab67884c57b513866a62",
+    "software/inspection_gui/workbench.py": "184817a68aba48c8c709ecfd436f610df0997a8bc19daf918b371f3cc5284826"
+  },
+  "manifest_sha256": "310ec94576370d80d9c9f5ae6ec079dd01803d6a10ce456f68b6fe68fcf2a867",
+  "runtime_comparison": {
+    "available": true,
+    "checked_files": 31,
+    "different_or_missing": []
+  },
+  "validation": {
+    "updated_at": "2026-10-17T15:34:08.080121+08:00",
+    "build_id": "2026.10.17-github-sync",
+    "full_suite": {
+      "total": 298,
+      "passed": 298,
+      "skipped": 0
+    },
+    "offline_opengl_qa": true,
+    "asynchronous_errors": 0,
+    "hardware_connected": false,
+    "robot_moved": false,
+    "backup": "E:\\robot_project\\_backup_synced_remote_20261017_153408",
+    "evidence": [
+      "docs/handoff/latest_tests.txt",
+      "scripts/qa_workflows_offline.py"
+    ],
+    "ui_checks": [
+      "unknown geometry displayed globally; actual motion locked; no default file written",
+      "visible persistent errors and next actions, invalid selected target with coordinates, wall validation notice, probe notice, checkbox selection, persisted custom origin, separate return preview, two target route, real OpenGL rendering, expanded preview, visible Stop and nonblocking warning; no hardware networking",
+      "origin intent survives generic re-preview with coincident input, task table, grouped navigation, circle demo, history/config pages, global Esc requests only Stop",
+      "shutdown cleans up pages and timers"
+    ],
+    "github_pushed": true,
+    "pull_request": "https://github.com/ji2026-9/robot_inspection/pull/2",
+    "sync_branch": "sync/project-update-20261017",
+    "merge_status": "Explicit authorization received; verify final merge result at pull_request URL",
+    "automatic_main_merge_authorized": true
+  },
+  "notes": [
+    "Lightweight snapshot, not a guarantee of complete project or hardware acceptance.",
+    "No model weights, raw probe records, credentials or hardware connections read.",
+    "Update prose STATUS and UPDATES separately; this script does not infer progress."
+  ],
+  "generated_at": "2026-10-17T15:40:47.050225+08:00"
+}

@@ -14,6 +14,7 @@ import threading
 import time
 import uuid
 from .probe_workspace import atomic_json
+_GLOBAL_GUARD=object()
 
 
 class ControlChannel:
@@ -55,7 +56,7 @@ class ControlChannel:
         target = plan['target']
         if len(target)!=6 or not all(math.isfinite(x) for x in target):
             raise ValueError('目标坐标无效')
-        if type(plan['speed']) is not int or not 1<=plan['speed']<=20 or not .01<=plan['distance']<=2000:
+        if type(plan['speed']) is not int or plan['speed']<1 or not .01<=plan['distance']<=2000:
             raise ValueError('移动参数超出范围')
         if plan['user']!=0 or type(plan['tool']) is not int or not 0<=plan['tool']<=255:
             raise ValueError('坐标系编号无效')
@@ -83,13 +84,13 @@ class ControlChannel:
     def jog(self, plan, cancelled):
         """V4 native jog. SpeedFactor is a percentage, not an absolute speed.
 
-        Leave the selected low global ratio in effect; never restore a higher
+        Leave the explicitly selected global ratio in effect; never restore a higher
         speed automatically. A release during the speed ACK cancels MoveJog.
         """
         if plan['axis'] not in ('X','Y','Z') or type(plan['sign']) is not int or plan['sign'] not in (-1,1):
             raise ValueError('点动方向无效')
-        if type(plan['ratio']) is not int or not 1<=plan['ratio']<=10:
-            raise ValueError('点动倍率范围为1%–10%')
+        if type(plan['ratio']) is not int or not 1<=plan['ratio']<=100:
+            raise ValueError('控制器点动倍率范围为1%–100%')
         if plan['user']!=0 or type(plan['tool']) is not int or not 0<=plan['tool']<=9:
             raise ValueError('点动仅支持用户0及工具0–9')
         if cancelled():return None
@@ -106,7 +107,7 @@ class ControlChannel:
 
 
 class ManualControl:
-    def __init__(self, audit_directory, channel_factory=ControlChannel, clock=time.monotonic):
+    def __init__(self, audit_directory, channel_factory=ControlChannel, clock=time.monotonic, *, wall_guard=_GLOBAL_GUARD):
         self.clock=clock;self.factory=channel_factory;self.directory=Path(audit_directory)
         self.lock=threading.RLock();self.stop_event=threading.Event();self.closing=threading.Event()
         self.wake_event=threading.Event()
@@ -118,6 +119,12 @@ class ManualControl:
         self.stop_frames=[];self.stop_configuration=None
         self.resume_context=None
         self.interactive=False;self.auto_rearm=False
+        if wall_guard is _GLOBAL_GUARD:
+            from .global_wall import wall_service
+            from .wall_guard import WallGuard
+            wall_guard=WallGuard(wall_service(self.directory.parent/'safety_wall.json'))
+        self.wall_guard=wall_guard
+        if wall_guard is not None:wall_guard.service.bind_controller(self)
 
     @staticmethod
     def validate_feedback(f):
@@ -167,6 +174,10 @@ class ManualControl:
 
     def snapshot(self):
         with self.lock:
+            wall_reason=''
+            if self.wall_guard:
+                try:self.wall_guard.ready()
+                except ValueError as exc:wall_reason=str(exc)
             ok=True;detail='反馈条件满足'
             try:self._fresh()
             except (ValueError,TypeError,KeyError) as exc:ok=False;detail=str(exc)
@@ -179,8 +190,9 @@ class ManualControl:
                         interactive=self.interactive,
                         motion_kind=getattr(self,'active_plan',{}).get('kind','step') if self.phase=='moving' else None,
                         resumable=self.resume_context is not None,
-                        can_unlock=self.connected and self.phase=='locked' and ok,
+                        can_unlock=self.connected and self.phase=='locked' and ok and not wall_reason,
                         safety=dict(feedback_ok=ok,feedback_reason=detail,feedback_age_ms=age,
+                            wall_ok=not wall_reason,wall_reason=wall_reason,
                             stop_state=self.stop_state,stop_reason=self.stop_reason,
                             can_reset=self.connected and self.phase=='latched' and self.stop_state=='verified' and ok,
                             can_resume=self.connected and self.phase=='latched' and self.stop_state=='verified' and ok
@@ -248,6 +260,7 @@ class ManualControl:
     def unlock(self, confirmations, payload_kg, *, interactive=False):
         with self.lock:
             f=self._fresh()
+            if self.wall_guard:self.wall_guard.ready()
             if not self.connected or self.phase!='locked':raise ValueError('请先连接并检查控制通道')
             if confirmations is not True or not math.isfinite(payload_kg) or not 0<payload_kg<=5:
                 raise ValueError('需确认实际负载、重心配置及现场条件')
@@ -259,17 +272,17 @@ class ManualControl:
             self.stop_event.clear();self.stop_handled=False;self.phase='ready'
             self.reason='点动控制已启用；按住方向移动，松开停止' if self.interactive else '已解锁60秒；先预览，再按住执行'
 
-    def start_jog(self, axis, sign, ratio=1, max_distance_mm=100):
+    def start_jog(self, axis, sign, ratio=1, max_distance_mm=None):
         with self.lock:
             f=self._fresh()
             if not self.interactive or self.phase!='ready' or not self.permit or self.clock()>=self.expires:
                 raise ValueError('请先启用点动控制；停止反馈未完成时请松手后重新按下')
             if axis not in ('X','Y','Z') or type(sign) is not int or sign not in (-1,1):
                 raise ValueError('点动方向无效')
-            if type(ratio) is not int or not 1<=ratio<=10 or not 0<=f['tool_index']<=9:
+            if type(ratio) is not int or not 1<=ratio<=100 or not 0<=f['tool_index']<=9:
                 raise ValueError('点动倍率或工具编号不支持')
-            if type(max_distance_mm) not in (int,float) or not math.isfinite(max_distance_mm) or not .01<=max_distance_mm<=100:
-                raise ValueError('点动单次距离上限为0.01–100 mm')
+            if max_distance_mm is not None and (type(max_distance_mm) not in (int,float) or not math.isfinite(max_distance_mm) or max_distance_mm<.01):
+                raise ValueError('自定义点动行程需为至少0.01 mm的有限数值')
             if self.config(f)!=self.configuration:raise ValueError('工具或用户配置已变化')
             self.plan=dict(id=uuid.uuid4().hex,kind='jog',axis=axis,sign=sign,ratio=ratio,
                 max_distance_mm=max_distance_mm,
@@ -282,10 +295,9 @@ class ManualControl:
             f=self._fresh()
             if self.phase!='ready' or not self.permit or self.clock()>=self.expires:
                 raise ValueError('运动锁定或授权到期')
-            max_distance=100 if self.interactive else 1
-            max_speed=20 if self.interactive else 5
-            if axis not in ('X','Y','Z') or not math.isfinite(delta) or not .01<=abs(delta)<=max_distance or type(speed) is not int or not 1<=speed<=max_speed:
-                raise ValueError(f'仅允许 XYZ 单轴0.01–{max_distance} mm、1–{max_speed} mm/s')
+            max_distance=2000 if self.interactive else 1
+            if axis not in ('X','Y','Z') or not math.isfinite(delta) or not .01<=abs(delta)<=max_distance or type(speed) is not int or speed<1 or (not self.interactive and speed>5):
+                raise ValueError(f'XYZ单轴距离需为0.01–{max_distance} mm，速度需为正整数；实际速度由控制器校验')
             if self.config(f)!=self.configuration:raise ValueError('工具或用户配置已变化')
             target=f['pose'][:];target[('X','Y','Z').index(axis)]+=delta
             if not self.interactive and (math.dist(target[:3],self.anchor[:3])>5 or self.used_distance+abs(delta)>5):
@@ -312,8 +324,8 @@ class ManualControl:
                 raise ValueError('目标位姿需要6个有限数值')
             if f['user_index']!=0:
                 raise ValueError('目标必须使用基座用户坐标系0')
-            if type(speed) is not int or not 1<=speed<=10:
-                raise ValueError('坐标到点速度范围1–10 mm/s')
+            if type(speed) is not int or speed<1:
+                raise ValueError('目标速度需为正整数 mm/s，最大运动速度由控制器校验')
             distance=math.dist(f['pose'][:3],target[:3])
             if not .01<=distance<=2000:
                 raise ValueError('目标距离超出0.01–2000 mm，请分段设置')
@@ -324,6 +336,21 @@ class ManualControl:
                 config=self.configuration,generation=self.connection_generation,permit=self.permit,created=self.clock())
             return copy.deepcopy(self.plan)
 
+    def preview_route(self,targets,speed=5):
+        """Approve an ordered route; only one segment is sent at a time."""
+        with self.lock:
+            f=self._fresh()
+            if not isinstance(targets,list) or not 1<=len(targets)<=20:raise ValueError('路线需要1–20个目标')
+            previous=f['pose'];poses=copy.deepcopy(targets)
+            for pose in poses:
+                if len(pose)!=6 or any(type(x) not in (int,float) or not math.isfinite(x) for x in pose):raise ValueError('目标位姿无效')
+                if not .01<=math.dist(previous[:3],pose[:3])<=2000:raise ValueError('相邻目标距离需为0.01–2000 mm')
+                if max(abs((a-b+180)%360-180) for a,b in zip(pose[3:],f['pose'][3:]))>.01:raise ValueError('路线须保持当前工具姿态')
+                previous=pose
+            self.preview_target(poses[0],speed)
+            self.plan.update(route_tail=poses[1:],route_index=1,route_count=len(poses))
+            return copy.deepcopy(self.plan)
+
     def execute(self, plan_id):
         with self.lock:
             if self.phase!='ready':raise ValueError('已有移动或停止请求未结束')
@@ -331,7 +358,7 @@ class ManualControl:
             self._record('move_requested',plan=self.plan)
             self.tasks.put_nowait(copy.deepcopy(self.plan))
             if self.plan.get('kind')=='target':
-                self.hold_until=self.clock()+max(30.,self.plan['distance']/self.plan['speed']*2+20.)
+                self.hold_until=self.clock()+600.
             else:
                 self.hold_until=self.clock()+.2
             self.phase='queued';self.reason='等待发送单条定距移动'
@@ -339,11 +366,12 @@ class ManualControl:
 
     def maintain_hold(self):
         with self.lock:
-            if self.phase in ('queued','moving') and self.permit:
+            if self.phase in ('queued','moving') and self.permit and (self.plan or {}).get('kind')!='target':
                 self.hold_until=self.clock()+.2
 
     def _validate_plan(self, plan_id):
         f=self._fresh();p=self.plan
+        if self.wall_guard:self.wall_guard.ready()
         if not self.permit or not p or p['id']!=plan_id or p['permit']!=self.permit or self.stop_event.is_set():
             raise ValueError('预览已失效或运动锁定')
         if self.clock()>=self.expires or self.clock()-p['created']>10:
@@ -420,8 +448,16 @@ class ManualControl:
         if lateral>.2 or orientation>.5:
             raise ValueError('反馈偏离目标直线路径或姿态')
         if (self.clock()>self.accepted_at and f['mode']==5 and not f['running']
-            and f.get('pose_stable') and math.dist(cur[:3],target[:3])<=.05):
+            and f.get('pose_stable') and math.dist(cur[:3],target[:3])<=(.005 if p.get('route_count') else .05)
+            and (not p.get('route_count') or f['received_monotonic']>self.accepted_at)):
             self.phase='ready';self.plan=None;self.reason='反馈到达目标；下一步需重新预览'
+            if p.get('route_tail'):
+                tail=p['route_tail'];index=p['route_index']+1
+                self.preview_target(tail[0],p['speed'])
+                self.plan.update(route_tail=tail[1:],route_index=index,route_count=p['route_count'])
+                self.execute(self.plan['id'])
+                self.reason=f'已到目标 {index-1}/{p["route_count"]}，正在核验下一段'
+            elif p.get('route_count'):self.reason=f'全部 {p["route_count"]} 个目标已到达'
 
     def observe(self, frame, generation, external_monitor=False):
         with self.lock:
@@ -458,6 +494,7 @@ class ManualControl:
             if not self.permit:return
             try:
                 f=self._fresh(require_idle=False)
+                if self.wall_guard:self.wall_guard.monitor(f)
                 if generation!=self.connection_generation or self.config(f)!=self.configuration:
                     raise ValueError('连接或坐标配置变化')
                 jogging=self.phase=='moving' and self.active_plan.get('kind')=='jog'
@@ -472,19 +509,20 @@ class ManualControl:
                     else:
                         axis=('X','Y','Z').index(p['axis'])
                         along=f['pose'][axis]-p['start'][axis]
-                        if jogging:outside=not -.2<=along*p['sign']<=100
+                        if jogging:outside=along*p['sign']<-.2
                         else:outside=not min(p['start'][axis],p['target'][axis])-.2<=f['pose'][axis]<=max(p['start'][axis],p['target'][axis])+.2
                         if (any(abs(f['pose'][i]-p['start'][i])>.2 for i in range(3) if i!=axis)
                             or any(abs((f['pose'][i]-p['start'][i]+180)%360-180)>.5 for i in range(3,6))
                             or outside):
                             raise ValueError('反馈偏离预览方向或姿态')
-                        if jogging and along*p['sign']>=p.get('max_distance_mm',100):
+                        if jogging and p.get('max_distance_mm') is not None and along*p['sign']>=p['max_distance_mm']:
                             self.request_stop('已到本次点动距离上限',recoverable=True,auto_rearm=True);return
                         if (not jogging and self.clock()>self.accepted_at and f['mode']==5 and not f['running']
                             and f.get('pose_stable') and math.dist(f['pose'][:3],p['target'][:3])<=.05):
                             self.phase='ready';self.plan=None;self.reason='反馈到达目标；下一步需重新预览'
             except (ValueError,KeyError,TypeError) as exc:
                 self.request_stop(str(exc))
+                if self.wall_guard and '安全墙' in str(exc):self.wall_guard.service.warn(exc)
 
     def _run(self):
         try:
@@ -526,11 +564,31 @@ class ManualControl:
                     try:self._validate_plan(plan['id'])
                     except ValueError as exc:
                         self.plan=None;self.phase='ready';self.reason=str(exc);continue
+                    initial=copy.deepcopy(self.latest)
+                # Full path analysis must not hold the controller lock: DI,
+                # release and manual Stop can cancel the solver immediately.
+                if self.wall_guard:
+                    try:
+                        revision=self.wall_guard.check_request(initial,plan,lambda:self.stop_event.is_set() or self.closing.is_set())
+                    except (ValueError,InterruptedError,KeyError,TypeError,OSError) as exc:
+                        with self.lock:
+                            if not self.stop_event.is_set():self.plan=None;self.phase='ready';self.reason=str(exc)
+                        if '安全墙' in str(exc):self.wall_guard.service.warn(exc,'虚拟预览')
+                        continue
+                with self.lock:
+                    if self.stop_event.is_set() or not self.permit:continue
+                    try:
+                        self._validate_plan(plan['id'])
+                        if self.wall_guard and revision!=self.wall_guard.service.revision:raise ValueError('全局安全墙已变化，取消目标')
+                    except ValueError as exc:self.plan=None;self.phase='ready';self.reason=str(exc);continue
                     if plan.get('kind')=='jog':duration=30
-                    elif plan.get('kind')=='target':duration=max(30.,plan['distance']/plan['speed']*2+20.)
+                    elif plan.get('kind')=='target':
+                        scale=self.latest.get('speed_percent',100)
+                        scale=scale if type(scale) in (int,float) and math.isfinite(scale) and 1<=scale<=100 else 100
+                        duration=min(600.,max(30.,plan['distance']/plan['speed']/(scale/100)*2+20.))
                     elif self.interactive:
                         scale=self.latest.get('speed_percent',100)
-                        scale=scale if type(scale) is int and 1<=scale<=100 else 100
+                        scale=scale if type(scale) in (int,float) and math.isfinite(scale) and 1<=scale<=100 else 100
                         duration=min(600,max(5,plan['distance']/plan['speed']/(scale/100)*1.5+5))
                     else:duration=5
                     self.active_plan=plan;self.accepted_at=None;self.motion_deadline=self.clock()+duration
@@ -542,7 +600,7 @@ class ManualControl:
                     if command is None:continue
                 else:command=self.channel.move(plan)
                 with self.lock:
-                    self.accepted_at=self.clock();self.reason='移动指令已应答；等待真实反馈，松开可停止'
+                    self.accepted_at=self.clock();self.reason=('目标指令已应答；等待真实反馈，可点击停止中断' if plan.get('kind')=='target' else '移动指令已应答；等待真实反馈，松开可停止')
                     self._record('move_acknowledged',command=command)
         except Exception as exc:
             self.permit=None;self.plan=None;self.resume_context=None

@@ -53,7 +53,7 @@ class TriggerDispatchTests(unittest.TestCase):
         now=[100.];channels=[]
         def factory(address):
             channel=helpers.FakeChannel(address);channels.append(channel);return channel
-        c=ManualControl(Path.cwd()/'.test-output'/'stop-priority'/uuid.uuid4().hex,factory,lambda:now[0])
+        c=ManualControl(Path.cwd()/'.test-output'/'stop-priority'/uuid.uuid4().hex,factory,lambda:now[0],wall_guard=None)
         c.observe(helpers.frame(),1);c.connect('127.0.0.1',1)
         try:
             self.assertTrue(helpers.wait(lambda:c.snapshot()['connected']))
@@ -76,7 +76,7 @@ class TriggerDispatchTests(unittest.TestCase):
                 return '5' if cmd=='RobotMode()' else ''
             def close(self):pass
         now=[100.];folder=Path.cwd()/'.test-output'/'stop-dispatch'/uuid.uuid4().hex
-        c=ManualControl(folder,Channel,lambda:now[0]);backend=DobotFeedback();backend.manual_control=c;backend.generation=1
+        c=ManualControl(folder,Channel,lambda:now[0],wall_guard=None);backend=DobotFeedback();backend.manual_control=c;backend.generation=1
         c.observe(helpers.frame(),1);c.connect('127.0.0.1',1)
         try:
             self.assertTrue(helpers.wait(lambda:c.snapshot()['connected']))
@@ -95,7 +95,7 @@ class TriggerDispatchTests(unittest.TestCase):
 class StopUITests(unittest.TestCase):
     def test_visible_inline_stop_responds_on_press_and_escape(self):
         folder=Path.cwd()/'.test-output'/'stop-ui'/uuid.uuid4().hex
-        workspace=ui.Workspace(folder);workspace.b.manual_control=ManualControl(folder,helpers.FakeChannel)
+        workspace=ui.Workspace(folder);workspace.b.manual_control=ManualControl(folder,helpers.FakeChannel,wall_guard=None)
         p=ManualControlDialog(workspace);p.show();APP.processEvents()
         c=p.controller
         try:

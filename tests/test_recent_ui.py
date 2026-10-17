@@ -143,6 +143,7 @@ class RecentUITests(unittest.TestCase):
         p.controller.observe(self.w.b.snapshot(),1)
         for c in p.checks:c.setChecked(True)
         p.payload.setValue(1)
+        p.controller.wall_guard=None  # This test isolates the preview-expiry UI, not wall configuration.
         p.controller.observe(self.w.b.snapshot(),1);p.refresh()
         with patch.object(QMessageBox,'question',return_value=QMessageBox.StandardButton.Yes):p.unlock_button.click()
         self.assertTrue(p.controller.snapshot()['unlocked'])

@@ -69,12 +69,12 @@ class ContinuousJogTests(unittest.TestCase):
         self.assertFalse(c.auto_rearm)
         self.assertFalse(c.snapshot()['unlocked'])
 
-    def test_jog_distance_and_heartbeat_still_stop(self):
-        for cause in ('distance','heartbeat'):
+    def test_jog_lateral_deviation_and_heartbeat_still_stop(self):
+        for cause in ('deviation','heartbeat'):
             c=self.ready();c.start_jog('X',1);self.assertTrue(wait(lambda:c.accepted_at is not None))
-            if cause=='distance':
+            if cause=='deviation':
                 self.now[0]+=.05;f=frame(self.now[0]);f.update(mode=8,running=True,pose_stable=False)
-                f['pose'][0]+=100.1;c.observe(f,1)
+                f['pose'][1]+=.3;c.observe(f,1)
             else:self.now[0]+=.21
             self.assertTrue(wait(lambda:'Stop()' in self.channels[-1].calls))
             self.assertFalse(c.snapshot()['unlocked']);self.assertFalse(c.auto_rearm)

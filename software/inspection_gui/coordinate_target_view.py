@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QFormLayout,QLabe
 from .coordinate_target import build_target_preview,request_execution,validate_start,EXECUTION_MIN_CLEARANCE_MM
 from .safety_wall import load_wall
 from .simulation_scene3d import Scene3D
+from .stepper import DoubleParameter
 
 class CoordinateTargetDialog(QDialog):
     ready=Signal(object,str,int)
@@ -24,24 +25,24 @@ class CoordinateTargetDialog(QDialog):
         self.hold_orientation=QCheckBox('保持采样时的当前工具姿态');self.hold_orientation.setChecked(True);left.addWidget(self.hold_orientation)
         form=QFormLayout();self.fields=[];left.addLayout(form)
         for name in ('X','Y','Z','Rx','Ry','Rz'):
-            field=QDoubleSpinBox();field.setRange(-2500,2500) if len(self.fields)<3 else field.setRange(-360,360)
+            field=DoubleParameter();field.setSingleStep(.1);field.setRange(-2500,2500) if len(self.fields)<3 else field.setRange(-360,360)
             field.setDecimals(3);field.setSuffix(' mm' if len(self.fields)<3 else ' °');form.addRow(name,field);self.fields.append(field)
         read=QPushButton('读取当前位置作为目标初值');read.clicked.connect(self.read_current);left.addWidget(read)
-        self.radius=QDoubleSpinBox();self.radius.setRange(0,500);self.radius.setValue(120);self.radius.setSuffix(' mm')
+        self.radius=DoubleParameter();self.radius.setSingleStep(.1);self.radius.setRange(0,500);self.radius.setValue(120);self.radius.setSuffix(' mm')
         form.addRow('工具包络半径（设墙时才需要）',self.radius)
         self.tool_confirm=QCheckBox('已核对包络覆盖全部工具与测针（设墙时才需要）');left.addWidget(self.tool_confirm)
         self.build=QPushButton('生成路径预演');self.build.clicked.connect(self.generate);left.addWidget(self.build)
         self.play=QPushButton('播放预演');self.play.clicked.connect(self.toggle_play);self.play.setEnabled(False);left.addWidget(self.play)
         self.reset=QPushButton('回到预演起点');self.reset.clicked.connect(lambda:self.slider.setValue(0));left.addWidget(self.reset)
         self.collision_pose=QPushButton('查看碰墙姿态');self.collision_pose.clicked.connect(self.show_collision);self.collision_pose.setEnabled(False);left.addWidget(self.collision_pose)
-        row=QHBoxLayout();row.addWidget(QLabel('执行速度'));self.execute_speed=QDoubleSpinBox()
+        row=QHBoxLayout();row.addWidget(QLabel('执行速度'));self.execute_speed=DoubleParameter()
         self.execute_speed.setRange(1,10);self.execute_speed.setDecimals(0);self.execute_speed.setValue(5);self.execute_speed.setSuffix(' mm/s')
         row.addWidget(self.execute_speed);row.addStretch(1);left.addLayout(row)
         section=QLabel('本轮实机授权');section.setStyleSheet('font-weight:600;color:#24415f');left.addWidget(section)
         self.control_state=QLabel('实机控制：未连接');self.control_state.setWordWrap(True);left.addWidget(self.control_state)
         self.session_confirm=QCheckBox('本次工具与现场已核对');left.addWidget(self.session_confirm)
         session_note=QLabel('包含负载与重心、工具坐标及实体急停；人员已离开运动范围。');session_note.setWordWrap(True);left.addWidget(session_note)
-        row=QHBoxLayout();row.addWidget(QLabel('工具总重量'));self.payload=QDoubleSpinBox()
+        row=QHBoxLayout();row.addWidget(QLabel('工具总重量'));self.payload=DoubleParameter()
         self.payload.setRange(0,5);self.payload.setDecimals(3);self.payload.setValue(1.0);self.payload.setSuffix(' kg');row.addWidget(self.payload);row.addStretch(1);left.addLayout(row)
         row=QHBoxLayout();self.connect_control=QPushButton('连接实机控制');self.connect_control.clicked.connect(self.connect_control_channel)
         row.addWidget(self.connect_control);self.enable_control=QPushButton('启用本轮控制');self.enable_control.clicked.connect(self.enable_control_session)
