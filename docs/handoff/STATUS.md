@@ -23,7 +23,7 @@
 - 日常启动由桌面快捷方式运行副本 `app.py`。排错可用上面解释器启动该文件；**不要为看界面而随意重启正在连接实机的用户软件**，优先独立离线测试。
 - 根目录 `start_software.bat` 目前查找 `software/.venv/Scripts/python.exe`，而本机只确认仓库根 `.venv` 存在；这是已记录的启动入口差异，未在本轮修复。换电脑先按下载运行文档部署，不承诺该批处理本机可直接用。
 - `software/app.py` 含历史管理工具入口；日常Qt界面在 `inspection_gui/gui.py`。`engine_bore_local/` 是参考快照，不是权威UI。
-- Git远端 `https://github.com/ji2026-9/robot_inspection.git`。当前 `main` HEAD 为 `1ee6be2`（PR #3 合并提交）；本地工作区干净，与远端 `main` 一致。快照HEAD只表示生成时版本，最终分支与发布结果见UPDATES。
+- Git远端 `https://github.com/ji2026-9/robot_inspection.git`。`main` 已包含 PR #3 的合并提交，本地与远端 `main` 同步。具体 HEAD、快照版本与发布结果以 `state.json` 和UPDATES的实际记录为准，不要凭旧摘要推定。
 
 ## 3. 现场已知与未知
 
